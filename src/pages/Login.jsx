@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import db from '../utils/db';
+import logo from '../assets/logo.png';
 
 const Login = () => {
     const navigate = useNavigate();
@@ -42,7 +43,7 @@ const Login = () => {
             }}>
                 <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
                     <Link to="/">
-                        <img src="/src/assets/logo.png" alt="High Laban" style={{ height: '48px', marginBottom: '1.5rem' }} />
+                        <img src={logo} alt="High Laban" style={{ height: '48px', marginBottom: '1.5rem' }} />
                     </Link>
                     <h1 style={{
                         fontFamily: 'var(--font-display)',

@@ -1,6 +1,7 @@
 import React from 'react';
 import Container from '../UI/Container';
 import styles from './Sections.module.css';
+import aboutCow from '../../assets/about_cow.png';
 
 export default function About() {
     return (
@@ -21,7 +22,7 @@ export default function About() {
                         </ul>
                     </div>
                     <div className={styles.aboutVisual}>
-                        <img src="/src/assets/about_cow.png" alt="High Laban Cow Chef" style={{ width: '100%', height: 'auto', borderRadius: '20px' }} />
+                        <img src={aboutCow} alt="High Laban Cow Chef" style={{ width: '100%', height: 'auto', borderRadius: '20px' }} />
                     </div>
                 </div>
             </Container>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Container from '../UI/Container';
 import styles from './Navbar.module.css';
+import logo from '../../assets/logo.png';
 
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
@@ -19,7 +20,7 @@ export default function Navbar() {
         <nav className={`${styles.navbar} ${scrolled ? styles.scrolled : ''}`}>
             <Container className={styles.navContainer}>
                 <Link to="/login" className={styles.logo}>
-                    <img src="/src/assets/logo.png" alt="High Laban" style={{ height: '40px' }} />
+                    <img src={logo} alt="High Laban" style={{ height: '48px' }} />
                 </Link>
 
                 <button

@@ -1,6 +1,7 @@
 import React from 'react';
 import Container from '../UI/Container';
 import styles from './Sections.module.css';
+import logo from '../../assets/logo.png';
 
 export default function Footer() {
     return (
@@ -8,7 +9,7 @@ export default function Footer() {
             <Container>
                 <div className={styles.footerContainer}>
                     <div className={styles.footerBrand}>
-                        <img src="/src/assets/logo.png" alt="High Laban" style={{ height: '50px', marginBottom: '0.5rem', borderRadius: '10px' }} />
+                        <img src={logo} alt="High Laban" style={{ height: '50px', marginBottom: '0.5rem', borderRadius: '10px' }} />
                     </div>
                     <div className={styles.footerNav}>
 
