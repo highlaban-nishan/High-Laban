@@ -1,0 +1,10 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // ⚠️ WARNING: These rules allow ANYONE to upload/delete files.
+    // Since you are using a custom local login (not Firebase Auth), we cannot restrict this yet.
+    match /{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+}

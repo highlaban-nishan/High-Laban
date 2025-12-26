@@ -1,101 +1,70 @@
-import { db as firestore, COLLECTIONS, isConfigured as isCloudConfigured } from './firebase';
+import { db as firestore, COLLECTIONS } from './firebase';
 import { collection, getDocs, addDoc, updateDoc, doc, deleteDoc, query, orderBy } from 'firebase/firestore';
 
-// --- LocalStorage Helpers (Fallback) ---
-const LOCAL_KEYS = {
-    PRODUCTS: 'highlaban_products',
-    ORDERS: 'highlaban_orders',
-    CUSTOMERS: 'highlaban_customers'
-};
-
-const getLocal = (key) => JSON.parse(localStorage.getItem(key) || '[]');
-const setLocal = (key, data) => localStorage.setItem(key, JSON.stringify(data));
-const generateId = () => Math.random().toString(36).substr(2, 9);
-
-// Check configuration once
-const useCloud = isCloudConfigured();
-if (!useCloud) {
-    console.warn("⚠️ Firebase keys missing. Running in OFFLINE MODE (LocalStorage). Data will not sync across devices.");
-}
+// --- Pure Firestore Implementation ---
 
 const db = {
     // --- Products ---
     getProducts: async () => {
-        if (useCloud) {
-            try {
-                const querySnapshot = await getDocs(collection(firestore, COLLECTIONS.PRODUCTS));
-                const products = [];
-                querySnapshot.forEach((doc) => products.push({ id: doc.id, ...doc.data() }));
-                return products;
-            } catch (error) {
-                console.error("Cloud Error:", error);
-                return getLocal(LOCAL_KEYS.PRODUCTS);
-            }
+        try {
+            const querySnapshot = await getDocs(collection(firestore, COLLECTIONS.PRODUCTS));
+            const products = [];
+            querySnapshot.forEach((doc) => products.push({ id: doc.id, ...doc.data() }));
+            return products;
+        } catch (error) {
+            console.error("Firestore Error:", error);
+            alert("Failed to load products: " + error.message);
+            return [];
         }
-        return getLocal(LOCAL_KEYS.PRODUCTS);
     },
 
     addProduct: async (product) => {
-        if (useCloud) {
-            try {
-                const docRef = await addDoc(collection(firestore, COLLECTIONS.PRODUCTS), product);
-                return { id: docRef.id, ...product };
-            } catch (error) {
-                console.error("Cloud Error:", error);
-            }
+        try {
+            const docRef = await addDoc(collection(firestore, COLLECTIONS.PRODUCTS), product);
+            return { id: docRef.id, ...product };
+        } catch (error) {
+            console.error("Firestore Error:", error);
+            alert("Failed to save to Cloud: " + error.message);
+            throw error;
         }
-        // Fallback
-        const products = getLocal(LOCAL_KEYS.PRODUCTS);
-        const newProduct = { id: generateId(), ...product };
-        products.push(newProduct);
-        setLocal(LOCAL_KEYS.PRODUCTS, products);
-        return newProduct;
     },
 
     updateProduct: async (id, updatedProduct) => {
-        if (useCloud) {
-            try {
-                const productRef = doc(firestore, COLLECTIONS.PRODUCTS, id);
-                await updateDoc(productRef, updatedProduct);
-                return { id, ...updatedProduct };
-            } catch (error) { console.error(error); }
+        try {
+            const productRef = doc(firestore, COLLECTIONS.PRODUCTS, id);
+            await updateDoc(productRef, updatedProduct);
+            return { id, ...updatedProduct };
+        } catch (error) {
+            console.error("Firestore Error:", error);
+            alert("Failed to update product: " + error.message);
+            throw error;
         }
-        // Fallback
-        const products = getLocal(LOCAL_KEYS.PRODUCTS);
-        const index = products.findIndex(p => p.id === id);
-        if (index !== -1) {
-            products[index] = { ...products[index], ...updatedProduct };
-            setLocal(LOCAL_KEYS.PRODUCTS, products);
-        }
-        return { id, ...updatedProduct };
     },
 
     deleteProduct: async (id) => {
-        if (useCloud) {
-            try {
-                await deleteDoc(doc(firestore, COLLECTIONS.PRODUCTS, id));
-                return id;
-            } catch (error) { console.error(error); }
+        try {
+            await deleteDoc(doc(firestore, COLLECTIONS.PRODUCTS, id));
+            return id;
+        } catch (error) {
+            console.error("Firestore Error:", error);
+            alert("Failed to delete product: " + error.message);
+            throw error;
         }
-        // Fallback
-        const products = getLocal(LOCAL_KEYS.PRODUCTS);
-        const newProducts = products.filter(p => p.id !== id);
-        setLocal(LOCAL_KEYS.PRODUCTS, newProducts);
-        return id;
     },
 
     // --- Orders ---
     getOrders: async () => {
-        if (useCloud) {
-            try {
-                const q = query(collection(firestore, COLLECTIONS.ORDERS), orderBy('date', 'desc'));
-                const querySnapshot = await getDocs(q);
-                const orders = [];
-                querySnapshot.forEach((doc) => orders.push({ id: doc.id, ...doc.data() }));
-                return orders;
-            } catch (error) { }
+        try {
+            const q = query(collection(firestore, COLLECTIONS.ORDERS), orderBy('date', 'desc'));
+            const querySnapshot = await getDocs(q);
+            const orders = [];
+            querySnapshot.forEach((doc) => orders.push({ id: doc.id, ...doc.data() }));
+            return orders;
+        } catch (error) {
+            console.error("Firestore Error:", error);
+            alert("Failed to load orders: " + error.message);
+            return [];
         }
-        return getLocal(LOCAL_KEYS.ORDERS);
     },
 
     createOrder: async (orderData) => {
@@ -105,56 +74,43 @@ const db = {
             status: orderData.status || 'completed'
         };
 
-        if (useCloud) {
-            try {
-                const docRef = await addDoc(collection(firestore, COLLECTIONS.ORDERS), finalOrder);
-                return { id: docRef.id, ...finalOrder };
-            } catch (error) { }
+        try {
+            const docRef = await addDoc(collection(firestore, COLLECTIONS.ORDERS), finalOrder);
+            return { id: docRef.id, ...finalOrder };
+        } catch (error) {
+            console.error("Firestore Error:", error);
+            alert("Failed to create order: " + error.message);
+            throw error;
         }
-        // Fallback
-        const orders = getLocal(LOCAL_KEYS.ORDERS);
-        const newOrder = { id: generateId(), ...finalOrder };
-        orders.unshift(newOrder); // Add to top
-        setLocal(LOCAL_KEYS.ORDERS, orders);
-        return newOrder;
     },
 
     resetOrders: async () => {
-        if (useCloud) {
-            alert("Reset All is disabled for Cloud Database safety.");
-            return;
-        }
-        setLocal(LOCAL_KEYS.ORDERS, []);
+        alert("Reset All is disabled for Cloud Database safety.");
     },
 
     // --- Customers ---
     getCustomers: async () => {
-        if (useCloud) {
-            try {
-                const querySnapshot = await getDocs(collection(firestore, COLLECTIONS.CUSTOMERS));
-                const customers = [];
-                querySnapshot.forEach((doc) => customers.push({ id: doc.id, ...doc.data() }));
-                return customers;
-            } catch (error) { }
+        try {
+            const querySnapshot = await getDocs(collection(firestore, COLLECTIONS.CUSTOMERS));
+            const customers = [];
+            querySnapshot.forEach((doc) => customers.push({ id: doc.id, ...doc.data() }));
+            return customers;
+        } catch (error) {
+            console.error("Firestore Error:", error);
+            alert("Failed to load customers: " + error.message);
+            return [];
         }
-        return getLocal(LOCAL_KEYS.CUSTOMERS);
     },
 
     saveCustomer: async (customer) => {
-        if (useCloud) {
-            // Find logic skipped for brevity, implementing simple add
+        try {
             await addDoc(collection(firestore, COLLECTIONS.CUSTOMERS), customer);
-            return;
+        } catch (error) {
+            console.error("Firestore Error:", error);
+            // Silent fail for customer save background op? No, let's alert for now.
+            alert("Failed to save customer: " + error.message);
+            throw error;
         }
-        // Fallback
-        const customers = getLocal(LOCAL_KEYS.CUSTOMERS);
-        const existingIndex = customers.findIndex(c => c.phone === customer.phone);
-        if (existingIndex >= 0) {
-            customers[existingIndex] = { ...customers[existingIndex], ...customer };
-        } else {
-            customers.push({ id: 'CUST-' + generateId(), ...customer });
-        }
-        setLocal(LOCAL_KEYS.CUSTOMERS, customers);
     },
 
     // --- Stats ---

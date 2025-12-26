@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ⚠️ WARNING: These rules allow ANYONE to read/write your database.
+    // Since you are using a custom local login (not Firebase Auth), we cannot restrict this yet.
+    // Before launching to production, you should implement Firebase Authentication.
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

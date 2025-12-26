@@ -286,6 +286,20 @@ const AdminDashboard = () => {
                     <div>
                         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', margin: 0 }}>High Laban</h2>
                         <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>Admin Panel</span>
+                        {!import.meta.env.VITE_FIREBASE_API_KEY && (
+                            <div style={{
+                                marginTop: '10px',
+                                background: '#dc2626',
+                                color: 'white',
+                                padding: '5px 10px',
+                                borderRadius: '4px',
+                                fontSize: '0.75rem',
+                                fontWeight: 'bold'
+                            }}>
+                                ⚠️ OFFLINE MODE <br />
+                                (Missing Config)
+                            </div>
+                        )}
                     </div>
                     {/* Close button for mobile */}
                     <button
