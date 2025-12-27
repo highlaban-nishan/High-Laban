@@ -89,7 +89,9 @@ const AdminDashboard = () => {
         e.preventDefault();
         setIsUploading(true);
         try {
-            await db.addProduct(newProduct);
+            // Race condition to prevent hanging
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Network Timeout: Check your internet or Vercel config.")), 15000));
+            await Promise.race([db.addProduct(newProduct), timeoutPromise]);
             setNewProduct({ name: '', tag: '', price: '', description: '', badge: '', img: '' });
             setShowAddForm(false);
             alert('Product added successfully!');
@@ -202,7 +204,9 @@ const AdminDashboard = () => {
         if (!editingProduct) return;
         setIsUploading(true);
         try {
-            await db.updateProduct(editingProduct.id, editingProduct);
+            // Race condition to prevent hanging
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Network Timeout: Check your internet or Vercel config.")), 15000));
+            await Promise.race([db.updateProduct(editingProduct.id, editingProduct), timeoutPromise]);
             // Update local state
             setProducts(products.map(p => p.id === editingProduct.id ? editingProduct : p));
             setEditingProduct(null);

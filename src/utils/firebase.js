@@ -14,6 +14,17 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+// Validate Config
+if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+    console.error("Firebase Configuration Error: Missing Environment Variables.");
+    if (typeof window !== 'undefined') {
+        // Delay alert slightly to ensure it doesn't block initial rendering
+        setTimeout(() => {
+            console.warn("Missing Firebase Keys. If you are on Vercel, please add them in Project Settings.");
+        }, 1000);
+    }
+}
+
 export const isConfigured = () => {
     return firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY_HERE";
 };
