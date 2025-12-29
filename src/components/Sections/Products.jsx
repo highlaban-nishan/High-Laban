@@ -122,7 +122,7 @@ export default function Products() {
             <Container>
                 <div className={styles.header}>
                     <div className={styles.menuButton}>Our Menu</div>
-                    <h2 className={styles.title}>Crush the craving.</h2>
+                    <h2 id="menu-title" className={styles.title}>Crush the craving.</h2>
                     <p className={styles.description}>
                         17 drops of heaven. Authentic egyptian recipes with a modern twist.
                     </p>

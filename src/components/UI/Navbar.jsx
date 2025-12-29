@@ -29,9 +29,28 @@ export default function Navbar() {
                 </Link>
 
                 <div className={`${styles.links} ${menuOpen ? styles.menuOpen : ''}`}>
-                    <a href="#" onClick={() => setMenuOpen(false)}>OUR STORY</a>
-                    <a href="#" onClick={() => setMenuOpen(false)}>MENU</a>
-                    <a href="#" onClick={() => setMenuOpen(false)}>FRANCHISE</a>
+                    <a href="#story" onClick={(e) => {
+                        e.preventDefault();
+                        setMenuOpen(false);
+                        const element = document.getElementById('story-section');
+                        if (element) {
+                            const y = element.getBoundingClientRect().top + window.scrollY - 100; // Offset for navbar
+                            window.scrollTo({ top: y, behavior: 'smooth' });
+                        }
+                    }}>OUR STORY</a>
+                    <a href="#products" onClick={(e) => {
+                        e.preventDefault();
+                        setMenuOpen(false);
+                        const element = document.getElementById('menu-title');
+                        if (element) {
+                            const y = element.getBoundingClientRect().top + window.scrollY - 100; // 100px offset for navbar
+                            window.scrollTo({ top: y, behavior: 'smooth' });
+                        }
+                    }}>MENU</a>
+                    <a href="#" onClick={(e) => {
+                        e.preventDefault();
+                        setMenuOpen(false);
+                    }}>FRANCHISE</a>
                 </div>
 
                 <a href="#" className={styles.ctaButton}>

@@ -5,7 +5,7 @@ import { FaCheckCircle } from 'react-icons/fa';
 
 export default function Highlights() {
     return (
-        <section className={styles.section}>
+        <section id="story-section" className={styles.section}>
             <Container>
                 <div className={styles.splitLayout}>
                     {/* Left Card */}
