@@ -40,7 +40,6 @@
     align-items: flex-start;
     /* Kept left as per revert */
     text-align: left;
-    /* Kept left as per revert */
     padding-left: 5vw;
     padding-right: 0;
     z-index: 10;
@@ -66,13 +65,12 @@
 
 
 /* Updated repeating animation */
-/* Updated repeating animation */
 .mainTitle {
     font-size: clamp(3rem, 8vw, 6rem);
     line-height: 1;
     font-weight: 900;
     text-transform: uppercase;
-    color: #000;
+    color: #fff;
     margin-bottom: 1rem;
     opacity: 0;
     /* Cinematic Reveal */
@@ -126,6 +124,7 @@
     background: linear-gradient(135deg, #2979ff 0%, #00b0ff 50%, #2979ff 100%);
     background-size: 200% auto;
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     display: block;
     animation: shine 3s linear infinite;
@@ -139,7 +138,7 @@
 
 .subHeadline {
     font-size: 1.2rem;
-    color: #555;
+    color: #fff;
     margin-bottom: 3rem;
     font-weight: 500;
     opacity: 0;
@@ -226,7 +225,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 2px;
-    fill: #000;
+    fill: #fff;
 }
 
 .playCenter {

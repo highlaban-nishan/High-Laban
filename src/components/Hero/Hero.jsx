@@ -2,40 +2,65 @@ import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useScrollProgress } from '../../hooks/useScrollProgress';
 import styles from './Hero.module.css';
 
-const TOTAL_FRAMES = 264;
-const FRAME_PATH = '/webp-sequence/frame_'; // e.g., frame_000_delay... or frame_000.webp depending on download
-// Ideally I should rename them to frame_000.webp in the download script for sanity.
-// I will check the download script output later, but assume standard index.
+// Configuration
+const CONFIG = {
+    mobile: {
+        frames: 210,
+        baseUrl: 'https://pwhyyqvqxmjkbwqlcipn.supabase.co/storage/v1/object/public/scroll%20image/frame_',
+        suffix: '_delay-0.04s.webp'
+    },
+    desktop: {
+        frames: 198,
+        baseUrl: 'https://pwhyyqvqxmjkbwqlcipn.supabase.co/storage/v1/object/public/webp%20sequence/frame_',
+        suffix: '_delay-0.03s.webp'
+    }
+};
 
 export default function Hero() {
     const containerRef = useRef(null);
     const canvasRef = useRef(null);
     const [imagesLoaded, setImagesLoaded] = useState(0);
-
-    // const [isLoading, setIsLoading] = useState(true); // No longer blocking
+    const [isMobile, setIsMobile] = useState(true); // Default to mobile first (or check logic below)
 
     // Progress determines the frame
     const progress = useScrollProgress(containerRef);
 
-    // Preload Images
+    // 1. Detect Screen Size
+    useEffect(() => {
+        const checkMobile = () => {
+            const mobile = window.innerWidth < 768; // Standard breakpoint
+            setIsMobile(mobile);
+        };
+
+        checkMobile(); // Initial check
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    // 2. Select Config based on mode
+    const activeConfig = isMobile ? CONFIG.mobile : CONFIG.desktop;
+
+    // 3. Preload Images (Reloads when isMobile changes)
     const images = useMemo(() => {
+        setImagesLoaded(0); // Reset counter on switch
         const imgs = [];
-        for (let i = 0; i < TOTAL_FRAMES; i++) {
+        const { frames, baseUrl, suffix } = activeConfig;
+
+        for (let i = 0; i < frames; i++) {
             const img = new Image();
-            img.src = `${FRAME_PATH}${String(i).padStart(3, '0')}.webp`;
-            // We'll track loading separately to avoid re-renders during loop
+            const frameNum = String(i).padStart(3, '0');
+            img.src = `${baseUrl}${frameNum}${suffix}`;
+
             img.onload = () => setImagesLoaded(prev => prev + 1);
+            img.onerror = () => console.warn(`Failed to load frame ${i}`); // Debug help
             imgs.push(img);
         }
         return imgs;
-    }, []);
+    }, [activeConfig.frames, activeConfig.baseUrl, activeConfig.suffix]); // Re-run if config changes
 
-    // Effect to handle initial load (optional, if we want to wait for just frame 0)
-    // But immediate render is better.
 
+    // 4. Handle Canvas Resize
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-
-    // Handle Resize
     useEffect(() => {
         const handleResize = () => {
             if (canvasRef.current) {
@@ -49,26 +74,18 @@ export default function Hero() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Render Frame to Canvas
+    // 5. Render Frame to Canvas
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
         const ctx = canvas.getContext('2d');
-        const frameIndex = Math.floor(progress * (TOTAL_FRAMES - 1));
+        // Map progress (0-1) to frame index
+        const frameIndex = Math.floor(progress * (activeConfig.frames - 1));
         const currentImage = images[frameIndex];
 
-        // Progressive Fallback:
-        // If current frame isn't loaded, try to find the nearest loaded frame?
-        // Or just don't draw anything (transparent) which might flicker.
-        // Better: Draw the nearest loaded frame.
-        // For simplicity: If currentImage.complete is true, draw it.
-        // If not, maybe we keep the previous drawing (which is handled by not clearing if we don't draw).
-        // But scroll might have jumped.
-
-        // Simple progressive:
-        if (currentImage && currentImage.complete) {
-            // Draw Image Cover Mode
+        // Draw only if image is fully loaded
+        if (currentImage && currentImage.complete && currentImage.naturalWidth > 0) {
             const { width, height } = canvas;
             const imgRatio = currentImage.width / currentImage.height;
             const canvasRatio = width / height;
@@ -90,8 +107,9 @@ export default function Hero() {
             ctx.clearRect(0, 0, width, height);
             ctx.drawImage(currentImage, offsetX, offsetY, drawWidth, drawHeight);
         }
-    }, [progress, images, imagesLoaded, dimensions]); // Re-run when size changes
+        // Else: keep previous frame (prevents blinking)
 
+    }, [progress, images, imagesLoaded, dimensions, activeConfig.frames]);
 
     return (
         <div className={styles.heroContainer} ref={containerRef}>
@@ -112,8 +130,8 @@ export default function Hero() {
                     </p>
 
                     <div className={styles.buttonGroup}>
-                        <button className={styles.btnPrimary}>Our Flavors</button>
-                        <button className={styles.btnSecondary}>Our Story</button>
+                        <button className={styles.btnPrimary} onClick={() => document.getElementById('menu-title')?.scrollIntoView({ behavior: 'smooth' })}>Our Flavors</button>
+                        <button className={styles.btnSecondary} onClick={() => document.getElementById('story-section')?.scrollIntoView({ behavior: 'smooth' })}>Our Story</button>
                         <div className={styles.playWrapper} onClick={() => document.getElementById('nature')?.scrollIntoView({ behavior: 'smooth' })} style={{ cursor: 'pointer' }}>
                             <div className={styles.rotatingText}>
                                 <svg viewBox="0 0 100 100">

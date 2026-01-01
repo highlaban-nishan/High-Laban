@@ -21,8 +21,8 @@ export default function FranchiseForm({ isOpen, onClose, isModal = true }) {
 
         // Collect form data
         const formData = {
-            name: e.target.querySelector('input[placeholder="John Doe"]').value,
-            email: e.target.querySelector('input[placeholder="john@example.com"]').value,
+            name: e.target.querySelector('input[placeholder="vazir"]').value,
+            email: e.target.querySelector('input[placeholder="vazir@example.com"]').value,
             phone: e.target.querySelector('input[placeholder="+91 98765 43210"]').value,
             street: e.target.querySelector('input[placeholder="Street Address"]').value,
             city: e.target.querySelectorAll('input[placeholder="City"]')[0].value,
@@ -82,11 +82,11 @@ export default function FranchiseForm({ isOpen, onClose, isModal = true }) {
                         <div className={styles.row}>
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>Your Name</label>
-                                <input type="text" className={styles.input} placeholder="John Doe" required />
+                                <input type="text" className={styles.input} placeholder="vazir" required />
                             </div>
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>Your Email</label>
-                                <input type="email" className={styles.input} placeholder="john@example.com" required />
+                                <input type="email" className={styles.input} placeholder="vazir@example.com" required />
                             </div>
                         </div>
                         <div className={styles.fullWidth}>

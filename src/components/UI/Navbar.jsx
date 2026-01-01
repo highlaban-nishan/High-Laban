@@ -4,7 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import styles from './Navbar.module.css';
 import logo from '../../assets/logo.png';
 
-export default function Navbar() {
+export default function Navbar({ onOpenFranchise }) {
     const [menuOpen, setMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
     const navigate = useNavigate();
@@ -55,15 +55,7 @@ export default function Navbar() {
                     <a href="#" className={styles.mobileOnly} onClick={(e) => {
                         e.preventDefault();
                         setMenuOpen(false);
-                        if (location.pathname !== '/') {
-                            navigate('/', { state: { scrollTo: 'franchise-section' } });
-                        } else {
-                            const element = document.getElementById('franchise-section');
-                            if (element) {
-                                const y = element.getBoundingClientRect().top + window.scrollY - 100;
-                                window.scrollTo({ top: y, behavior: 'smooth' });
-                            }
-                        }
+                        if (onOpenFranchise) onOpenFranchise();
                     }}>FRANCHISE</a>
 
                 </div>
@@ -71,18 +63,7 @@ export default function Navbar() {
                 <div className={styles.actionButtons}>
                     <a href="#" className={styles.franchiseButton} onClick={(e) => {
                         e.preventDefault();
-                        const state = { scrollTo: 'franchise-section', openForm: true };
-
-                        if (location.pathname !== '/') {
-                            navigate('/', { state });
-                        } else {
-                            navigate('/', { state, replace: true });
-                            const element = document.getElementById('franchise-section');
-                            if (element) {
-                                const y = element.getBoundingClientRect().top + window.scrollY - 100;
-                                window.scrollTo({ top: y, behavior: 'smooth' });
-                            }
-                        }
+                        if (onOpenFranchise) onOpenFranchise();
                     }}>
                         FRANCHISE
                     </a>

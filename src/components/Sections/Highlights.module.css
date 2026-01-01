@@ -109,18 +109,21 @@
 .storyGrid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
+    gap: 1rem;
+    max-width: 480px;
+    /* Constrain grid width */
 }
 
 .featureItem {
     background: #f8fafc;
-    padding: 1rem 1.5rem;
+    padding: 0.75rem 1rem;
     border-radius: 12px;
     display: flex;
     align-items: center;
     gap: 1rem;
     color: #334155;
     font-weight: 600;
+    font-size: 0.9rem;
     border: 1px solid #e2e8f0;
     transition: transform 0.2s ease;
 }

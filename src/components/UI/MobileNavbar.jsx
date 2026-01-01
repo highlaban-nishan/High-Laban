@@ -3,7 +3,7 @@ import { FaHome, FaUtensils, FaUser } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './MobileNavbar.module.css';
 
-export default function MobileNavbar() {
+export default function MobileNavbar({ onOpenFranchise }) {
     const [activeIndex, setActiveIndex] = useState(0);
     const navigate = useNavigate();
     const location = useLocation();
@@ -14,10 +14,10 @@ export default function MobileNavbar() {
             // Logic to detect section scroll could be added here, 
             // but simplified for now: default to Home.
             if (location.state?.scrollTo === 'products' || location.hash === '#products') setActiveIndex(1);
-            else if (location.state?.scrollTo === 'franchise-section' || location.hash === '#franchise-section') setActiveIndex(2);
+            else if (onOpenFranchise && location.state?.openForm) setActiveIndex(2); // Keep active if form triggered
             else setActiveIndex(0);
         }
-    }, [location]);
+    }, [location, onOpenFranchise]);
 
 
     const menuItems = [
@@ -35,7 +35,7 @@ export default function MobileNavbar() {
         } else if (id === 'menu') {
             scrollToSection('products');
         } else if (id === 'franchise') {
-            scrollToSection('franchise-section');
+            if (onOpenFranchise) onOpenFranchise();
         }
     };
 
