@@ -217,7 +217,7 @@
 /* Tag (Below Image) */
 .tag {
     display: inline-block;
-    align-self: flex-start;
+    align-self: center;
     border: 1px solid #1F83B5;
     /* Blue border */
     color: #ffffff;
@@ -263,6 +263,20 @@
     /* Handled by wrapper's margin */
     line-height: 1.5;
     flex-grow: 1;
+}
+
+.ingredientsTag {
+    display: inline-block;
+    font-size: 0.75rem;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    margin-top: 0.5rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    letter-spacing: 0.5px;
+    border: 1px solid #e2e8f0;
 }
 
 /* Dropdown Animation */

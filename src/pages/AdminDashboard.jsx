@@ -26,7 +26,7 @@ const AdminDashboard = () => {
     const [subscribers, setSubscribers] = useState([]);
     const [franchiseInquiries, setFranchiseInquiries] = useState([]);
     /* Stats removed */
-    const [newProduct, setNewProduct] = useState({ name: '', tag: '', price: '', description: '', badge: '', img: '', images: [] });
+    const [newProduct, setNewProduct] = useState({ name: '', ingredients: '', tag: '', price: '', description: '', badge: '', img: '', images: [] });
 
     // Header Dropdown State
     const [showUserMenu, setShowUserMenu] = useState(false);
@@ -95,7 +95,7 @@ const AdminDashboard = () => {
             // Race condition to prevent hanging (increased to 60s)
             const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Network Timeout: Database is not responding. Check your internet connection or Firebase Quota.")), 60000));
             await Promise.race([db.addProduct(newProduct), timeoutPromise]);
-            setNewProduct({ name: '', tag: '', price: '', description: '', badge: '', img: '', images: [] });
+            setNewProduct({ name: '', ingredients: '', tag: '', price: '', description: '', badge: '', img: '', images: [] });
             setShowAddForm(false);
             alert('Product added successfully!');
             refreshData();
@@ -370,6 +370,10 @@ const AdminDashboard = () => {
                                         <input type="text" placeholder="e.g. Basbousa" value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} className={styles.footerField} style={{ background: '#f8fafc', padding: '10px', border: 'none', borderRadius: '8px', width: '100%', outline: 'none' }} required />
                                     </div>
                                     <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 'bold', color: '#94a3b8', marginBottom: '0.5rem' }}>Ingredients</label>
+                                        <input type="text" placeholder="e.g. Milk, Nuts, Honey" value={newProduct.ingredients || ''} onChange={e => setNewProduct({ ...newProduct, ingredients: e.target.value })} className={styles.footerField} style={{ background: '#f8fafc', padding: '10px', border: 'none', borderRadius: '8px', width: '100%', outline: 'none' }} />
+                                    </div>
+                                    <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 'bold', color: '#94a3b8', marginBottom: '0.5rem' }}>Tag</label>
                                         <input type="text" placeholder="e.g. SWEET CLASSIC" value={newProduct.tag || ''} onChange={e => setNewProduct({ ...newProduct, tag: e.target.value })} className={styles.footerField} style={{ background: '#f8fafc', padding: '10px', border: 'none', borderRadius: '8px', width: '100%', outline: 'none' }} />
                                     </div>
@@ -602,6 +606,10 @@ const AdminDashboard = () => {
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.5rem' }}>Name</label>
                                         <input type="text" value={editingProduct.name} onChange={e => setEditingProduct({ ...editingProduct, name: e.target.value })} className={styles.footerField} style={{ width: '100%', padding: '0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.5rem' }}>Ingredients</label>
+                                        <input type="text" value={editingProduct.ingredients || ''} onChange={e => setEditingProduct({ ...editingProduct, ingredients: e.target.value })} className={styles.footerField} style={{ width: '100%', padding: '0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }} />
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.5rem' }}>Price (₹)</label>

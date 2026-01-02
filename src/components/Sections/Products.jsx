@@ -115,6 +115,12 @@ const ProductCard = ({ product, index, isModal = false }) => {
                 </svg>
             </div>
 
+            {product.ingredients && (
+                <div style={{ marginBottom: '0.5rem' }}>
+                    <span className={styles.ingredientsTag}>{product.ingredients}</span>
+                </div>
+            )}
+
             <div className={`${styles.dropdownWrapper} ${isExpanded ? styles.expanded : ''}`}>
                 <div className={styles.dropdownInner}>
                     <p className={styles.productDescription}>{product.description}</p>
