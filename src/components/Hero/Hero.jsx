@@ -116,6 +116,13 @@ export default function Hero() {
             <div className={styles.stickyWrapper}>
                 <canvas ref={canvasRef} className={styles.heroCanvas} />
 
+                {/* Right Slip / Bookmark */}
+                <div className={styles.rightSlip}>
+                    <div className={styles.slipText}>
+                        GET HIGH ON BITES <span className={styles.slipDot}>•</span> GET HIGH ON BITES <span className={styles.slipDot}>•</span> GET HIGH ON BITES <span className={styles.slipDot}>•</span> GET HIGH ON BITES <span className={styles.slipDot}>•</span>
+                    </div>
+                </div>
+
                 <div className={styles.overlayContent}>
                     <div className={styles.topBadge}>
                         Premium Egyptian Desserts in India
@@ -130,9 +137,9 @@ export default function Hero() {
                     </p>
 
                     <div className={styles.buttonGroup}>
-                        <button className={styles.btnPrimary} onClick={() => document.getElementById('menu-title')?.scrollIntoView({ behavior: 'smooth' })}>Our Flavors</button>
+                        <button className={styles.btnPrimary} onClick={() => document.getElementById('franchise-section')?.scrollIntoView({ behavior: 'smooth' })}>FRANCHISE</button>
                         <button className={styles.btnSecondary} onClick={() => document.getElementById('story-section')?.scrollIntoView({ behavior: 'smooth' })}>Our Story</button>
-                        <div className={styles.playWrapper} onClick={() => document.getElementById('nature')?.scrollIntoView({ behavior: 'smooth' })} style={{ cursor: 'pointer' }}>
+                        <div className={styles.playWrapper} onClick={() => document.getElementById('story-section')?.scrollIntoView({ behavior: 'smooth' })} style={{ cursor: 'pointer' }}>
                             <div className={styles.rotatingText}>
                                 <svg viewBox="0 0 100 100">
                                     <defs>

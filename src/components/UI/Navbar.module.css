@@ -85,7 +85,7 @@
 }
 
 .ctaButton {
-    background: #0055ff;
+    background: #27AAE1;
     /* Bright Blue */
     color: white;
     padding: 0.8rem 1.5rem;
@@ -103,7 +103,7 @@
 }
 
 .ctaButton:hover {
-    background-color: #0044cc;
+    background-color: #27AAE1;
 }
 
 .menuToggle {
@@ -167,7 +167,7 @@
 
 .mobileCta {
     display: none;
-    background: #0055ff;
+    background: #27AAE1;
     color: white;
     padding: 0.8rem 2rem;
     border-radius: 50px;

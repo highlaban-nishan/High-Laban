@@ -275,7 +275,7 @@ const POS = () => {
                         onChange={handlePhoneChange}
                         list="customer-phones"
                         style={{ marginTop: '0.5rem', width: '100%', padding: '5px', border: 'none', borderBottom: '1px solid #eee', fontSize: '0.9rem' }}
-                        placeholder="Phone Number (e.g. 919876543210)"
+                        placeholder="Phone Number (e.g. 919037783864)"
                     />
                     <datalist id="customer-phones">
                         {storedCustomers.map((c, i) => (

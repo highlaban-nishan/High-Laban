@@ -23,6 +23,7 @@ const AdminDashboard = () => {
     const [products, setProducts] = useState([]);
     const [orders, setOrders] = useState([]);
     const [customers, setCustomers] = useState([]);
+    const [subscribers, setSubscribers] = useState([]);
     const [franchiseInquiries, setFranchiseInquiries] = useState([]);
     /* Stats removed */
     const [newProduct, setNewProduct] = useState({ name: '', tag: '', price: '', description: '', badge: '', img: '', images: [] });
@@ -51,6 +52,8 @@ const AdminDashboard = () => {
         } else if (activeTab === 'customers') {
             const custs = await db.getCustomers();
             setCustomers(custs);
+            const subs = await db.getSubscribers();
+            setSubscribers(subs);
         } else if (activeTab === 'franchise') {
             const inquiries = await db.getFranchiseInquiries();
             setFranchiseInquiries(inquiries);
@@ -284,10 +287,7 @@ const AdminDashboard = () => {
                         {activeTab === 'products' && <div className={styles.activeDot}></div>}
                     </div>
 
-                    <div className={`${styles.navItem} ${activeTab === 'orders' ? styles.active : ''}`} onClick={() => { setActiveTab('orders'); setIsMobileOpen(false); }}>
-                        <span style={{ fontSize: '1.2rem' }}>✉️</span> Orders
-                        {activeTab === 'orders' && <div className={styles.activeDot}></div>}
-                    </div>
+
                     <div className={`${styles.navItem} ${activeTab === 'customers' ? styles.active : ''}`} onClick={() => { setActiveTab('customers'); setIsMobileOpen(false); }}>
                         <span style={{ fontSize: '1.2rem' }}>👥</span> Users
                         {activeTab === 'customers' && <div className={styles.activeDot}></div>}
@@ -484,7 +484,31 @@ const AdminDashboard = () => {
 
 
 
-                {/* ... Orders & Customers tabs ... */}
+                {/* --- CUSTOMERS / USERS TAB --- */}
+                {activeTab === 'customers' && (
+                    <div className={styles.grid}>
+                        {/* Subscribers Section */}
+                        <div className={styles.card} style={{ gridColumn: '1/-1', marginBottom: '2rem' }}>
+                            <h3 style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', marginBottom: '1rem' }}>Newsletter Subscribers</h3>
+                            {subscribers.length > 0 ? (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
+                                    {subscribers.map(sub => (
+                                        <div key={sub.id} style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                            <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{sub.email}</div>
+                                            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem' }}>
+                                                Signed up: {new Date(sub.date).toLocaleDateString()}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p style={{ color: '#94a3b8' }}>No subscribers yet.</p>
+                            )}
+                        </div>
+
+
+                    </div>
+                )}
 
 
 

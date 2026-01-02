@@ -64,12 +64,12 @@
 }
 
 .whiteCard .cardTitle {
-    color: #3B82F6;
+    color: #27AAE1;
     /* Light Blue approximate */
 }
 
 .blueCard {
-    background-color: #2299DD;
+    background-color: #27AAE1;
     /* Approximate Blue from image */
     color: white;
 }
@@ -100,7 +100,7 @@
 .card2 {
     grid-column: 1;
     grid-row: 2 / 3;
-    background: #0085C8;
+    background: #27AAE1;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     /* Approximate background color of the image */
 }
@@ -171,7 +171,7 @@
 .card7 {
     grid-column: 3;
     grid-row: 1 / 3;
-    background: #0085C8;
+    background: #27AAE1;
     /* Match blue background */
 }
 
@@ -203,13 +203,13 @@
     font-family: 'Playfair Display', serif;
     /* Or script font if available */
     font-size: 2.5rem;
-    color: #2299DD;
+    color: #27AAE1;
     margin-bottom: 0.5rem;
     font-style: italic;
 }
 
 .card1 p {
-    color: #2299DD;
+    color: #27AAE1;
     font-weight: 600;
     letter-spacing: 1px;
     text-transform: uppercase;

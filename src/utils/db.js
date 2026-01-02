@@ -220,6 +220,35 @@ const db = {
         }
     },
 
+    // --- Subscribers ---
+    getSubscribers: async () => {
+        try {
+            const q = query(collection(firestore, 'subscribers'), orderBy('date', 'desc'));
+            const querySnapshot = await getDocs(q);
+            const subscribers = [];
+            querySnapshot.forEach((doc) => subscribers.push({ id: doc.id, ...doc.data() }));
+            return subscribers;
+        } catch (error) {
+            console.error("Firestore Error:", error);
+            return [];
+        }
+    },
+
+    saveSubscriber: async (email) => {
+        try {
+            // Check if already exists (optional but good) - skipping for simplicity as per request
+            const data = {
+                email,
+                date: new Date().toISOString()
+            };
+            await addDoc(collection(firestore, 'subscribers'), data);
+        } catch (error) {
+            console.error("Firestore Error:", error);
+            alert("Failed to subscribe: " + error.message);
+            throw error;
+        }
+    },
+
     // --- Auth ---
     login: async (email, password) => {
         if (email === 'wazeert13@gmail.com' && password === '12345676') {

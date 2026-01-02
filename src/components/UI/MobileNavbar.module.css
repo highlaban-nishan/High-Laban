@@ -6,7 +6,7 @@
     width: 90%;
     max-width: 400px;
     height: 70px;
-    background: #009ceb;
+    background: #27AAE1;
     /* Bright Blue */
     display: none;
     /* Hidden on desktop */
@@ -38,6 +38,7 @@
     font-size: 1.5rem;
     display: flex;
     align-items: center;
+    color: #1F83B5;
 }
 
 .navItem .text {
@@ -49,7 +50,7 @@
 
 .navItem.active {
     background: #ffffff;
-    color: #009ceb;
+    color: #27AAE1;
     flex-grow: 1;
     /* Expand active item */
     max-width: 160px;

@@ -45,6 +45,69 @@
     z-index: 10;
 }
 
+/* Right Slip / Bookmark */
+.rightSlip {
+    position: absolute;
+    top: -10px;
+    /* Slightly offscreen top to look attached */
+    right: 5%;
+    /* Adjust distance from right edge */
+    width: 60px;
+    height: 70vh;
+    /* Length of the slip */
+    /* Length of the slip */
+    /* Real Paper Texture & 3D Cylinder Lighting */
+    background:
+        linear-gradient(90deg, #e6e6e6 0%, #ffffff 15%, #ffffff 85%, #d9d9d9 100%),
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.01) 2px, rgba(0, 0, 0, 0.01) 3px);
+    background-blend-mode: multiply;
+    filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.4));
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 20;
+    /* Sawtooth / Receipt Edge */
+    clip-path: polygon(0% 0%, 100% 0%, 100% 100%,
+            95% 98.5%, 90% 100%, 85% 98.5%, 80% 100%,
+            75% 98.5%, 70% 100%, 65% 98.5%, 60% 100%,
+            55% 98.5%, 50% 100%, 45% 98.5%, 40% 100%,
+            35% 98.5%, 30% 100%, 25% 98.5%, 20% 100%,
+            15% 98.5%, 10% 100%, 5% 98.5%, 0% 100%);
+    pointer-events: none;
+    overflow: hidden;
+    /* Clip scrolling text */
+    animation: slideDown 1s cubic-bezier(1.5, 1.5, 1.5, 1.5) forwards;
+}
+
+.slipText {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    white-space: nowrap;
+    color: #27AAE1;
+    text-shadow: 0 1px 2px rgba(39, 170, 225, 0.3);
+    /* Subtle glow/depth */
+    font-weight: 900;
+    font-size: 1.5rem;
+    letter-spacing: 4px;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    height: 100%;
+    /* padding-bottom removed for seamless loop */
+    /* Space from point */
+
+    /* Animation */
+    will-change: transform;
+    animation: scrollText 9s linear infinite;
+}
+
+/* Add dot separator */
+.slipDot {
+    font-size: 2rem;
+    color: #27AAE1;
+}
+
 .topBadge {
     display: inline-block;
     border: 1px solid #ddd;
@@ -121,7 +184,7 @@
 
 /* Gradient Text Effect for "ON BITE" */
 .mainTitle span.highlight {
-    background: linear-gradient(135deg, #2979ff 0%, #00b0ff 50%, #2979ff 100%);
+    background: linear-gradient(135deg, #27AAE1 0%, #27AAE1 50%, #27AAE1 100%);
     background-size: 200% auto;
     -webkit-background-clip: text;
     background-clip: text;
@@ -277,6 +340,32 @@
     .btnSecondary {
         width: 100%;
         max-width: 250px;
+    }
+
+    /* Hide the slip on mobile as requested */
+    .rightSlip {
+        display: none;
+    }
+}
+
+/* Animations */
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+@keyframes scrollText {
+    0% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(-50%);
     }
 }
 

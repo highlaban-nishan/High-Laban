@@ -474,7 +474,7 @@
 
 .editBtn {
     background: #f1f5f9;
-    color: #3b82f6;
+    color: #27AAE1;
     border: none;
     width: 36px;
     height: 36px;
@@ -487,7 +487,7 @@
 }
 
 .editBtn:hover {
-    background: #3b82f6;
+    background: #27AAE1;
     color: white;
 }
 
@@ -561,7 +561,7 @@
 
     .modalContent {
         padding: 1.5rem;
-        width: 100%;
+        width: 95%;
     }
 
     .headerActions {

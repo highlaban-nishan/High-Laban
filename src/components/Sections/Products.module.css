@@ -14,14 +14,14 @@
 .title {
     font-size: 3rem;
     font-weight: 700;
-    color: #003399;
+    color: #1F83B5;
     /* Deep Blue title */
     margin-bottom: 0.5rem;
 }
 
 .subtitle {
     font-size: 1rem;
-    color: #66acee;
+    color: #1F83B5;
     /* Light blue accent */
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -37,8 +37,8 @@
 }
 
 .menuButton {
-    border: 1px solid #2979ff;
-    color: #2979ff;
+    border: 1px solid #1F83B5;
+    color: #1F83B5;
     background: transparent;
     padding: 0.5rem 1.5rem;
     border-radius: 50px;
@@ -98,7 +98,7 @@
     font-size: 0.65rem;
     font-weight: 800;
     text-transform: uppercase;
-    color: #2962ff;
+    color: #27AAE1;
     background: #ffffff;
     padding: 0.5rem 1rem;
     border-radius: 12px;
@@ -126,7 +126,7 @@
 }
 
 .badgeNewArrival {
-    background: #2563eb;
+    background: #1F83B5;
     color: white;
     box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
     animation: blink 2s infinite ease-in-out;
@@ -188,7 +188,7 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 10;
     font-weight: 800;
-    color: #2962ff;
+    color: #1F83B5;
     opacity: 0;
     transition: all 0.2s ease;
 }
@@ -198,7 +198,7 @@
 }
 
 .carouselBtn:hover {
-    background: #2962ff;
+    background: #1F83B5;
     color: white;
     transform: translateY(-50%) scale(1.1);
 }
@@ -218,7 +218,7 @@
 .tag {
     display: inline-block;
     align-self: flex-start;
-    border: 1px solid #2563eb;
+    border: 1px solid #1F83B5;
     /* Blue border */
     color: #ffffff;
     /* White text */
@@ -228,7 +228,7 @@
     font-weight: 800;
     text-transform: uppercase;
     margin-bottom: 1rem;
-    background: #2563eb;
+    background: #1F83B5;
     /* Blue bg */
     letter-spacing: 0.5px;
     animation: blink 2s infinite ease-in-out;
@@ -248,7 +248,7 @@
 .productTagLine {
     font-size: 0.7rem;
     font-weight: 800;
-    color: #3b82f6;
+    color: #1F83B5;
     text-transform: uppercase;
     margin-bottom: 0.5rem;
     display: block;
@@ -259,9 +259,37 @@
     font-size: 0.9rem;
     color: #64748b;
     /* Slate Gray */
-    margin-bottom: 2rem;
+    margin-bottom: 0;
+    /* Handled by wrapper's margin */
     line-height: 1.5;
     flex-grow: 1;
+}
+
+/* Dropdown Animation */
+.dropdownWrapper {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.5s cubic-bezier(0.4, 0, 0.2, 1), margin-bottom 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    margin-bottom: 0;
+}
+
+.dropdownWrapper.expanded {
+    grid-template-rows: 1fr;
+    margin-bottom: 1rem;
+}
+
+.dropdownInner {
+    min-height: 0;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.dropdownWrapper.expanded .dropdownInner {
+    opacity: 1;
+    transform: translateY(0);
+    transition-delay: 0.1s;
 }
 
 /* Footer / Price / Button */
@@ -290,7 +318,7 @@
 .price {
     font-size: 2rem;
     font-weight: 800;
-    color: #2962ff;
+    color: #27AAE1;
     /* Bright Blue */
     line-height: 1;
 }
@@ -304,7 +332,7 @@
 }
 
 .orderButton {
-    background-color: #2962ff;
+    background-color: #27AAE1;
     /* Bright Blue matches price */
     color: white;
     border: none;
@@ -336,7 +364,7 @@
 .viewMoreButton {
     background: white;
     border: 1px solid #d0d0d0;
-    color: #2979ff;
+    color: #27AAE1;
     padding: 0.8rem 2.5rem;
     border-radius: 50px;
     font-size: 0.8rem;

@@ -115,7 +115,7 @@
 .sectionTitle {
     font-size: 0.75rem;
     font-weight: 800;
-    color: #3b82f6;
+    color: #27AAE1;
     /* Modern Blue */
     text-transform: uppercase;
     letter-spacing: 1.5px;
@@ -172,7 +172,7 @@
 .textarea:focus {
     outline: none;
     background: white;
-    border-color: #3b82f6;
+    border-color: #27AAE1;
     box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
 }
 
@@ -245,7 +245,7 @@
 
 .submitBtn {
     padding: 0.9rem 2.5rem;
-    background: #009ceb;
+    background: #27AAE1;
     color: white;
     border: none;
     border-radius: 50px;
@@ -257,7 +257,7 @@
 }
 
 .submitBtn:hover {
-    background: #0081c2;
+    background: #27AAE1;
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0, 156, 235, 0.4);
 }

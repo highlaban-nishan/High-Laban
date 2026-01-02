@@ -1,5 +1,5 @@
 .footer {
-    background-color: #009ceb;
+    background-color: #27AAE1;
     /* Bright Blue */
     color: white;
     padding: 1rem 1.5rem 0.5rem 1.5rem;
@@ -139,7 +139,7 @@
 
 .sendBtn {
     background: white;
-    color: #0066cc;
+    color: #27AAE1;
     border: none;
     border-radius: 8px;
     width: 45px;
@@ -177,7 +177,7 @@
     bottom: 0px;
     /* Aligned with bottom padding */
     background: white;
-    color: #0066cc;
+    color: #27AAE1;
     width: 45px;
     height: 45px;
     border-radius: 50%;

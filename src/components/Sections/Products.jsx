@@ -9,6 +9,7 @@ import { FaTimes } from 'react-icons/fa';
 const ProductCard = ({ product, index, isModal = false }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [isHovering, setIsHovering] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
 
     // Normalize images: use array if exists, else fallback to single img, else empty array
     // Also ensure all items are treated as objects with {url, tag} for internal consistency in this component
@@ -94,9 +95,31 @@ const ProductCard = ({ product, index, isModal = false }) => {
 
             <span className={styles.tag}>{currentTag}</span>
 
-            <h3 className={styles.productName}>{product.name}</h3>
-            <span className={styles.productTagLine}>{currentTag}</span>
-            <p className={styles.productDescription}>{product.description}</p>
+            <div onClick={() => setIsExpanded(!isExpanded)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h3 className={styles.productName}>{product.name}</h3>
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                    style={{
+                        width: '20px',
+                        height: '20px',
+                        transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.3s ease',
+                        color: '#64748b'
+                    }}
+                >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+            </div>
+
+            <div className={`${styles.dropdownWrapper} ${isExpanded ? styles.expanded : ''}`}>
+                <div className={styles.dropdownInner}>
+                    <p className={styles.productDescription}>{product.description}</p>
+                </div>
+            </div>
 
             <div className={styles.cardFooter}>
                 <div className={styles.priceContainer}>

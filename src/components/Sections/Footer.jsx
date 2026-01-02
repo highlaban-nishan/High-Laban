@@ -1,11 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from './Footer.module.css';
-import logo from '../../assets/logo.png';
+import logo from '../../assets/footer.png';
+import db from '../../utils/db';
 import { FaInstagram, FaFacebookF, FaWhatsapp, FaArrowUp, FaPaperPlane } from 'react-icons/fa';
 
 export default function Footer() {
     const [isVisible, setIsVisible] = useState(false);
+    const [email, setEmail] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const footerRef = useRef(null);
+
+    const handleSubscribe = async (e) => {
+        e.preventDefault();
+        if (!email) return;
+        setIsSubmitting(true);
+        try {
+            await db.saveSubscriber(email);
+            alert("Thanks for subscribing! Stay sweet.");
+            setEmail('');
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -69,7 +87,7 @@ export default function Footer() {
                             <a href="#" className={styles.socialIcon}>
                                 <FaFacebookF />
                             </a>
-                            <a href="https://wa.me/919876543210" target="_blank" rel="noopener noreferrer" className={styles.socialIcon}>
+                            <a href="https://wa.me/919037783864" target="_blank" rel="noopener noreferrer" className={styles.socialIcon}>
                                 <FaWhatsapp />
                             </a>
                         </div>
@@ -81,12 +99,19 @@ export default function Footer() {
                         <p className={styles.subscribeText}>
                             Subscribe to get the latest drops and secret menu alerts.
                         </p>
-                        <div className={styles.subscribeForm}>
-                            <input type="email" placeholder="Your email" className={styles.emailInput} />
-                            <button className={styles.sendBtn}>
+                        <form className={styles.subscribeForm} onSubmit={handleSubscribe}>
+                            <input
+                                type="email"
+                                placeholder="Your email"
+                                className={styles.emailInput}
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                            <button className={styles.sendBtn} disabled={isSubmitting}>
                                 <FaPaperPlane style={{ fontSize: '0.9rem' }} />
                             </button>
-                        </div>
+                        </form>
                     </div>
                 </div>
 
