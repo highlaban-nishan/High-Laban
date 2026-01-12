@@ -1,0 +1,119 @@
+.section {
+    padding: 6rem 0;
+    background-color: #fff;
+    text-align: center;
+}
+
+.header {
+    margin-bottom: 3rem;
+}
+
+.subtitle {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+}
+
+.title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 1rem;
+}
+
+.description {
+    color: #64748b;
+    font-size: 1rem;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    justify-content: center;
+}
+
+.card {
+    background: #fff;
+    border: 1px solid #f1f5f9;
+    border-radius: 20px;
+    padding: 2.5rem 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    /* Left align */
+    text-align: left;
+    /* Left text */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    text-decoration: none;
+    color: inherit;
+    cursor: default;
+}
+
+a.card {
+    cursor: pointer;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+}
+
+.iconWrapper {
+    width: 60px;
+    height: 60px;
+    background: #f0f9ff;
+    color: #0ea5e9;
+    /* Blue color */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Main Title (Area/City) */
+.locationName {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 0.25rem;
+}
+
+/* Subtitle (Location Name) */
+.locationAddress {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #64748b;
+    margin-bottom: 1.5rem;
+}
+
+.locationStatus {
+    font-weight: 700;
+}
+
+.divider {
+    width: 100%;
+    /* Full width */
+    height: 1px;
+    background: #f1f5f9;
+    /* Very light divider */
+    margin-bottom: 1.5rem;
+}
+
+.link {
+    font-weight: 700;
+    color: #10b981;
+    /* Green link for 'Open' */
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.link:hover {
+    color: #059669;
+}

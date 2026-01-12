@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styles from './ValuesAndLocations.module.css'; // Reusing styles for consistency
-import { FaMapMarkerAlt } from 'react-icons/fa';
+
 import useScrollReveal from '../../hooks/useScrollReveal';
 import useCountUp from '../../hooks/useCountUp';
 import db from '../../utils/db';
@@ -18,8 +18,7 @@ const StatItem = ({ label, target, suffix, start }) => {
 };
 
 export default function FranchiseSection() {
-    const [locations, setLocations] = useState([]);
-    const [loading, setLoading] = useState(true);
+
     const [startCounting, setStartCounting] = useState(false);
     const [showForm, setShowForm] = useState(false);
     const location = useLocation();
@@ -57,20 +56,7 @@ export default function FranchiseSection() {
         { label: "VARIETIES", target: 30, suffix: "+" }
     ];
 
-    useEffect(() => {
-        const fetchLocations = async () => {
-            try {
-                const locs = await db.getLocations();
-                setLocations(locs);
-            } catch (error) {
-                console.error("Error fetching locations:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
 
-        fetchLocations();
-    }, []);
 
     return (
         <section className={styles.section} id="franchise-section">
@@ -176,50 +162,7 @@ export default function FranchiseSection() {
                     )}
                 </div>
 
-                {/* Locations Section (Below Form) */}
-                <div id="locations" className={styles.locationsWrapper} style={{ marginTop: '0' }}>
-                    <span className={styles.smallLabel}>FIND US</span>
-                    <h2 className={styles.sectionTitle}>Our Locations</h2>
-                    <p className={styles.sectionSubtitle}>Find your nearest HighLaban and experience the taste of Egypt.</p>
 
-                    <div className={styles.locationsGrid}>
-                        {loading ? (
-                            <p style={{ color: '#94a3b8' }}>Loading locations...</p>
-                        ) : locations.length > 0 ? (
-                            locations.map((loc) => (
-                                <div key={loc.id} className={styles.locationCard}>
-                                    <div className={styles.locationIconWrapper}>
-                                        <FaMapMarkerAlt />
-                                    </div>
-                                    <h3 className={styles.locationName}>{loc.name}</h3>
-                                    <p className={styles.locationAddress}>{loc.address}</p>
-
-                                    <div style={{ borderTop: '1px solid #f1f5f9', margin: '1rem 0' }}></div>
-
-                                    <span style={{
-                                        display: 'inline-block',
-                                        fontSize: '0.8rem',
-                                        fontWeight: '700',
-                                        color: loc.status === 'Open' ? '#166534' : '#f97316'
-                                    }}>
-                                        {loc.status}
-                                    </span>
-                                </div>
-                            ))
-                        ) : (
-                            // Fallback if no locations added yet
-                            <div className={styles.locationCard}>
-                                <div className={styles.locationIconWrapper}>
-                                    <FaMapMarkerAlt />
-                                </div>
-                                <h3 className={styles.locationName}>New Locations</h3>
-                                <p className={styles.locationAddress}>Coming to your city soon!</p>
-                                <div style={{ borderTop: '1px solid #f1f5f9', margin: '1rem 0' }}></div>
-                                <span className={styles.locationStatus}>Stay Tuned</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
             </div>
         </section>
     );

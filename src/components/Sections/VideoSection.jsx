@@ -31,7 +31,7 @@ export default function VideoSection() {
                         {/* 9. Finest Quality Ingredients (White) */}
                         <div className={`${styles.card} ${styles.whiteCard} ${styles.card9}`}>
                             <div className={styles.cardContent}>
-                                <div className={styles.cardIcon} style={{ color: '#27AAE1' }}>
+                                <div className={styles.cardIcon} style={{ color: 'var(--color-main)' }}>
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                     </svg>
@@ -72,7 +72,7 @@ export default function VideoSection() {
                     {/* 5. Celebrating Tradition (White) */}
                     <div className={`${styles.card} ${styles.whiteCard} ${styles.card5}`}>
                         <div className={styles.cardContent}>
-                            <div className={styles.cardIcon} style={{ color: '#27AAE1' }}>
+                            <div className={styles.cardIcon} style={{ color: 'var(--color-main)' }}>
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12" />
                                 </svg>

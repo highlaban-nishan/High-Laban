@@ -5,6 +5,8 @@
     padding: 6rem 0;
     background: #fff;
     font-family: 'Outfit', sans-serif;
+    overflow: hidden;
+    /* Prevent horizontal scroll from animations */
 }
 
 .container {
@@ -62,18 +64,20 @@
     margin-bottom: 1.5rem;
 }
 
-.hlLogo {
-    width: 40px;
-    height: 40px;
-    background: #e0f2fe;
-    border-radius: 50%;
+.hlLogoContainer {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    color: #27AAE1;
-    font-weight: 800;
+    /* Removed background and padding to match text-only look */
 }
+
+.hlText {
+    font-size: 2rem;
+    color: #1e293b;
+    /* Match title color */
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
 
 /* Right Side - Main Content */
 .storyRight {
@@ -108,24 +112,30 @@
 
 .storyGrid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    /* Explicit 2 columns */
     gap: 1rem;
-    max-width: 480px;
-    /* Constrain grid width */
+    max-width: 100%;
+    /* Remove 480px constraint */
 }
 
 .featureItem {
-    background: #f8fafc;
-    padding: 0.75rem 1rem;
-    border-radius: 12px;
+    background: #ffffff;
+    /* White background as per design */
+    padding: 0.85rem 1.25rem;
+    border-radius: 16px;
+    /* Slightly more rounded */
     display: flex;
     align-items: center;
     gap: 1rem;
     color: #334155;
-    font-weight: 600;
-    font-size: 0.9rem;
-    border: 1px solid #e2e8f0;
+    /* Slate-700 */
+    font-weight: 700;
+    font-size: 0.95rem;
+    border: 1.5px solid #e1eaf5;
+    /* Light blue-ish border */
     transition: transform 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .featureItem:hover {
@@ -135,7 +145,7 @@
 }
 
 .featureIcon {
-    color: #27AAE1;
+    color: var(--color-main);
     /* Blue tick */
     font-size: 1.2rem;
     display: flex;
@@ -168,4 +178,35 @@
 .visible {
     opacity: 1;
     transform: translateX(0);
+}
+
+@media (max-width: 768px) {
+    .section {
+        padding: 3rem 0;
+    }
+
+    .storyCard {
+        padding: 1.5rem;
+    }
+
+    .storyCardTitle {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .storyHeadline {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        overflow-wrap: anywhere;
+    }
+
+    .storyDescription {
+        font-size: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .storyGrid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
 }

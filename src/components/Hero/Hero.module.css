@@ -84,7 +84,7 @@
     text-orientation: mixed;
     transform: rotate(180deg);
     white-space: nowrap;
-    color: #27AAE1;
+    color: var(--color-main);
     text-shadow: 0 1px 2px rgba(39, 170, 225, 0.3);
     /* Subtle glow/depth */
     font-weight: 900;
@@ -105,7 +105,7 @@
 /* Add dot separator */
 .slipDot {
     font-size: 2rem;
-    color: #27AAE1;
+    color: var(--color-main);
 }
 
 .topBadge {
@@ -184,7 +184,7 @@
 
 /* Gradient Text Effect for "ON BITE" */
 .mainTitle span.highlight {
-    background: linear-gradient(135deg, #27AAE1 0%, #27AAE1 50%, #27AAE1 100%);
+    background: linear-gradient(135deg, var(--color-main) 0%, var(--color-main) 50%, var(--color-main) 100%);
     background-size: 200% auto;
     -webkit-background-clip: text;
     background-clip: text;

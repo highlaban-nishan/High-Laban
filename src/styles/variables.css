@@ -1,13 +1,17 @@
 :root {
   /* Brand Colors */
-  --color-accent: #27AAE1;
-  /* Blue */
-  --color-accent-glow: #1F83B5;
+  --color-main: #27AAE1;
+  --color-secondary: #1F83B5;
+  --color-white: #FFFFFF;
+
+  --color-accent: var(--color-main);
+  /* #27AAE1 */
+  --color-accent-glow: var(--color-secondary);
+  /* #1F83B5 */
 
   /* Neutral Colors */
-  --color-bg-dark: #FFFFFF;
+  --color-bg-dark: var(--color-white);
   /* White */
-  --color-bg-card: #F9F9F9;
   /* Light Gray */
   --color-text-primary: #111111;
   /* Black/Dark Gray */

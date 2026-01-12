@@ -1,9 +1,50 @@
 import { db as firestore, COLLECTIONS } from './firebase';
-import { collection, getDocs, addDoc, updateDoc, doc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, doc, deleteDoc, query, orderBy, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 
 // --- Pure Firestore Implementation ---
 
+const COLLECTIONS_EXT = { ...COLLECTIONS, SITE_CONTENT: 'site_content' };
+
 const db = {
+    // --- Site Content ---
+    getSiteContent: async (sectionId) => {
+        try {
+            const docRef = doc(firestore, COLLECTIONS_EXT.SITE_CONTENT, sectionId);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                return { id: docSnap.id, ...docSnap.data() };
+            }
+            return null;
+        } catch (error) {
+            console.error("Error getting content:", error);
+            return null;
+        }
+    },
+
+    subscribeToSiteContent: (sectionId, callback) => {
+        const docRef = doc(firestore, COLLECTIONS_EXT.SITE_CONTENT, sectionId);
+        return onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                callback({ id: docSnap.id, ...docSnap.data() });
+            } else {
+                callback(null);
+            }
+        }, (error) => {
+            console.error("Error subscribing to content:", error);
+        });
+    },
+
+    updateSiteContent: async (sectionId, data) => {
+        try {
+            const docRef = doc(firestore, COLLECTIONS_EXT.SITE_CONTENT, sectionId);
+            await setDoc(docRef, { ...data, updatedAt: new Date().toISOString() }, { merge: true });
+            return true;
+        } catch (error) {
+            console.error("Error updating content:", error);
+            throw error;
+        }
+    },
+
     // --- Products ---
     getProducts: async () => {
         try {
@@ -188,6 +229,31 @@ const db = {
             alert("Failed to delete location: " + error.message);
             throw error;
         }
+    },
+
+    // --- Locations ---
+    getLocations: async () => {
+        try {
+            const querySnapshot = await getDocs(collection(firestore, 'locations'));
+            return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (error) {
+            console.error("Error getting locations:", error);
+            return [];
+        }
+    },
+
+    subscribeToLocations: (callback) => {
+        const q = query(collection(firestore, 'locations'));
+        return onSnapshot(q, (querySnapshot) => {
+            const locations = [];
+            querySnapshot.forEach((doc) => {
+                locations.push({ id: doc.id, ...doc.data() });
+            });
+            callback(locations);
+        }, (error) => {
+            console.error("Error subscribing to locations:", error);
+            callback([]);
+        });
     },
 
     // --- Franchise Inquiries ---

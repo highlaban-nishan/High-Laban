@@ -64,12 +64,12 @@
 }
 
 .whiteCard .cardTitle {
-    color: #27AAE1;
+    color: var(--color-main);
     /* Light Blue approximate */
 }
 
 .blueCard {
-    background-color: #27AAE1;
+    background-color: var(--color-main);
     /* Approximate Blue from image */
     color: white;
 }
@@ -100,7 +100,7 @@
 .card2 {
     grid-column: 1;
     grid-row: 2 / 3;
-    background: #27AAE1;
+    background: var(--color-main);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     /* Approximate background color of the image */
 }
@@ -171,7 +171,7 @@
 .card7 {
     grid-column: 3;
     grid-row: 1 / 3;
-    background: #27AAE1;
+    background: var(--color-main);
     /* Match blue background */
 }
 

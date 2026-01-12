@@ -94,7 +94,7 @@
     background: #fff;
     border-radius: 24px;
     padding: 2.5rem;
-    text-align: center;
+    text-align: left;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
     border: 1px solid #f1f5f9;
     max-width: 320px;
@@ -102,24 +102,34 @@
     min-width: 250px;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
 }
 
 .locationCard:hover {
-    transform: translateY(-10px);
+    transform: translateY(-5px);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
 }
 
 .locationIconWrapper {
-    width: 50px;
-    height: 50px;
-    background: #eef2ff;
+    width: 60px;
+    height: 60px;
+    background: #eff6ff;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 1.5rem;
-    color: #27AAE1;
-    font-size: 1.2rem;
+    margin: 0 0 1.5rem 0;
+    color: #0ea5e9;
+    font-size: 1.5rem;
+}
+
+.divider {
+    height: 1px;
+    background: #f1f5f9;
+    width: 100%;
+    margin: 1.5rem 0;
 }
 
 .locationName {
@@ -145,10 +155,6 @@
 }
 
 @media (max-width: 968px) {
-    .statsWrapper {
-        gap: 2rem;
-    }
-
     .statValue {
         font-size: 3rem;
     }
@@ -159,6 +165,63 @@
         flex-direction: column;
         /* Stack on mobile */
         gap: 3rem;
+
+    }
+
+    .locationsGrid {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        gap: 1.5rem;
+        padding-bottom: 2rem;
+        justify-content: center;
+        /* Align start for scrolling */
+
+        /* Hide scrollbar */
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .locationsGrid::-webkit-scrollbar {
+        display: none;
+    }
+
+    .locationCard {
+        min-width: 280px;
+        max-width: 280px;
+        scroll-snap-align: start;
+        flex-shrink: 0;
+        margin-right: 0;
+
+        /* Premium Mobile Styling */
+        background: #ffffff;
+        border: 1px solid rgba(15, 23, 42, 0.05);
+        /* Softer border */
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+        /* Elegant shadow */
+        border-radius: 24px;
+        padding: 2rem;
+
+        /* Alignment */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+
+        /* Subtle Gradient Border Effect (Optional but attractive) */
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Add a subtle top accent bar */
+    .locationCard::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: linear-gradient(90deg, #27AAE1, #27AAE1);
     }
 
     .separator {
@@ -183,12 +246,14 @@
     border-radius: 24px;
     color: white;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+    align-items: center;
 }
 
 @media (max-width: 640px) {
     .ctaCard {
         padding: 1.5rem;
         border-radius: 20px;
+        align-items: center;
     }
 
     .ctaCard h3 {

@@ -1,12 +1,14 @@
 import React, { useEffect, useLayoutEffect } from 'react';
 import Hero from '../components/Hero/Hero';
-import About from '../components/Sections/About';
+import About from '../components/Sections/About'; // Import About
+import Highlights from '../components/Sections/Highlights';
 import VideoSection from '../components/Sections/VideoSection';
-import FAQ from '../components/Sections/FAQ';
 import Products from '../components/Sections/Products';
 import Marquee from '../components/Sections/Marquee';
 import { useLocation } from 'react-router-dom';
 import FranchiseSection from '../components/Sections/FranchiseSection';
+
+import ValuesAndLocations from '../components/Sections/ValuesAndLocations';
 
 const Home = () => {
     const location = useLocation();
@@ -30,11 +32,18 @@ const Home = () => {
                 setTimeout(() => {
                     const y = element.getBoundingClientRect().top + window.scrollY - 100;
                     window.scrollTo({ top: y, behavior: 'smooth' });
+                    // Clear state to prevent scroll on refresh
+                    window.history.replaceState({}, document.title);
                 }, 100);
             }
         } else {
             // Aggressive scroll to top
             window.scrollTo(0, 0);
+
+            // Clear any lingering hash that might cause auto-scroll
+            if (window.location.hash) {
+                window.history.replaceState(null, '', window.location.pathname);
+            }
 
             // Double check after a small tick to override any browser restoration
             setTimeout(() => window.scrollTo(0, 0), 0);
@@ -50,11 +59,12 @@ const Home = () => {
             <Hero />
             <main style={{ position: 'relative', zIndex: 10, background: 'var(--color-bg-dark)' }}>
                 <Marquee />
-                <About />
+                <About /> {/* Added Static About Section */}
                 <Products />
                 <VideoSection />
-                <FAQ />
+                <Highlights />
                 <FranchiseSection />
+                <ValuesAndLocations />
             </main>
         </>
     );

@@ -23,21 +23,13 @@ export const uploadMedia = async (file) => {
     const isImage = file.type.startsWith('image/');
 
     if (isImage) {
-        // Use ImgBB for images
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = async () => {
-                try {
-                    const url = await uploadToImgBB(reader.result);
-                    resolve(url);
-                } catch (e) {
-                    console.error("ImgBB Error:", e);
-                    reject(e);
-                }
-            };
-            reader.onerror = reject;
-        });
+        // Use ImgBB for images (direct binary upload)
+        try {
+            return await uploadToImgBB(file);
+        } catch (e) {
+            console.error("ImgBB Error:", e);
+            throw e;
+        }
     } else {
         // Use Firebase for everything else (Videos)
         if (!isConfigured()) {

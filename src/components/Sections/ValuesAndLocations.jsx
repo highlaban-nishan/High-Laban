@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styles from './ValuesAndLocations.module.css';
 import { FaMapMarkerAlt } from 'react-icons/fa';
+import db from '../../utils/db';
+
 import useScrollReveal from '../../hooks/useScrollReveal';
 import useCountUp from '../../hooks/useCountUp';
 
@@ -17,6 +19,7 @@ const StatItem = ({ label, target, suffix, start }) => {
 export default function ValuesAndLocations() {
     const [locations, setLocations] = useState([]);
     const [loading, setLoading] = useState(true);
+
     const [startCounting, setStartCounting] = useState(false);
 
     useScrollReveal();
@@ -60,6 +63,8 @@ export default function ValuesAndLocations() {
         fetchLocations();
     }, []);
 
+
+
     return (
         <section className={styles.section}>
             <div className={styles.container}>
@@ -90,40 +95,59 @@ export default function ValuesAndLocations() {
                         {loading ? (
                             <p style={{ color: '#94a3b8' }}>Loading locations...</p>
                         ) : locations.length > 0 ? (
-                            locations.map((loc) => (
-                                <div key={loc.id} className={styles.locationCard}>
-                                    <div className={styles.locationIconWrapper}>
-                                        <FaMapMarkerAlt />
-                                    </div>
-                                    <h3 className={styles.locationName}>{loc.name}</h3>
-                                    <p className={styles.locationAddress}>{loc.address}</p>
+                            locations.map((loc) => {
+                                // Card is clickable if it has a Map URL
+                                const mapUrl = loc.mapUrl || '';
+                                const isClickable = mapUrl.trim() !== '';
 
-                                    <div style={{ borderTop: '1px solid #f1f5f9', margin: '1rem 0' }}></div>
+                                const CardTag = isClickable ? 'a' : 'div';
+                                const cardProps = isClickable ? {
+                                    href: mapUrl,
+                                    target: "_blank",
+                                    rel: "noopener noreferrer",
+                                    className: styles.locationCard
+                                } : {
+                                    className: styles.locationCard
+                                };
 
-                                    <span style={{
-                                        display: 'inline-block',
-                                        fontSize: '0.8rem',
-                                        fontWeight: '700',
-                                        color: loc.status === 'Open' ? '#166534' : '#f97316'
-                                    }}>
-                                        {loc.status}
-                                    </span>
-                                </div>
-                            ))
+                                return (
+                                    <CardTag key={loc.id} {...cardProps}>
+                                        <div className={styles.locationIconWrapper}>
+                                            <FaMapMarkerAlt />
+                                        </div>
+                                        {/* Area Name (Big Title) e.g., Bangalore */}
+                                        <h3 className={styles.locationName}>{loc.area || loc.name}</h3>
+
+                                        {/* Full Name / Subtitle e.g., Bangalore - India */}
+                                        {loc.area && <p className={styles.locationAddress}>{loc.name}</p>}
+
+                                        <div className={styles.divider}></div>
+
+                                        {/* Status */}
+                                        <span className={styles.locationStatus} style={{
+                                            color: loc.status === 'Coming Soon' ? '#f97316' :
+                                                loc.status === 'Closed' ? '#ef4444' : '#0ea5e9'
+                                        }}>
+                                            {loc.status}
+                                        </span>
+                                    </CardTag>
+                                );
+                            })
                         ) : (
-                            // Fallback if no locations added yet
                             <div className={styles.locationCard}>
                                 <div className={styles.locationIconWrapper}>
                                     <FaMapMarkerAlt />
                                 </div>
                                 <h3 className={styles.locationName}>New Locations</h3>
-                                <p className={styles.locationAddress}>Coming to your city soon!</p>
-                                <div style={{ borderTop: '1px solid #f1f5f9', margin: '1rem 0' }}></div>
+                                <p className={styles.locationAddress}>Coming Soon</p>
+                                <div className={styles.divider}></div>
                                 <span className={styles.locationStatus}>Stay Tuned</span>
                             </div>
                         )}
                     </div>
                 </div>
+
+
             </div>
         </section>
     );

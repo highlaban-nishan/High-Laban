@@ -116,12 +116,7 @@ export default function Hero() {
             <div className={styles.stickyWrapper}>
                 <canvas ref={canvasRef} className={styles.heroCanvas} />
 
-                {/* Right Slip / Bookmark */}
-                <div className={styles.rightSlip}>
-                    <div className={styles.slipText}>
-                        GET HIGH ON BITES <span className={styles.slipDot}>•</span> GET HIGH ON BITES <span className={styles.slipDot}>•</span> GET HIGH ON BITES <span className={styles.slipDot}>•</span> GET HIGH ON BITES <span className={styles.slipDot}>•</span>
-                    </div>
-                </div>
+
 
                 <div className={styles.overlayContent}>
                     <div className={styles.topBadge}>

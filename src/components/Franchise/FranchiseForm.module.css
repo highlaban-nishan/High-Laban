@@ -115,7 +115,7 @@
 .sectionTitle {
     font-size: 0.75rem;
     font-weight: 800;
-    color: #27AAE1;
+    color: var(--color-main);
     /* Modern Blue */
     text-transform: uppercase;
     letter-spacing: 1.5px;
@@ -172,7 +172,7 @@
 .textarea:focus {
     outline: none;
     background: white;
-    border-color: #27AAE1;
+    border-color: var(--color-main);
     box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
 }
 

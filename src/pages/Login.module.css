@@ -112,7 +112,7 @@
 }
 
 .input:focus {
-    border-color: #1F83B5;
+    border-color: var(--color-secondary);
     background: #ffffff;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
@@ -128,7 +128,7 @@
 
 .submitBtn {
     margin-top: 0.5rem;
-    background: #1F83B5;
+    background: var(--color-secondary);
     /* Bright Blue */
     color: white;
     padding: 0.8rem;
@@ -145,7 +145,7 @@
 }
 
 .submitBtn:hover {
-    background: #1F83B5;
+    background: var(--color-secondary);
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
 }
@@ -166,7 +166,7 @@
 /* Right Panel */
 .rightPanel {
     /* Slightly wider */
-    background: #27AAE1;
+    background: var(--color-main);
     /* Clean blue background */
     position: relative;
     display: flex;

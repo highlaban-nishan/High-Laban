@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaHome, FaUtensils, FaUser } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './MobileNavbar.module.css';
+import logo from '../../assets/logo.png';
 
 export default function MobileNavbar({ onOpenFranchise }) {
     const [activeIndex, setActiveIndex] = useState(0);
@@ -11,14 +12,11 @@ export default function MobileNavbar({ onOpenFranchise }) {
     // Map location to active index on mount/update
     useEffect(() => {
         if (location.pathname === '/') {
-            // Logic to detect section scroll could be added here, 
-            // but simplified for now: default to Home.
             if (location.state?.scrollTo === 'products' || location.hash === '#products') setActiveIndex(1);
-            else if (onOpenFranchise && location.state?.openForm) setActiveIndex(2); // Keep active if form triggered
+            else if (onOpenFranchise && location.state?.openForm) setActiveIndex(2);
             else setActiveIndex(0);
         }
     }, [location, onOpenFranchise]);
-
 
     const menuItems = [
         { icon: <FaHome />, label: 'Home', id: 'home' },
@@ -45,9 +43,6 @@ export default function MobileNavbar({ onOpenFranchise }) {
         if (location.pathname !== '/') {
             navigate('/', { state });
         } else {
-            // Even if on home, we might need to trigger the state update for the listener
-            // to catch it? React Router state doesn't update if we don't navigate.
-            // But we can navigate to current path with state.
             navigate('/', { state, replace: true });
 
             const element = document.getElementById(id);
@@ -59,17 +54,24 @@ export default function MobileNavbar({ onOpenFranchise }) {
     };
 
     return (
-        <nav className={styles.mobileNav}>
-            {menuItems.map((item, index) => (
-                <button
-                    key={item.id}
-                    className={`${styles.navItem} ${activeIndex === index ? styles.active : ''}`}
-                    onClick={() => handleNavigation(index, item.id)}
-                >
-                    <span className={styles.icon}>{item.icon}</span>
-                    <span className={styles.text}>{item.label}</span>
-                </button>
-            ))}
-        </nav>
+        <>
+            {/* Mobile Top Logo */}
+            <div className={styles.mobileTopLogo} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                <img src={logo} alt="High Laban" />
+            </div>
+
+            <nav className={styles.mobileNav}>
+                {menuItems.map((item, index) => (
+                    <button
+                        key={item.id}
+                        className={`${styles.navItem} ${activeIndex === index ? styles.active : ''}`}
+                        onClick={() => handleNavigation(index, item.id)}
+                    >
+                        <span className={styles.icon}>{item.icon}</span>
+                        <span className={styles.text}>{item.label}</span>
+                    </button>
+                ))}
+            </nav>
+        </>
     );
 }

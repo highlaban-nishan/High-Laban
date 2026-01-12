@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '../../utils/cropImage';
 
-const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
+const ImageCropper = ({ imageSrc, onCropComplete, onCancel, aspect = 4 / 3 }) => {
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
@@ -19,12 +19,20 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
         setCroppedAreaPixels(croppedAreaPixels);
     }, []);
 
+    const [isProcessing, setIsProcessing] = useState(false);
+
     const showCroppedImage = useCallback(async () => {
+        setIsProcessing(true);
         try {
             const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
-            onCropComplete(croppedImage);
+            await onCropComplete(croppedImage);
+            // If we are here, parent finished. If parent failed (caught error internally), we should reset processing.
+            // If parent succeeded and unmounted us, this state update might be ignored or warn, which is acceptable.
+            setIsProcessing(false);
         } catch (e) {
             console.error(e);
+            alert("Error cropping image: " + e.message);
+            setIsProcessing(false);
         }
     }, [imageSrc, croppedAreaPixels, onCropComplete]);
 
@@ -55,7 +63,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
                     image={imageSrc}
                     crop={crop}
                     zoom={zoom}
-                    aspect={4 / 3} // Default aspect ratio, can be made dynamic
+                    aspect={aspect} // Use dynamic aspect
                     onCropChange={onCropChange}
                     onCropComplete={onCropAreaChange}
                     onZoomChange={onZoomChange}
@@ -89,30 +97,33 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
                     <button
                         onClick={onCancel}
+                        disabled={isProcessing}
                         style={{
                             padding: '10px 20px',
                             borderRadius: '8px',
                             border: '1px solid #ddd',
                             background: 'white',
                             cursor: 'pointer',
-                            fontWeight: '500'
+                            fontWeight: '500',
+                            opacity: isProcessing ? 0.5 : 1
                         }}
                     >
                         Cancel
                     </button>
                     <button
                         onClick={showCroppedImage}
+                        disabled={isProcessing}
                         style={{
                             padding: '10px 20px',
                             borderRadius: '8px',
                             border: 'none',
-                            background: 'var(--color-accent, #007bff)', // Fallback blue
+                            background: isProcessing ? '#94a3b8' : 'var(--color-accent, #007bff)', // Grey when processing
                             color: 'white',
-                            cursor: 'pointer',
+                            cursor: isProcessing ? 'not-allowed' : 'pointer',
                             fontWeight: '500'
                         }}
                     >
-                        Crop & Save
+                        {isProcessing ? 'Processing...' : 'Crop & Save'}
                     </button>
                 </div>
             </div>
