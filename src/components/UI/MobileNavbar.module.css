@@ -82,8 +82,8 @@
 .mobileTopLogo {
     display: none;
     position: fixed;
-    top: 1.5rem;
-    left: 1.5rem;
+    top: 1rem;
+    left: 1rem;
     z-index: 1001;
     /* Above Hero content */
     cursor: pointer;
