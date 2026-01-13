@@ -1,25 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import styles from './ValuesAndLocations.module.css'; // Reusing styles for consistency
 
-import useScrollReveal from '../../hooks/useScrollReveal';
-import useCountUp from '../../hooks/useCountUp';
 import db from '../../utils/db';
 import FranchiseForm from '../Franchise/FranchiseForm';
 import { useLocation } from 'react-router-dom';
 
-const StatItem = ({ label, target, suffix, start }) => {
-    const count = useCountUp(target, 2500, start);
-    return (
-        <div className={`${styles.statItem} reveal`}>
-            <div className={styles.statValue}>{count}{suffix}</div>
-            <div className={styles.statLabel}>{label}</div>
-        </div>
-    );
-};
-
 export default function FranchiseSection() {
 
-    const [startCounting, setStartCounting] = useState(false);
     const [showForm, setShowForm] = useState(false);
     const location = useLocation();
 
@@ -30,65 +17,16 @@ export default function FranchiseSection() {
         }
     }, [location.state]);
 
-    useScrollReveal();
-
-    // Intersection Observer to start counting when stats are visible
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setStartCounting(true);
-                    observer.disconnect(); // Only trigger once
-                }
-            },
-            { threshold: 0.2 }
-        );
-
-        const section = document.getElementById('stats-section');
-        if (section) observer.observe(section);
-
-        return () => observer.disconnect();
-    }, []);
-
-    const stats = [
-        { label: "LOCATIONS", target: 1, suffix: "+" },
-        { label: "HAPPY CUSTOMERS", target: 10, suffix: "K+" },
-        { label: "VARIETIES", target: 30, suffix: "+" }
-    ];
-
 
 
     return (
-        <section className={styles.section} id="franchise-section">
+        <section className={styles.section} id="franchise-section" style={{ paddingBottom: '0', paddingTop: '1rem' }}>
             <div className={styles.container}>
 
-                {/* Stats Section */}
-                <div id="stats-section" className={styles.statsWrapper}>
-                    {stats.map((stat, index) => (
-                        <React.Fragment key={index}>
-                            <StatItem
-                                label={stat.label}
-                                target={stat.target}
-                                suffix={stat.suffix}
-                                start={startCounting}
-                            />
-                            {index < stats.length - 1 && <div className={`${styles.separator} reveal reveal-delay-200`}></div>}
-                        </React.Fragment>
-                    ))}
-                </div>
-
                 {/* Inline Franchise Form */}
-                <div style={{ margin: '4rem 0', textAlign: 'center' }}>
+                <div style={{ margin: '0 0 2rem 0', textAlign: 'center' }}>
                     <span className={styles.smallLabel}>PARTNER WITH US</span>
                     <h2 className={styles.sectionTitle} style={{ marginBottom: '2rem' }}>Franchise Opportunities</h2>
-
-                    {!startCounting ? (
-                        // Placeholder to prevent layout shift before interaction if needed, or just null
-                        null
-                    ) : (
-                        // Logic for form display 
-                        null
-                    )}
 
                     {!showForm ? (
                         <div className={styles.ctaCard} style={{
