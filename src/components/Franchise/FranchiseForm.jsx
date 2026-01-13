@@ -25,20 +25,13 @@ export default function FranchiseForm({ isOpen, onClose, isModal = true }) {
             email: e.target.querySelector('input[placeholder="vazir@example.com"]').value,
             phone: e.target.querySelector('input[placeholder="+91 98765 43210"]').value,
             street: e.target.querySelector('input[placeholder="Street Address"]').value,
-            city: e.target.querySelectorAll('input[placeholder="City"]')[0].value,
+            city: e.target.querySelector('input[placeholder="City"]').value,
             state: e.target.querySelector('select').value,
             pincode: e.target.querySelector('input[placeholder="110001"]').value,
             currentJob: e.target.querySelector('input[placeholder="Describe your current role"]').value,
             ownedBusiness: e.target.querySelector('input[name="ownedBusiness"]:checked')?.value || 'no',
             franchisee: e.target.querySelector('input[name="franchisee"]:checked')?.value || 'no',
             franchiseType: e.target.querySelector('input[placeholder="e.g. Food & Beverage"]').value,
-            locationCity: e.target.querySelectorAll('input[placeholder="City"]')[1].value,
-            preference: e.target.querySelector('input[placeholder="Preferred area"]').value,
-            ownSpace: e.target.querySelector('#ownSpace').checked ? 'yes' : 'no',
-            shopDescription: e.target.querySelector('textarea').value,
-            area: e.target.querySelector('input[placeholder="e.g. 500"]').value,
-            frontage: e.target.querySelector('input[placeholder="e.g. 20 ft"]').value,
-            demographics: e.target.querySelector('input[placeholder="Residential, Commercial, Student area..."]').value,
         };
 
         try {
@@ -154,46 +147,7 @@ export default function FranchiseForm({ isOpen, onClose, isModal = true }) {
                         </div>
                     </div>
 
-                    {/* Location Information */}
-                    <div>
-                        <h3 className={styles.sectionTitle}>Location Information</h3>
-                        <div className={styles.row}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>City</label>
-                                <input type="text" className={styles.input} placeholder="City" />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Location Preference</label>
-                                <input type="text" className={styles.input} placeholder="Preferred area" />
-                            </div>
-                        </div>
 
-                        <div className={styles.checkboxGroup}>
-                            <input type="checkbox" id="ownSpace" />
-                            <label htmlFor="ownSpace" className={styles.checkboxLabel}>Do you own an existing commercial space?</label>
-                        </div>
-
-                        <div className={styles.fullWidth}>
-                            <label className={styles.label}>Describe The Shop Location</label>
-                            <textarea className={styles.textarea} placeholder="Corner Shop, Main Road facing, etc."></textarea>
-                        </div>
-
-                        <div className={styles.row}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Retail Space Area (sq ft)</label>
-                                <input type="number" className={styles.input} placeholder="e.g. 500" />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Frontage of the Retail Space</label>
-                                <input type="text" className={styles.input} placeholder="e.g. 20 ft" />
-                            </div>
-                        </div>
-
-                        <div className={styles.fullWidth}>
-                            <label className={styles.label}>Demographics of the Location</label>
-                            <input type="text" className={styles.input} placeholder="Residential, Commercial, Student area..." />
-                        </div>
-                    </div>
 
                     {/* Agreement */}
                     <div style={{ marginTop: '1rem' }}>

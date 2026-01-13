@@ -33,7 +33,7 @@ export default function MobileNavbar({ onOpenFranchise }) {
         } else if (id === 'menu') {
             scrollToSection('products');
         } else if (id === 'franchise') {
-            if (onOpenFranchise) onOpenFranchise();
+            scrollToSection('franchise-section');
         }
     };
 

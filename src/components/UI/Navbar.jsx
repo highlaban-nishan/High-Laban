@@ -52,18 +52,26 @@ export default function Navbar({ onOpenFranchise }) {
                             window.scrollTo({ top: y, behavior: 'smooth' });
                         }
                     }}>MENU</a>
-                    <a href="#" className={styles.mobileOnly} onClick={(e) => {
+                    <a href="#franchise" className={styles.mobileOnly} onClick={(e) => {
                         e.preventDefault();
                         setMenuOpen(false);
-                        if (onOpenFranchise) onOpenFranchise();
+                        const element = document.getElementById('franchise-section');
+                        if (element) {
+                            const y = element.getBoundingClientRect().top + window.scrollY - 100;
+                            window.scrollTo({ top: y, behavior: 'smooth' });
+                        }
                     }}>FRANCHISE</a>
 
                 </div>
 
                 <div className={styles.actionButtons}>
-                    <a href="#" className={styles.franchiseButton} onClick={(e) => {
+                    <a href="#franchise" className={styles.franchiseButton} onClick={(e) => {
                         e.preventDefault();
-                        if (onOpenFranchise) onOpenFranchise();
+                        const element = document.getElementById('franchise-section');
+                        if (element) {
+                            const y = element.getBoundingClientRect().top + window.scrollY - 100;
+                            window.scrollTo({ top: y, behavior: 'smooth' });
+                        }
                     }}>
                         FRANCHISE
                     </a>
