@@ -6,13 +6,13 @@ import { getFirestore, collection, getDocs, addDoc, updateDoc, doc, setDoc } fro
 // 2. Click "Project Settings" -> "General" -> "Your apps"
 // 3. Copy the config object and paste it below
 const firebaseConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyA9hITenN1mCr18l6HT0giFZ9uQQvVnaCM",
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "high-laban.firebaseapp.com",
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "high-laban",
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "high-laban.firebasestorage.app",
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "915318950718",
-    appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:915318950718:web:91d5002a5598442d8c3a6f",
-    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-Z3S7TZBGKR"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Validate Config

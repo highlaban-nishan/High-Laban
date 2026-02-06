@@ -38,7 +38,7 @@ const AdminDashboard = () => {
     const defaultSiteContent = {
         storyTitle: 'Our Story',
         storyBadge: 'HL',
-        storyBadgeImage: '', // New field for badge image
+        storyBadgeImage: '/logo-_QsDpavP (2).png', // New field for badge image
         storyText1: 'Rooted in time-honored Egyptian recipes and crafted with only the finest ingredients, our signature desserts are rich, creamy and irresistibly delicious. HIGHLABAN brings you authentic Egyptian desserts that celebrate tradition while creating unforgettable flavor experiences.',
         storyText2: 'Every bite is a journey through tradition and indulgence, made with love by our passionate, expertly trained team.',
         rightLabel: 'ABOUT US',
