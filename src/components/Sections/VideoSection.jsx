@@ -85,7 +85,7 @@ export default function VideoSection() {
                     {/* 6. Pouring Video / Image (Tall/Square) */}
                     <div className={`${styles.card} ${styles.imageCard} ${styles.card6}`}>
                         <video
-                            src="/video/side_video_final.mp4"
+                            src="/video/story_card_6.mp4"
                             autoPlay
                             loop
                             muted
@@ -97,7 +97,7 @@ export default function VideoSection() {
                     {/* 7. Box Image (Tall) */}
                     <div className={`${styles.card} ${styles.imageCard} ${styles.card7}`}>
                         <video
-                            src="/video/side_video_final.mp4"
+                            src="/video/story_card_7.mp4"
                             autoPlay
                             loop
                             muted
