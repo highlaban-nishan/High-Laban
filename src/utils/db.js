@@ -317,7 +317,7 @@ const db = {
 
     // --- Auth ---
     login: async (email, password) => {
-        if (email === 'wazeert13@gmail.com' && password === '12345676') {
+        if (email === 'highlaban@gmail.com' && password === 'Laban@2025') {
             const user = { email, name: 'Admin', role: 'admin' };
             localStorage.setItem('highlaban_user', JSON.stringify(user));
             return user;
