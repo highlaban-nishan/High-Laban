@@ -1,4 +1,4 @@
-const API_KEY = import.meta.env.VITE_IMGBB_API_KEY;
+const API_KEY = import.meta.env.VITE_IMGBB_API_KEY || 'a3f20cbabd029be3408dfb659dd16c78';
 
 /**
  * Uploads a base64 image string to ImgBB.

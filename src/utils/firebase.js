@@ -6,13 +6,13 @@ import { getFirestore, collection, getDocs, addDoc, updateDoc, doc, setDoc } fro
 // 2. Click "Project Settings" -> "General" -> "Your apps"
 // 3. Copy the config object and paste it below
 const firebaseConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
-    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBqpMyF6O3M865M97_TKNgGWeOYH65Doy8",
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "highlaban-833fc.firebaseapp.com",
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "highlaban-833fc",
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "highlaban-833fc.firebasestorage.app",
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "662034537087",
+    appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:662034537087:web:8270d976ed012a8050bd4a",
+    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-R2WJ30698P"
 };
 
 // Validate Config
