@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import ReactDOM from 'react-dom';
 import Container from '../UI/Container';
 import styles from './Products.module.css';
@@ -149,6 +150,19 @@ export default function Products() {
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [isFullMenuOpen, setIsFullMenuOpen] = useState(false);
+    const location = useLocation();
+
+    // Check for hash to open full menu
+    useEffect(() => {
+        if (location.hash === '#full-menu') {
+            setIsFullMenuOpen(true);
+            // Optional: scroll to the section as well
+            const element = document.getElementById('products');
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+    }, [location]);
 
     // Disable background scroll when modal is open
     useEffect(() => {

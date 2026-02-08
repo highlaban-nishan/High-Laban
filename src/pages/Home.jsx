@@ -36,16 +36,21 @@ const Home = () => {
                     window.history.replaceState({}, document.title);
                 }, 100);
             }
+        } else if (location.hash) {
+            // Handle hash scrolling
+            const elementId = location.hash.replace('#', '');
+            const element = document.getElementById(elementId);
+            if (element) {
+                setTimeout(() => {
+                    const y = element.getBoundingClientRect().top + window.scrollY - 100;
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                }, 100);
+            }
         } else {
-            // Aggressive scroll to top
+            // Aggressive scroll to top only if no hash
             window.scrollTo(0, 0);
 
-            // Clear any lingering hash that might cause auto-scroll
-            if (window.location.hash) {
-                window.history.replaceState(null, '', window.location.pathname);
-            }
-
-            // Double check after a small tick to override any browser restoration
+            // Double check after a small tick
             setTimeout(() => window.scrollTo(0, 0), 0);
             setTimeout(() => window.scrollTo(0, 0), 50);
         }

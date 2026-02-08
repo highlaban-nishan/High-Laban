@@ -24,6 +24,8 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
+
+
   const openFranchise = () => setFranchiseOpen(true);
   const closeFranchise = () => setFranchiseOpen(false);
 

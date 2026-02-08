@@ -10,12 +10,19 @@ export default function FranchiseSection() {
     const [showForm, setShowForm] = useState(false);
     const location = useLocation();
 
-    // Auto-open form via navigation state
+    // Auto-open form via navigation state or hash
     useEffect(() => {
-        if (location.state?.openForm) {
+        if (location.state?.openForm || location.hash === '#open-franchise') {
             setShowForm(true);
+            // Ensure we scroll to the section if it's a hash match
+            if (location.hash === '#open-franchise') {
+                const element = document.getElementById('franchise-section');
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
         }
-    }, [location.state]);
+    }, [location.state, location.hash]);
 
 
 
