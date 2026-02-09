@@ -5,6 +5,7 @@ import logo from '../assets/logo.png';
 
 import styles from './Login.module.css';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import SEO from '../components/SEO/SEO';
 
 const Login = () => {
     const navigate = useNavigate();
@@ -29,6 +30,7 @@ const Login = () => {
 
     return (
         <div className={styles.pageWrapper}>
+            <SEO title="Admin Login | High Laban" description="Secure login for High Laban administration." />
             <div className={styles.container}>
                 {/* Left Panel - Form */}
                 <div className={styles.leftPanel}>

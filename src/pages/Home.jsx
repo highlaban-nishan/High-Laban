@@ -9,6 +9,7 @@ import { useLocation } from 'react-router-dom';
 import FranchiseSection from '../components/Sections/FranchiseSection';
 
 import ValuesAndLocations from '../components/Sections/ValuesAndLocations';
+import SEO from '../components/SEO/SEO';
 
 const Home = () => {
     const location = useLocation();
@@ -61,6 +62,11 @@ const Home = () => {
 
     return (
         <>
+            <SEO
+                title="High Laban Community | Premium Egyptian Desserts"
+                description="Experience the authentic taste of Egyptian desserts in India. Join the High Laban community and discover our premium products and franchise opportunities."
+                keywords="Egyptian desserts, High Laban, premium desserts, franchise, India"
+            />
             <Hero />
             <main style={{ position: 'relative', zIndex: 10, background: 'var(--color-bg-dark)' }}>
                 <Marquee />

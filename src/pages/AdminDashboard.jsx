@@ -7,6 +7,7 @@ import logo from '../assets/logo.png';
 
 import ImageCropper from '../components/UI/ImageCropper';
 import Highlights from '../components/Sections/Highlights'; // For Live Preview
+import SEO from '../components/SEO/SEO';
 // import SalesChart from '../components/Dashboard/SalesChart'; // Removed as per request
 // import POS from '../components/Dashboard/POS'; // Removed as per user request
 
@@ -348,6 +349,7 @@ const AdminDashboard = () => {
 
     return (
         <div className={styles.container}>
+            <SEO title="Admin Dashboard | High Laban" description="Manage High Laban products, content, and users." />
             {/* Mobile Overlay */}
             {isMobileOpen && (
                 <div className={styles.overlay} onClick={() => setIsMobileOpen(false)}></div>
