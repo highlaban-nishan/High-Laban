@@ -23,16 +23,5 @@
       <video:publication_date>2026-02-09</video:publication_date>
     </video:video>
   </url>
-  <url>
-    <loc>https://www.highlaban.com/#franchise-section</loc>
-    <lastmod>2026-02-09</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.highlaban.com/#full-menu</loc>
-    <lastmod>2026-02-09</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
+
 </urlset>

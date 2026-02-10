@@ -11,9 +11,8 @@ export default function About() {
                     <div className={styles.aboutContent}>
                         <h2 className={styles.sectionTitle}>A Taste of <br /> <span className={styles.highlight}>Egyptian Tradition</span></h2>
                         <p className={styles.sectionText}>
-                            High Laban brings you the authentic flavors of Egypt.
-                            Our desserts are committed to quality, using only the freshest ingredients
-                            to create creamy, dreamy treats that delight your senses.
+                            Experience the rich Egyptian tradition with High Laban. We provide silky smooth desserts like Pistachio Lotus, Cheese Bomb, and Nutella Salankatia.
+                            Discover why High Laban is the ultimate destination for authentic and creative Egyptian treats.
                         </p>
                         <ul className={styles.featureList}>
                             <li>Authentic Family Recipes</li>

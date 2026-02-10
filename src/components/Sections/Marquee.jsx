@@ -2,12 +2,12 @@ import React from 'react';
 import styles from './Marquee.module.css';
 
 const items = [
-    "Touch of Egyptian Tradition",
-    "Silky Smooth",
-    "Luxuriously Creamy",
-    "Bursting with Authentic Flavour",
-    "Made with Love",
-    "Rich & Delicious",
+    "High Laban: Authentic Egyptian Desserts",
+    "Try our Pistachio Lotus",
+    "Experience the Cheese Bomb",
+    "Indulge in Nutella Salankatia",
+    "Silky Smooth & Creamy",
+    "Made with Love in Egypt",
 ];
 
 const Marquee = () => {
