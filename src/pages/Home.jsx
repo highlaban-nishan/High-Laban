@@ -64,7 +64,7 @@ const Home = () => {
         <>
             <SEO
                 title="High Laban Community | Premium Egyptian Desserts"
-                description="Experience the authentic taste of Egyptian desserts in India. Join the High Laban community and discover our premium products and franchise opportunities."
+                description="High Laban: The Viral Egyptian Dessert & Premier Franchise Opportunities"
                 keywords="Egyptian desserts, High Laban, premium desserts, franchise, India"
             />
             <Hero />
