@@ -437,16 +437,18 @@ const AdminDashboard = () => {
             setVendors(v);
             setRunningFranchises(f);
         } else if (activeTab === 'costing') {
-            const [raws, bunds, recs, prods] = await Promise.all([
+            const [raws, bunds, recs, prods, p] = await Promise.all([
                 db.getRawMaterials(),
                 db.getBundleItems(),
                 db.getRecipes(),
-                db.getProducts()
+                db.getProducts(),
+                db.getPurchases()
             ]);
             setRawMaterials(raws);
             setBundleItems(bunds);
             setRecipesList(recs);
             setProducts(prods);
+            setPurchases(p);
         }
     };
 
@@ -5755,8 +5757,19 @@ const AdminDashboard = () => {
                     'Gas & Fuel', 'Equipment & Tools', 'Other'
                 ];
 
+                const getRawMaterialPrice = (raw) => {
+                    const matchingPurchases = (purchases || []).filter(
+                        p => p.item && p.item.toLowerCase().trim() === raw.name.toLowerCase().trim()
+                    );
+                    if (matchingPurchases.length > 0) {
+                        const total = matchingPurchases.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+                        return total / matchingPurchases.length;
+                    }
+                    return parseFloat(raw.price) || 0;
+                };
+
                 const getRawMaterialUnitPrice = (raw) => {
-                    const price = parseFloat(raw.price) || 0;
+                    const price = getRawMaterialPrice(raw);
                     const qty = parseFloat(raw.quantity) || 1;
                     return price / qty;
                 };
@@ -6089,6 +6102,8 @@ const AdminDashboard = () => {
                                         })
                                         .map(raw => {
                                             const unitCost = getRawMaterialUnitPrice(raw);
+                                            const dynamicPrice = getRawMaterialPrice(raw);
+                                            const hasPurchases = (purchases || []).some(p => p.item && p.item.toLowerCase().trim() === raw.name.toLowerCase().trim());
                                         return (
                                             <div key={raw.id} style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 2px 6px rgba(0,0,0,0.01)' }}>
                                                 <div>
@@ -6108,7 +6123,14 @@ const AdminDashboard = () => {
                                                             <p style={{ margin: '0 0 6px', fontSize: '0.75rem', color: '#0ea5e9', fontWeight: '700' }}>🏪 Vendor: {vendorObj.name}</p>
                                                         ) : null;
                                                     })()}
-                                                    <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>Cost: ₹{raw.price} per {raw.quantity}{raw.unit}</p>
+                                                    <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
+                                                        Cost: ₹{dynamicPrice.toFixed(2)} per {raw.quantity}{raw.unit}
+                                                        {hasPurchases && (
+                                                            <span style={{ marginLeft: '6px', color: '#0ea5e9', fontWeight: 'bold', fontSize: '0.72rem' }}>
+                                                                (Avg from Purchases)
+                                                            </span>
+                                                        )}
+                                                    </p>
                                                 </div>
                                                 <div style={{ marginTop: '1.25rem', borderTop: '1px dashed #e2e8f0', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: '600' }}>Unit Rate:</span>
