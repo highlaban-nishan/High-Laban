@@ -4371,6 +4371,405 @@ const AdminDashboard = () => {
                         );
                     })()
                 }
+
+            {/* ══════════════════════════════════════════════════════════
+                VENDORS TAB
+            ══════════════════════════════════════════════════════════ */}
+            {activeTab === 'vendors' && (() => {
+                const VENDOR_CATEGORIES = [
+                    'Dairy & Milk', 'Eggs', 'Fruits & Vegetables', 'Dry Fruits & Nuts',
+                    'Sweeteners & Flavours', 'Packaging', 'Cleaning & Supplies',
+                    'Gas & Fuel', 'Equipment & Tools', 'Other'
+                ];
+
+                const filteredVendors = vendors.filter(v => {
+                    if (vendorCategoryFilter !== 'All' && v.category !== vendorCategoryFilter) return false;
+                    if (vendorSearchQuery && !v.name.toLowerCase().includes(vendorSearchQuery.toLowerCase()) &&
+                        !(v.phone || '').includes(vendorSearchQuery)) return false;
+                    return true;
+                });
+
+                const itemComparisonList = vendorItemSearch ? vendors.flatMap(v =>
+                    (v.items || [])
+                        .filter(it => it.itemName.toLowerCase().includes(vendorItemSearch.toLowerCase()))
+                        .map(it => ({ vendorId: v.id, vendorName: v.name, phone: v.phone, category: v.category, ...it }))
+                ).sort((a, b) => parseFloat(a.price) - parseFloat(b.price)) : [];
+
+                const VendorForm = ({ data, setData, onSave, onCancel, title }) => {
+                    const addItem = () => setData(d => ({ ...d, items: [...(d.items || []), { itemName: '', unit: 'kg', price: '' }] }));
+                    const updateItem = (i, field, val) => setData(d => { const items = [...(d.items || [])]; items[i] = { ...items[i], [field]: val }; return { ...d, items }; });
+                    const removeItem = (i) => setData(d => ({ ...d, items: (d.items || []).filter((_, idx) => idx !== i) }));
+                    return (
+                        <div style={{ background: 'white', borderRadius: '20px', padding: '2rem', border: '1px solid #e2e8f0', marginBottom: '1.5rem', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h3 style={{ margin: 0, fontWeight: '800', color: '#0f172a' }}>{title}</h3>
+                                <button onClick={onCancel} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#94a3b8' }}>×</button>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                                {[['Vendor Name *', 'name', 'text', 'e.g. Suresh Dairy'],
+                                  ['Phone *', 'phone', 'tel', '+91 98765 43210'],
+                                  ['WhatsApp', 'whatsapp', 'tel', 'WhatsApp number'],
+                                  ['Address', 'address', 'text', 'Area / City']].map(([label, key, type, ph]) => (
+                                    <div key={key}>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>{label}</label>
+                                        <input type={type} placeholder={ph} value={data[key] || ''} onChange={e => setData(d => ({ ...d, [key]: e.target.value }))}
+                                            style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+                                    </div>
+                                ))}
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Category</label>
+                                    <select value={data.category} onChange={e => setData(d => ({ ...d, category: e.target.value }))}
+                                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.9rem', boxSizing: 'border-box' }}>
+                                        {VENDOR_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Notes</label>
+                                    <input type="text" placeholder="Extra info..." value={data.notes || ''} onChange={e => setData(d => ({ ...d, notes: e.target.value }))}
+                                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+                                </div>
+                            </div>
+                            <div style={{ background: '#f8fafc', borderRadius: '14px', padding: '1.25rem', marginBottom: '1rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                    <label style={{ fontSize: '0.78rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px' }}>📦 Items & Prices</label>
+                                    <button type="button" onClick={addItem}
+                                        style={{ background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', padding: '6px 14px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
+                                        + Add Item
+                                    </button>
+                                </div>
+                                {(data.items || []).length === 0 ? (
+                                    <div style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '1rem' }}>No items added yet. Click "Add Item" to start.</div>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        {(data.items || []).map((item, i) => (
+                                            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto 100px auto', gap: '8px', alignItems: 'center' }}>
+                                                <input type="text" placeholder="Item name (e.g. Full Cream Milk)" value={item.itemName} onChange={e => updateItem(i, 'itemName', e.target.value)}
+                                                    style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }} />
+                                                <select value={item.unit} onChange={e => updateItem(i, 'unit', e.target.value)}
+                                                    style={{ padding: '8px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }}>
+                                                    {['kg', 'g', 'litre', 'ml', 'piece', 'dozen', 'box', 'bag', 'packet'].map(u => <option key={u} value={u}>{u}</option>)}
+                                                </select>
+                                                <input type="number" placeholder="₹ Price" value={item.price} onChange={e => updateItem(i, 'price', e.target.value)}
+                                                    style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }} />
+                                                <button onClick={() => removeItem(i)}
+                                                    style={{ background: '#fee2e2', border: 'none', borderRadius: '8px', padding: '8px 10px', cursor: 'pointer', color: '#ef4444', fontWeight: '900', fontSize: '1rem' }}>×</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button onClick={onCancel}
+                                    style={{ flex: 1, padding: '12px', border: '1.5px solid #e2e8f0', background: 'white', borderRadius: '12px', cursor: 'pointer', fontWeight: '700', color: '#64748b' }}>
+                                    Cancel
+                                </button>
+                                <button onClick={onSave}
+                                    style={{ flex: 2, padding: '12px', border: 'none', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', borderRadius: '12px', cursor: 'pointer', fontWeight: '800', color: 'white' }}>
+                                    💾 Save Vendor
+                                </button>
+                            </div>
+                        </div>
+                    );
+                };
+
+                const handleSaveVendor = async () => {
+                    if (!newVendor.name.trim() || !newVendor.phone.trim()) { showToast('Vendor name and phone are required', 'error'); return; }
+                    try {
+                        const saved = await db.addVendor(newVendor);
+                        setVendors(prev => [saved, ...prev]);
+                        setNewVendor({ name: '', category: 'Dairy & Milk', phone: '', whatsapp: '', address: '', notes: '', items: [] });
+                        setShowAddVendorForm(false);
+                        showToast('Vendor added!');
+                    } catch { showToast('Failed to save vendor', 'error'); }
+                };
+
+                const handleUpdateVendor = async () => {
+                    if (!editingVendor.name.trim()) { showToast('Vendor name is required', 'error'); return; }
+                    try {
+                        await db.updateVendor(editingVendor.id, editingVendor);
+                        setVendors(prev => prev.map(v => v.id === editingVendor.id ? editingVendor : v));
+                        setEditingVendor(null);
+                        showToast('Vendor updated!');
+                    } catch { showToast('Failed to update vendor', 'error'); }
+                };
+
+                const handleDeleteVendor = async (id) => {
+                    if (!window.confirm('Delete this vendor?')) return;
+                    try {
+                        await db.deleteVendor(id);
+                        setVendors(prev => prev.filter(v => v.id !== id));
+                        showToast('Vendor deleted');
+                    } catch { showToast('Failed to delete', 'error'); }
+                };
+
+                return (
+                    <div style={{ width: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
+                            <div>
+                                <h2 style={{ margin: 0, fontWeight: '900', color: '#0f172a', fontSize: '1.5rem' }}>🏪 Vendor Management</h2>
+                                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.85rem' }}>{vendors.length} vendors · Compare prices · Track suppliers</p>
+                            </div>
+                            <button onClick={() => { setShowAddVendorForm(true); setEditingVendor(null); }}
+                                style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', border: 'none', borderRadius: '12px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                + Add Vendor
+                            </button>
+                        </div>
+                        <div style={{ background: 'linear-gradient(135deg, #0f172a, #1e293b)', borderRadius: '20px', padding: '1.5rem', marginBottom: '1.5rem', border: '1px solid rgba(255,255,255,0.08)' }}>
+                            <h3 style={{ color: 'white', fontWeight: '800', margin: '0 0 1rem 0', fontSize: '1rem' }}>🔍 Price Comparison — Who gives the best price?</h3>
+                            <input type="text" placeholder="Search item (e.g. Milk, Egg, Pistachio)..." value={vendorItemSearch}
+                                onChange={e => setVendorItemSearch(e.target.value)}
+                                style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.08)', color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }} />
+                            {vendorItemSearch && (
+                                <div style={{ marginTop: '1rem' }}>
+                                    {itemComparisonList.length === 0 ? (
+                                        <div style={{ color: '#64748b', fontSize: '0.85rem' }}>No vendors found supplying "{vendorItemSearch}"</div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            {itemComparisonList.map((it, i) => (
+                                                <div key={i} style={{
+                                                    display: 'flex', alignItems: 'center', gap: '1rem',
+                                                    background: i === 0 ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)',
+                                                    border: i === 0 ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(255,255,255,0.06)',
+                                                    borderRadius: '12px', padding: '10px 16px'
+                                                }}>
+                                                    <span style={{ fontSize: '1.2rem' }}>{i === 0 ? '🏆' : `#${i + 1}`}</span>
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ color: 'white', fontWeight: '700', fontSize: '0.9rem' }}>{it.vendorName}</div>
+                                                        <div style={{ color: '#64748b', fontSize: '0.75rem' }}>{it.itemName} · {it.unit} · {it.category}</div>
+                                                    </div>
+                                                    <div style={{ color: i === 0 ? '#10b981' : '#f59e0b', fontWeight: '900', fontSize: '1.1rem' }}>₹{parseFloat(it.price).toLocaleString('en-IN')}/{it.unit}</div>
+                                                    {i === 0 && <span style={{ background: '#10b981', color: 'white', fontSize: '0.65rem', fontWeight: '800', padding: '2px 8px', borderRadius: '50px' }}>BEST</span>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        {showAddVendorForm && (
+                            <VendorForm data={newVendor} setData={setNewVendor}
+                                onSave={handleSaveVendor} onCancel={() => setShowAddVendorForm(false)}
+                                title="➕ Add New Vendor" />
+                        )}
+                        {editingVendor && (
+                            <VendorForm data={editingVendor} setData={setEditingVendor}
+                                onSave={handleUpdateVendor} onCancel={() => setEditingVendor(null)}
+                                title="✏️ Edit Vendor" />
+                        )}
+                        <div style={{ display: 'flex', gap: '10px', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <input type="text" placeholder="🔍 Search vendors..." value={vendorSearchQuery} onChange={e => setVendorSearchQuery(e.target.value)}
+                                style={{ flex: '1 1 200px', padding: '9px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.88rem' }} />
+                            <select value={vendorCategoryFilter} onChange={e => setVendorCategoryFilter(e.target.value)}
+                                style={{ padding: '9px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.88rem' }}>
+                                <option value="All">All Categories</option>
+                                {VENDOR_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                            <span style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: '600' }}>{filteredVendors.length} results</span>
+                        </div>
+                        {filteredVendors.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '4rem 2rem', color: '#94a3b8' }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏪</div>
+                                <div style={{ fontWeight: '700', fontSize: '1.1rem', color: '#475569' }}>No vendors yet</div>
+                                <div style={{ fontSize: '0.85rem', marginTop: '4px' }}>Click "Add Vendor" to add your first supplier.</div>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.25rem' }}>
+                                {filteredVendors.map(v => (
+                                    <div key={v.id} style={{ background: 'white', borderRadius: '20px', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                            <div>
+                                                <div style={{ fontWeight: '800', fontSize: '1rem', color: '#0f172a' }}>{v.name}</div>
+                                                <span style={{ display: 'inline-block', background: '#f0f9ff', color: '#0ea5e9', border: '1px solid #bae6fd', borderRadius: '50px', padding: '2px 10px', fontSize: '0.72rem', fontWeight: '700', marginTop: '4px' }}>{v.category}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                                <button onClick={() => { setEditingVendor(v); setShowAddVendorForm(false); }}
+                                                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', color: '#0ea5e9' }}>Edit</button>
+                                                <button onClick={() => handleDeleteVendor(v.id)}
+                                                    style={{ background: '#fee2e2', border: 'none', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', color: '#ef4444' }}>Del</button>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '12px', fontSize: '0.8rem', color: '#64748b', flexWrap: 'wrap' }}>
+                                            {v.phone && <span>📞 <a href={`tel:${v.phone}`} style={{ color: '#0ea5e9', textDecoration: 'none', fontWeight: '600' }}>{v.phone}</a></span>}
+                                            {v.whatsapp && <span>💬 <a href={`https://wa.me/${v.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ color: '#22c55e', textDecoration: 'none', fontWeight: '600' }}>{v.whatsapp}</a></span>}
+                                            {v.address && <span>📍 {v.address}</span>}
+                                        </div>
+                                        {(v.items || []).length > 0 && (
+                                            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '12px' }}>
+                                                <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Items & Pricing</div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                    {(v.items || []).map((it, i) => (
+                                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                                                            <span style={{ color: '#334155', fontWeight: '600' }}>{it.itemName}</span>
+                                                            <span style={{ color: '#0ea5e9', fontWeight: '800' }}>₹{parseFloat(it.price || 0).toLocaleString('en-IN')}/{it.unit}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {v.notes && <div style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>"{v.notes}"</div>}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
+
+            {/* ══════════════════════════════════════════════════════════
+                PURCHASES TAB (Admin read-all view)
+            ══════════════════════════════════════════════════════════ */}
+            {activeTab === 'purchases' && (() => {
+                const CATEGORIES = [
+                    'Dairy & Milk', 'Eggs', 'Fruits & Vegetables', 'Dry Fruits & Nuts',
+                    'Sweeteners & Flavours', 'Packaging', 'Cleaning & Supplies',
+                    'Gas & Fuel', 'Equipment & Tools', 'Other'
+                ];
+                const filteredPurchases = purchases.filter(p => {
+                    if (purchaseFilterDate && p.date !== purchaseFilterDate) return false;
+                    if (purchaseFilterPurchaser !== 'All' && p.purchaserName !== purchaseFilterPurchaser) return false;
+                    if (purchaseFilterCategory !== 'All' && p.category !== purchaseFilterCategory) return false;
+                    if (purchaseFilterPayment !== 'All' && p.paymentMode !== purchaseFilterPayment) return false;
+                    if (purchaseSearchQuery && !p.item.toLowerCase().includes(purchaseSearchQuery.toLowerCase()) &&
+                        !(p.vendorName || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase())) return false;
+                    return true;
+                });
+                const today = new Date().toISOString().split('T')[0];
+                const todayTotal = filteredPurchases.filter(p => p.date === today).reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+                const allTotal = filteredPurchases.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+                const cashTotal = filteredPurchases.filter(p => p.paymentMode === 'Cash').reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+                const gpayTotal = filteredPurchases.filter(p => p.paymentMode === 'GPay').reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+                const uniquePurchasers = [...new Set(purchases.map(p => p.purchaserName).filter(Boolean))];
+                const handleExportCSV = () => {
+                    if (!filteredPurchases.length) { showToast('No data to export', 'error'); return; }
+                    const headers = ['Date', 'Purchaser', 'Item', 'Category', 'Vendor', 'Amount (₹)', 'Payment Mode', 'Notes'];
+                    const rows = filteredPurchases.map(p =>
+                        [p.date, p.purchaserName, `"${p.item}"`, `"${p.category}"`, `"${p.vendorName || ''}"`, p.amount, p.paymentMode, `"${p.notes || ''}"`].join(',')
+                    );
+                    const blob = new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = `purchases_${today}.csv`; a.click();
+                    URL.revokeObjectURL(url);
+                    showToast('Report exported!');
+                };
+                const handleDeletePurchase = async (id) => {
+                    if (!window.confirm('Delete this purchase entry?')) return;
+                    try {
+                        await db.deletePurchase(id);
+                        setPurchases(prev => prev.filter(p => p.id !== id));
+                        showToast('Purchase deleted');
+                    } catch { showToast('Failed to delete', 'error'); }
+                };
+                const catIcon = (cat) => ({
+                    'Dairy & Milk': '🥛', 'Eggs': '🥚', 'Fruits & Vegetables': '🍎',
+                    'Dry Fruits & Nuts': '🥜', 'Sweeteners & Flavours': '🍯',
+                    'Packaging': '📦', 'Gas & Fuel': '🔥', 'Equipment & Tools': '🔧',
+                    'Cleaning & Supplies': '🧹'
+                }[cat] || '🛒');
+                return (
+                    <div style={{ width: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
+                            <div>
+                                <h2 style={{ margin: 0, fontWeight: '900', color: '#0f172a', fontSize: '1.5rem' }}>🛒 Daily Purchases</h2>
+                                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.85rem' }}>All team purchase entries · {filteredPurchases.length} entries</p>
+                            </div>
+                            <button onClick={handleExportCSV}
+                                style={{ background: '#059669', color: 'white', border: 'none', borderRadius: '12px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                📊 Export CSV
+                            </button>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                            {[
+                                { label: "Today's Total", value: `₹${todayTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#0ea5e9', icon: '📅' },
+                                { label: 'Filtered Total', value: `₹${allTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#10b981', icon: '💰' },
+                                { label: 'Cash Payments', value: `₹${cashTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#f59e0b', icon: '💵' },
+                                { label: 'GPay / Digital', value: `₹${gpayTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#8b5cf6', icon: '📱' },
+                            ].map((s, i) => (
+                                <div key={i} style={{ background: 'white', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '1.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                    <div style={{ fontSize: '1.4rem', marginBottom: '6px' }}>{s.icon}</div>
+                                    <div style={{ color: s.color, fontSize: '1.3rem', fontWeight: '900', lineHeight: 1 }}>{s.value}</div>
+                                    <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '4px' }}>{s.label}</div>
+                                </div>
+                            ))}
+                        </div>
+                        <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1rem', marginBottom: '1.25rem', display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                            <input type="text" placeholder="🔍 Search item / vendor..." value={purchaseSearchQuery} onChange={e => setPurchaseSearchQuery(e.target.value)}
+                                style={{ flex: '1 1 180px', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }} />
+                            <input type="date" value={purchaseFilterDate} onChange={e => setPurchaseFilterDate(e.target.value)}
+                                style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }} />
+                            <select value={purchaseFilterPurchaser} onChange={e => setPurchaseFilterPurchaser(e.target.value)}
+                                style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }}>
+                                <option value="All">All Purchasers</option>
+                                {uniquePurchasers.map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                            <select value={purchaseFilterCategory} onChange={e => setPurchaseFilterCategory(e.target.value)}
+                                style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }}>
+                                <option value="All">All Categories</option>
+                                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                            <select value={purchaseFilterPayment} onChange={e => setPurchaseFilterPayment(e.target.value)}
+                                style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }}>
+                                <option value="All">All Payments</option>
+                                <option value="Cash">Cash</option>
+                                <option value="GPay">GPay</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                            </select>
+                            {(purchaseFilterDate || purchaseFilterPurchaser !== 'All' || purchaseFilterCategory !== 'All' || purchaseFilterPayment !== 'All' || purchaseSearchQuery) && (
+                                <button onClick={() => { setPurchaseFilterDate(''); setPurchaseFilterPurchaser('All'); setPurchaseFilterCategory('All'); setPurchaseFilterPayment('All'); setPurchaseSearchQuery(''); }}
+                                    style={{ padding: '8px 12px', background: '#ef4444', border: 'none', borderRadius: '8px', color: 'white', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>
+                                    Clear
+                                </button>
+                            )}
+                        </div>
+                        {filteredPurchases.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '4rem 2rem', color: '#94a3b8', background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
+                                <div style={{ fontWeight: '700', fontSize: '1.1rem', color: '#475569' }}>No purchase entries found</div>
+                                <div style={{ fontSize: '0.85rem', marginTop: '4px' }}>Entries logged by Marchad, Nufoor, and other team members will appear here.</div>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {filteredPurchases.map(p => (
+                                    <div key={p.id} style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                        <div style={{ fontSize: '2rem', flexShrink: 0 }}>{catIcon(p.category)}</div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                <span style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.95rem' }}>{p.item}</span>
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 8px', borderRadius: '50px', fontSize: '0.7rem', fontWeight: '700', background: p.paymentMode === 'Cash' ? '#fef9c3' : '#ede9fe', color: p.paymentMode === 'Cash' ? '#92400e' : '#5b21b6', border: p.paymentMode === 'Cash' ? '1px solid #fde68a' : '1px solid #c4b5fd' }}>
+                                                    {p.paymentMode === 'Cash' ? '💵' : '📱'} {p.paymentMode}
+                                                </span>
+                                            </div>
+                                            <div style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '3px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                                                <span>📅 {p.date}</span>
+                                                <span style={{ fontWeight: '700', color: '#64748b' }}>👤 {p.purchaserName}</span>
+                                                <span>🏷️ {p.category}</span>
+                                                {p.vendorName && <span>🏪 {p.vendorName}</span>}
+                                            </div>
+                                            {p.notes && <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: '4px', fontStyle: 'italic' }}>"{ p.notes}"</div>}
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
+                                            <span style={{ color: '#10b981', fontWeight: '900', fontSize: '1.1rem' }}>₹{parseFloat(p.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                                {p.billUrl && (
+                                                    <a href={p.billUrl} target="_blank" rel="noopener noreferrer"
+                                                        style={{ background: '#f0f9ff', color: '#0ea5e9', border: '1px solid #bae6fd', borderRadius: '6px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: '700', textDecoration: 'none' }}>
+                                                        📷 Bill
+                                                    </a>
+                                                )}
+                                                <button onClick={() => handleDeletePurchase(p.id)}
+                                                    style={{ background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer' }}>
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
+
             </main>
 
             {/* EDIT MODAL */}
@@ -6154,6 +6553,7 @@ const AdminDashboard = () => {
                                                         </div>
                                                     </div>
                                                 )}
+
                                             </div>
                                         </div>
                                     </div>
@@ -6165,443 +6565,6 @@ const AdminDashboard = () => {
                 })()
             }
 
-            {/* ══════════════════════════════════════════════════════════
-                VENDORS TAB
-            ══════════════════════════════════════════════════════════ */}
-            {activeTab === 'vendors' && (() => {
-                const VENDOR_CATEGORIES = [
-                    'Dairy & Milk', 'Eggs', 'Fruits & Vegetables', 'Dry Fruits & Nuts',
-                    'Sweeteners & Flavours', 'Packaging', 'Cleaning & Supplies',
-                    'Gas & Fuel', 'Equipment & Tools', 'Other'
-                ];
-
-                const filteredVendors = vendors.filter(v => {
-                    if (vendorCategoryFilter !== 'All' && v.category !== vendorCategoryFilter) return false;
-                    if (vendorSearchQuery && !v.name.toLowerCase().includes(vendorSearchQuery.toLowerCase()) &&
-                        !(v.phone || '').includes(vendorSearchQuery)) return false;
-                    return true;
-                });
-
-                // Price comparison: find all vendors supplying a searched item
-                const itemComparisonList = vendorItemSearch ? vendors.flatMap(v =>
-                    (v.items || [])
-                        .filter(it => it.itemName.toLowerCase().includes(vendorItemSearch.toLowerCase()))
-                        .map(it => ({ vendorId: v.id, vendorName: v.name, phone: v.phone, category: v.category, ...it }))
-                ).sort((a, b) => parseFloat(a.price) - parseFloat(b.price)) : [];
-
-                const VendorForm = ({ data, setData, onSave, onCancel, title }) => {
-                    const addItem = () => setData(d => ({ ...d, items: [...(d.items || []), { itemName: '', unit: 'kg', price: '' }] }));
-                    const updateItem = (i, field, val) => setData(d => { const items = [...(d.items || [])]; items[i] = { ...items[i], [field]: val }; return { ...d, items }; });
-                    const removeItem = (i) => setData(d => ({ ...d, items: (d.items || []).filter((_, idx) => idx !== i) }));
-
-                    return (
-                        <div style={{ background: 'white', borderRadius: '20px', padding: '2rem', border: '1px solid #e2e8f0', marginBottom: '1.5rem', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                <h3 style={{ margin: 0, fontWeight: '800', color: '#0f172a' }}>{title}</h3>
-                                <button onClick={onCancel} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#94a3b8' }}>×</button>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                                {[['Vendor Name *', 'name', 'text', 'e.g. Suresh Dairy'],
-                                  ['Phone *', 'phone', 'tel', '+91 98765 43210'],
-                                  ['WhatsApp', 'whatsapp', 'tel', 'WhatsApp number'],
-                                  ['Address', 'address', 'text', 'Area / City']].map(([label, key, type, ph]) => (
-                                    <div key={key}>
-                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>{label}</label>
-                                        <input type={type} placeholder={ph} value={data[key] || ''} onChange={e => setData(d => ({ ...d, [key]: e.target.value }))}
-                                            style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-                                    </div>
-                                ))}
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Category</label>
-                                    <select value={data.category} onChange={e => setData(d => ({ ...d, category: e.target.value }))}
-                                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.9rem', boxSizing: 'border-box' }}>
-                                        {VENDOR_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Notes</label>
-                                    <input type="text" placeholder="Extra info..." value={data.notes || ''} onChange={e => setData(d => ({ ...d, notes: e.target.value }))}
-                                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-                                </div>
-                            </div>
-
-                            {/* Items / Pricing */}
-                            <div style={{ background: '#f8fafc', borderRadius: '14px', padding: '1.25rem', marginBottom: '1rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                    <label style={{ fontSize: '0.78rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px' }}>📦 Items & Prices</label>
-                                    <button type="button" onClick={addItem}
-                                        style={{ background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', padding: '6px 14px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
-                                        + Add Item
-                                    </button>
-                                </div>
-                                {(data.items || []).length === 0 ? (
-                                    <div style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '1rem' }}>No items added yet. Click "Add Item" to start.</div>
-                                ) : (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        {(data.items || []).map((item, i) => (
-                                            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto 100px auto', gap: '8px', alignItems: 'center' }}>
-                                                <input type="text" placeholder="Item name (e.g. Full Cream Milk)" value={item.itemName} onChange={e => updateItem(i, 'itemName', e.target.value)}
-                                                    style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }} />
-                                                <select value={item.unit} onChange={e => updateItem(i, 'unit', e.target.value)}
-                                                    style={{ padding: '8px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }}>
-                                                    {['kg', 'g', 'litre', 'ml', 'piece', 'dozen', 'box', 'bag', 'packet'].map(u => <option key={u} value={u}>{u}</option>)}
-                                                </select>
-                                                <input type="number" placeholder="₹ Price" value={item.price} onChange={e => updateItem(i, 'price', e.target.value)}
-                                                    style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }} />
-                                                <button onClick={() => removeItem(i)}
-                                                    style={{ background: '#fee2e2', border: 'none', borderRadius: '8px', padding: '8px 10px', cursor: 'pointer', color: '#ef4444', fontWeight: '900', fontSize: '1rem' }}>×</button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <button onClick={onCancel}
-                                    style={{ flex: 1, padding: '12px', border: '1.5px solid #e2e8f0', background: 'white', borderRadius: '12px', cursor: 'pointer', fontWeight: '700', color: '#64748b' }}>
-                                    Cancel
-                                </button>
-                                <button onClick={onSave}
-                                    style={{ flex: 2, padding: '12px', border: 'none', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', borderRadius: '12px', cursor: 'pointer', fontWeight: '800', color: 'white' }}>
-                                    💾 Save Vendor
-                                </button>
-                            </div>
-                        </div>
-                    );
-                };
-
-                const handleSaveVendor = async () => {
-                    if (!newVendor.name.trim() || !newVendor.phone.trim()) { showToast('Vendor name and phone are required', 'error'); return; }
-                    try {
-                        const saved = await db.addVendor(newVendor);
-                        setVendors(prev => [saved, ...prev]);
-                        setNewVendor({ name: '', category: 'Dairy & Milk', phone: '', whatsapp: '', address: '', notes: '', items: [] });
-                        setShowAddVendorForm(false);
-                        showToast('Vendor added!');
-                    } catch { showToast('Failed to save vendor', 'error'); }
-                };
-
-                const handleUpdateVendor = async () => {
-                    if (!editingVendor.name.trim()) { showToast('Vendor name is required', 'error'); return; }
-                    try {
-                        await db.updateVendor(editingVendor.id, editingVendor);
-                        setVendors(prev => prev.map(v => v.id === editingVendor.id ? editingVendor : v));
-                        setEditingVendor(null);
-                        showToast('Vendor updated!');
-                    } catch { showToast('Failed to update vendor', 'error'); }
-                };
-
-                const handleDeleteVendor = async (id) => {
-                    if (!window.confirm('Delete this vendor?')) return;
-                    try {
-                        await db.deleteVendor(id);
-                        setVendors(prev => prev.filter(v => v.id !== id));
-                        showToast('Vendor deleted');
-                    } catch { showToast('Failed to delete', 'error'); }
-                };
-
-                return (
-                    <div className={styles.content}>
-                        {/* Header row */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
-                            <div>
-                                <h2 style={{ margin: 0, fontWeight: '900', color: '#0f172a', fontSize: '1.5rem' }}>🏪 Vendor Management</h2>
-                                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.85rem' }}>{vendors.length} vendors · Compare prices · Track suppliers</p>
-                            </div>
-                            <button onClick={() => { setShowAddVendorForm(true); setEditingVendor(null); }}
-                                style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', border: 'none', borderRadius: '12px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer', fontSize: '0.9rem' }}>
-                                + Add Vendor
-                            </button>
-                        </div>
-
-                        {/* Price Comparison Tool */}
-                        <div style={{ background: 'linear-gradient(135deg, #0f172a, #1e293b)', borderRadius: '20px', padding: '1.5rem', marginBottom: '1.5rem', border: '1px solid rgba(255,255,255,0.08)' }}>
-                            <h3 style={{ color: 'white', fontWeight: '800', margin: '0 0 1rem 0', fontSize: '1rem' }}>🔍 Price Comparison — Who gives the best price?</h3>
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <input type="text" placeholder="Search item (e.g. Milk, Egg, Pistachio)..." value={vendorItemSearch}
-                                    onChange={e => setVendorItemSearch(e.target.value)}
-                                    style={{ flex: 1, padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.08)', color: 'white', fontSize: '0.9rem', outline: 'none' }} />
-                            </div>
-                            {vendorItemSearch && (
-                                <div style={{ marginTop: '1rem' }}>
-                                    {itemComparisonList.length === 0 ? (
-                                        <div style={{ color: '#64748b', fontSize: '0.85rem' }}>No vendors found supplying "{vendorItemSearch}"</div>
-                                    ) : (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            {itemComparisonList.map((it, i) => (
-                                                <div key={i} style={{
-                                                    display: 'flex', alignItems: 'center', gap: '1rem',
-                                                    background: i === 0 ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)',
-                                                    border: i === 0 ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(255,255,255,0.06)',
-                                                    borderRadius: '12px', padding: '10px 16px'
-                                                }}>
-                                                    <span style={{ fontSize: '1.2rem' }}>{i === 0 ? '🏆' : `#${i + 1}`}</span>
-                                                    <div style={{ flex: 1 }}>
-                                                        <div style={{ color: 'white', fontWeight: '700', fontSize: '0.9rem' }}>{it.vendorName}</div>
-                                                        <div style={{ color: '#64748b', fontSize: '0.75rem' }}>{it.itemName} · {it.unit} · {it.category}</div>
-                                                    </div>
-                                                    <div style={{ color: i === 0 ? '#10b981' : '#f59e0b', fontWeight: '900', fontSize: '1.1rem' }}>₹{parseFloat(it.price).toLocaleString('en-IN')}/{it.unit}</div>
-                                                    {i === 0 && <span style={{ background: '#10b981', color: 'white', fontSize: '0.65rem', fontWeight: '800', padding: '2px 8px', borderRadius: '50px' }}>BEST</span>}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Add Vendor Form */}
-                        {showAddVendorForm && (
-                            <VendorForm data={newVendor} setData={setNewVendor}
-                                onSave={handleSaveVendor} onCancel={() => setShowAddVendorForm(false)}
-                                title="➕ Add New Vendor" />
-                        )}
-
-                        {/* Edit Vendor Form */}
-                        {editingVendor && (
-                            <VendorForm data={editingVendor} setData={setEditingVendor}
-                                onSave={handleUpdateVendor} onCancel={() => setEditingVendor(null)}
-                                title="✏️ Edit Vendor" />
-                        )}
-
-                        {/* Filters */}
-                        <div style={{ display: 'flex', gap: '10px', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                            <input type="text" placeholder="🔍 Search vendors..." value={vendorSearchQuery} onChange={e => setVendorSearchQuery(e.target.value)}
-                                style={{ flex: '1 1 200px', padding: '9px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.88rem' }} />
-                            <select value={vendorCategoryFilter} onChange={e => setVendorCategoryFilter(e.target.value)}
-                                style={{ padding: '9px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.88rem' }}>
-                                <option value="All">All Categories</option>
-                                {VENDOR_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                            <span style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: '600' }}>{filteredVendors.length} results</span>
-                        </div>
-
-                        {/* Vendor Cards */}
-                        {filteredVendors.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: '4rem 2rem', color: '#94a3b8' }}>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏪</div>
-                                <div style={{ fontWeight: '700', fontSize: '1.1rem', color: '#475569' }}>No vendors yet</div>
-                                <div style={{ fontSize: '0.85rem', marginTop: '4px' }}>Click "Add Vendor" to add your first supplier.</div>
-                            </div>
-                        ) : (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.25rem' }}>
-                                {filteredVendors.map(v => (
-                                    <div key={v.id} style={{ background: 'white', borderRadius: '20px', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                            <div>
-                                                <div style={{ fontWeight: '800', fontSize: '1rem', color: '#0f172a' }}>{v.name}</div>
-                                                <span style={{ display: 'inline-block', background: '#f0f9ff', color: '#0ea5e9', border: '1px solid #bae6fd', borderRadius: '50px', padding: '2px 10px', fontSize: '0.72rem', fontWeight: '700', marginTop: '4px' }}>{v.category}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: '6px' }}>
-                                                <button onClick={() => { setEditingVendor(v); setShowAddVendorForm(false); }}
-                                                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', color: '#0ea5e9' }}>Edit</button>
-                                                <button onClick={() => handleDeleteVendor(v.id)}
-                                                    style={{ background: '#fee2e2', border: 'none', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', color: '#ef4444' }}>Del</button>
-                                            </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', gap: '12px', fontSize: '0.8rem', color: '#64748b', flexWrap: 'wrap' }}>
-                                            {v.phone && <span>📞 <a href={`tel:${v.phone}`} style={{ color: '#0ea5e9', textDecoration: 'none', fontWeight: '600' }}>{v.phone}</a></span>}
-                                            {v.whatsapp && <span>💬 <a href={`https://wa.me/${v.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ color: '#22c55e', textDecoration: 'none', fontWeight: '600' }}>{v.whatsapp}</a></span>}
-                                            {v.address && <span>📍 {v.address}</span>}
-                                        </div>
-
-                                        {/* Items */}
-                                        {(v.items || []).length > 0 && (
-                                            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '12px' }}>
-                                                <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Items & Pricing</div>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                    {(v.items || []).map((it, i) => (
-                                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
-                                                            <span style={{ color: '#334155', fontWeight: '600' }}>{it.itemName}</span>
-                                                            <span style={{ color: '#0ea5e9', fontWeight: '800' }}>₹{parseFloat(it.price || 0).toLocaleString('en-IN')}/{it.unit}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {v.notes && <div style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>"{v.notes}"</div>}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                );
-            })()}
-
-            {/* ══════════════════════════════════════════════════════════
-                PURCHASES TAB (Admin read-all view)
-            ══════════════════════════════════════════════════════════ */}
-            {activeTab === 'purchases' && (() => {
-                const CATEGORIES = [
-                    'Dairy & Milk', 'Eggs', 'Fruits & Vegetables', 'Dry Fruits & Nuts',
-                    'Sweeteners & Flavours', 'Packaging', 'Cleaning & Supplies',
-                    'Gas & Fuel', 'Equipment & Tools', 'Other'
-                ];
-
-                const filteredPurchases = purchases.filter(p => {
-                    if (purchaseFilterDate && p.date !== purchaseFilterDate) return false;
-                    if (purchaseFilterPurchaser !== 'All' && p.purchaserName !== purchaseFilterPurchaser) return false;
-                    if (purchaseFilterCategory !== 'All' && p.category !== purchaseFilterCategory) return false;
-                    if (purchaseFilterPayment !== 'All' && p.paymentMode !== purchaseFilterPayment) return false;
-                    if (purchaseSearchQuery && !p.item.toLowerCase().includes(purchaseSearchQuery.toLowerCase()) &&
-                        !(p.vendorName || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase())) return false;
-                    return true;
-                });
-
-                const today = new Date().toISOString().split('T')[0];
-                const todayTotal = filteredPurchases.filter(p => p.date === today).reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
-                const allTotal = filteredPurchases.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
-                const cashTotal = filteredPurchases.filter(p => p.paymentMode === 'Cash').reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
-                const gpayTotal = filteredPurchases.filter(p => p.paymentMode === 'GPay').reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
-                const uniquePurchasers = [...new Set(purchases.map(p => p.purchaserName).filter(Boolean))];
-
-                const handleExportCSV = () => {
-                    if (!filteredPurchases.length) { showToast('No data to export', 'error'); return; }
-                    const headers = ['Date', 'Purchaser', 'Item', 'Category', 'Vendor', 'Amount (₹)', 'Payment Mode', 'Notes'];
-                    const rows = filteredPurchases.map(p =>
-                        [p.date, p.purchaserName, `"${p.item}"`, `"${p.category}"`, `"${p.vendorName || ''}"`, p.amount, p.paymentMode, `"${p.notes || ''}"`].join(',')
-                    );
-                    const blob = new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url; a.download = `purchases_${today}.csv`; a.click();
-                    URL.revokeObjectURL(url);
-                    showToast('Report exported!');
-                };
-
-                const handleDeletePurchase = async (id) => {
-                    if (!window.confirm('Delete this purchase entry?')) return;
-                    try {
-                        await db.deletePurchase(id);
-                        setPurchases(prev => prev.filter(p => p.id !== id));
-                        showToast('Purchase deleted');
-                    } catch { showToast('Failed to delete', 'error'); }
-                };
-
-                const catIcon = (cat) => ({
-                    'Dairy & Milk': '🥛', 'Eggs': '🥚', 'Fruits & Vegetables': '🍎',
-                    'Dry Fruits & Nuts': '🥜', 'Sweeteners & Flavours': '🍯',
-                    'Packaging': '📦', 'Gas & Fuel': '🔥', 'Equipment & Tools': '🔧',
-                    'Cleaning & Supplies': '🧹'
-                }[cat] || '🛒');
-
-                return (
-                    <div className={styles.content}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
-                            <div>
-                                <h2 style={{ margin: 0, fontWeight: '900', color: '#0f172a', fontSize: '1.5rem' }}>🛒 Daily Purchases</h2>
-                                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.85rem' }}>All team purchase entries · {filteredPurchases.length} entries</p>
-                            </div>
-                            <button onClick={handleExportCSV}
-                                style={{ background: '#059669', color: 'white', border: 'none', borderRadius: '12px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer', fontSize: '0.9rem' }}>
-                                📊 Export CSV
-                            </button>
-                        </div>
-
-                        {/* Summary Cards */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-                            {[
-                                { label: "Today's Total", value: `₹${todayTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#0ea5e9', icon: '📅' },
-                                { label: 'Filtered Total', value: `₹${allTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#10b981', icon: '💰' },
-                                { label: 'Cash Payments', value: `₹${cashTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#f59e0b', icon: '💵' },
-                                { label: 'GPay / Digital', value: `₹${gpayTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#8b5cf6', icon: '📱' },
-                            ].map((s, i) => (
-                                <div key={i} style={{ background: 'white', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '1.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                                    <div style={{ fontSize: '1.4rem', marginBottom: '6px' }}>{s.icon}</div>
-                                    <div style={{ color: s.color, fontSize: '1.3rem', fontWeight: '900', lineHeight: 1 }}>{s.value}</div>
-                                    <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '4px' }}>{s.label}</div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Filters */}
-                        <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1rem', marginBottom: '1.25rem', display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                            <input type="text" placeholder="🔍 Search item / vendor..." value={purchaseSearchQuery} onChange={e => setPurchaseSearchQuery(e.target.value)}
-                                style={{ flex: '1 1 180px', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }} />
-                            <input type="date" value={purchaseFilterDate} onChange={e => setPurchaseFilterDate(e.target.value)}
-                                style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }} />
-                            <select value={purchaseFilterPurchaser} onChange={e => setPurchaseFilterPurchaser(e.target.value)}
-                                style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }}>
-                                <option value="All">All Purchasers</option>
-                                {uniquePurchasers.map(p => <option key={p} value={p}>{p}</option>)}
-                            </select>
-                            <select value={purchaseFilterCategory} onChange={e => setPurchaseFilterCategory(e.target.value)}
-                                style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }}>
-                                <option value="All">All Categories</option>
-                                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                            <select value={purchaseFilterPayment} onChange={e => setPurchaseFilterPayment(e.target.value)}
-                                style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }}>
-                                <option value="All">All Payments</option>
-                                <option value="Cash">Cash</option>
-                                <option value="GPay">GPay</option>
-                                <option value="Bank Transfer">Bank Transfer</option>
-                            </select>
-                            {(purchaseFilterDate || purchaseFilterPurchaser !== 'All' || purchaseFilterCategory !== 'All' || purchaseFilterPayment !== 'All' || purchaseSearchQuery) && (
-                                <button onClick={() => { setPurchaseFilterDate(''); setPurchaseFilterPurchaser('All'); setPurchaseFilterCategory('All'); setPurchaseFilterPayment('All'); setPurchaseSearchQuery(''); }}
-                                    style={{ padding: '8px 12px', background: '#ef4444', border: 'none', borderRadius: '8px', color: 'white', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>
-                                    Clear
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Purchase Entries */}
-                        {filteredPurchases.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: '4rem 2rem', color: '#94a3b8', background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
-                                <div style={{ fontWeight: '700', fontSize: '1.1rem', color: '#475569' }}>No purchase entries found</div>
-                                <div style={{ fontSize: '0.85rem', marginTop: '4px' }}>Entries logged by Marchad, Nufoor, and other team members will appear here.</div>
-                            </div>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                {filteredPurchases.map(p => (
-                                    <div key={p.id} style={{
-                                        background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0',
-                                        padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem',
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-                                    }}>
-                                        <div style={{ fontSize: '2rem', flexShrink: 0 }}>{catIcon(p.category)}</div>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                                <span style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.95rem' }}>{p.item}</span>
-                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 8px', borderRadius: '50px', fontSize: '0.7rem', fontWeight: '700', background: p.paymentMode === 'Cash' ? '#fef9c3' : '#ede9fe', color: p.paymentMode === 'Cash' ? '#92400e' : '#5b21b6', border: p.paymentMode === 'Cash' ? '1px solid #fde68a' : '1px solid #c4b5fd' }}>
-                                                    {p.paymentMode === 'Cash' ? '💵' : '📱'} {p.paymentMode}
-                                                </span>
-                                            </div>
-                                            <div style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '3px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                                                <span>📅 {p.date}</span>
-                                                <span style={{ fontWeight: '700', color: '#64748b' }}>👤 {p.purchaserName}</span>
-                                                <span>🏷️ {p.category}</span>
-                                                {p.vendorName && <span>🏪 {p.vendorName}</span>}
-                                            </div>
-                                            {p.notes && <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: '4px', fontStyle: 'italic' }}>"{p.notes}"</div>}
-                                        </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
-                                            <span style={{ color: '#10b981', fontWeight: '900', fontSize: '1.1rem' }}>₹{parseFloat(p.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                                            <div style={{ display: 'flex', gap: '6px' }}>
-                                                {p.billUrl && (
-                                                    <a href={p.billUrl} target="_blank" rel="noopener noreferrer"
-                                                        style={{ background: '#f0f9ff', color: '#0ea5e9', border: '1px solid #bae6fd', borderRadius: '6px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: '700', textDecoration: 'none' }}>
-                                                        📷 Bill
-                                                    </a>
-                                                )}
-                                                <button onClick={() => handleDeletePurchase(p.id)}
-                                                    style={{ background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer' }}>
-                                                    Delete
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                );
-            })()}
-
-            {/* Image Cropper Modal */}
 
             {
                 croppingImage && (
