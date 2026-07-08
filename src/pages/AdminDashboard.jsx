@@ -6584,13 +6584,24 @@ const AdminDashboard = () => {
                                                         <td style={{ padding: '14px 20px' }}>
                                                             {(!isReadOnly && !isChef) ? (
                                                                 <button onClick={() => {
+                                                                    const productToppingsList = Array.isArray(prod.toppings) 
+                                                                        ? prod.toppings 
+                                                                        : (prod.toppings ? prod.toppings.split(',').map(t => t.trim()) : []);
+                                                                    const recipeToppings = (currentRecipe?.toppings && currentRecipe.toppings.length > 0)
+                                                                        ? currentRecipe.toppings
+                                                                        : productToppingsList.map(tName => ({
+                                                                            name: tName,
+                                                                            ingredients: [],
+                                                                            packagingCost: '0',
+                                                                            stickerCost: '0'
+                                                                        }));
                                                                     setSelectedRecipeProduct(prod);
                                                                     setEditingRecipe({
                                                                         ingredients: currentRecipe?.ingredients || [],
                                                                         packagingCost: (currentRecipe?.packagingCost || 0).toString(),
                                                                         batchSize: (currentRecipe?.batchSize || 1).toString(),
                                                                         overheadAllocation: (currentRecipe?.overheadAllocation || 0).toString(),
-                                                                        toppings: currentRecipe?.toppings || []
+                                                                        toppings: recipeToppings
                                                                     });
                                                                 }} style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>
                                                                     Configure Costing
