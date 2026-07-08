@@ -83,6 +83,7 @@ const getProrationFactor = (staff, monthStr) => {
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const user = db.getUser(); // Check auth immediately
+    const isReadOnly = user?.role === 'accounts';
     const [activeTab, setActiveTab] = useState('products');
     const [products, setProducts] = useState([]);
     const [orders, setOrders] = useState([]);
@@ -108,7 +109,22 @@ const AdminDashboard = () => {
     const [purchaseFilterPurchaser, setPurchaseFilterPurchaser] = useState('All');
     const [purchaseFilterCategory, setPurchaseFilterCategory] = useState('All');
     const [purchaseFilterPayment, setPurchaseFilterPayment] = useState('All');
+    const [purchaseFilterLocation, setPurchaseFilterLocation] = useState('All');
+    const [purchaseFilterPeriod, setPurchaseFilterPeriod] = useState('daily'); // 'daily' | 'weekly' | 'monthly'
     const [purchaseSearchQuery, setPurchaseSearchQuery] = useState('');
+    const [showAddPurchaseForm, setShowAddPurchaseForm] = useState(false);
+    const [editingPurchase, setEditingPurchase] = useState(null);
+    const [newPurchase, setNewPurchase] = useState({
+        date: new Date().toISOString().split('T')[0], item: '', category: 'Dairy & Milk',
+        vendorId: '', amount: '', paymentMode: 'Cash', notes: '', billUrl: '', location: 'Main Kitchen'
+    });
+
+    // Users & Logins State
+    const [systemUsers, setSystemUsers] = useState([]);
+    const [showAddUserForm, setShowAddUserForm] = useState(false);
+    const [editingUser, setEditingUser] = useState(null);
+    const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'purchaser' });
+    const [usersSubTab, setUsersSubTab] = useState('logins'); // 'logins' | 'subscribers'
 
 
     // Locations State
@@ -297,8 +313,9 @@ const AdminDashboard = () => {
         } else if (activeTab === 'customers') {
             const custs = await db.getCustomers();
             setCustomers(custs);
-            const subs = await db.getSubscribers();
+            const [subs, usrs] = await Promise.all([db.getSubscribers(), db.getUsers()]);
             setSubscribers(subs);
+            setSystemUsers(usrs);
         } else if (activeTab === 'franchise') {
             const inquiries = await db.getFranchiseInquiries();
             setFranchiseInquiries(inquiries);
@@ -339,9 +356,10 @@ const AdminDashboard = () => {
             const v = await db.getVendors();
             setVendors(v);
         } else if (activeTab === 'purchases') {
-            const [p, v] = await Promise.all([db.getPurchases(), db.getVendors()]);
+            const [p, v, f] = await Promise.all([db.getPurchases(), db.getVendors(), db.getFranchises()]);
             setPurchases(p);
             setVendors(v);
+            setRunningFranchises(f);
         }
     };
 
@@ -1650,35 +1668,225 @@ const AdminDashboard = () => {
 
                 {/* --- CUSTOMERS / USERS TAB --- */}
                 {
-                    activeTab === 'customers' && (
-                        <div className={styles.grid}>
-                            {/* Subscribers Section */}
-                            <div className={styles.card} style={{ gridColumn: '1/-1', marginBottom: '2rem' }}>
-                                <h3 style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', marginBottom: '1rem' }}>Newsletter Subscribers</h3>
-                                {subscribers.length > 0 ? (
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
-                                        {subscribers.map(sub => (
-                                            <div key={sub.id} style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <div>
-                                                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{sub.email}</div>
-                                                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
-                                                        Signed up: {sub.date ? new Date(sub.date).toLocaleDateString() : 'N/A'}
+                    activeTab === 'customers' && (() => {
+                        const handleSaveUser = async (e) => {
+                            e.preventDefault();
+                            if (!newUser.name.trim() || !newUser.email.trim() || !newUser.password.trim()) {
+                                showToast('All fields are required', 'error');
+                                return;
+                            }
+                            try {
+                                const added = await db.addUser(newUser);
+                                setSystemUsers(prev => [added, ...prev]);
+                                setNewUser({ name: '', email: '', password: '', role: 'purchaser' });
+                                setShowAddUserForm(false);
+                                showToast('User created successfully!');
+                            } catch (error) {
+                                showToast('Failed to add user', 'error');
+                            }
+                        };
+
+                        const handleUpdateUser = async (e) => {
+                            e.preventDefault();
+                            if (!editingUser.name.trim() || !editingUser.email.trim() || !editingUser.password.trim()) {
+                                showToast('All fields are required', 'error');
+                                return;
+                            }
+                            try {
+                                await db.updateUser(editingUser.id, editingUser);
+                                setSystemUsers(prev => prev.map(u => u.id === editingUser.id ? editingUser : u));
+                                setEditingUser(null);
+                                showToast('User updated successfully!');
+                            } catch (error) {
+                                showToast('Failed to update user', 'error');
+                            }
+                        };
+
+                        const handleDeleteUser = async (id) => {
+                            if (!window.confirm('Delete this user login account?')) return;
+                            try {
+                                await db.deleteUser(id);
+                                setSystemUsers(prev => prev.filter(u => u.id !== id));
+                                showToast('User deleted successfully');
+                            } catch (error) {
+                                showToast('Failed to delete user', 'error');
+                            }
+                        };
+
+                        return (
+                            <div style={{ width: '100%' }}>
+                                {/* Sub tab switcher */}
+                                <div style={{ display: 'flex', gap: '8px', marginBottom: '1.5rem', background: '#f1f5f9', padding: '4px', borderRadius: '12px', width: 'fit-content' }}>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setUsersSubTab('logins')}
+                                        style={{ 
+                                            border: 'none', 
+                                            background: usersSubTab === 'logins' ? '#009ceb' : 'none', 
+                                            color: usersSubTab === 'logins' ? 'white' : '#64748b', 
+                                            padding: '0.5rem 1.2rem', 
+                                            borderRadius: '8px', 
+                                            fontWeight: 'bold', 
+                                            cursor: 'pointer',
+                                            fontSize: '0.85rem',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        🔐 User Logins ({systemUsers.length})
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setUsersSubTab('subscribers')}
+                                        style={{ 
+                                            border: 'none', 
+                                            background: usersSubTab === 'subscribers' ? '#009ceb' : 'none', 
+                                            color: usersSubTab === 'subscribers' ? 'white' : '#64748b', 
+                                            padding: '0.5rem 1.2rem', 
+                                            borderRadius: '8px', 
+                                            fontWeight: 'bold', 
+                                            cursor: 'pointer',
+                                            fontSize: '0.85rem',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        ✉️ Newsletter Subscribers ({subscribers.length})
+                                    </button>
+                                </div>
+
+                                {usersSubTab === 'logins' ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <h3 style={{ margin: 0, fontWeight: '800', color: '#0f172a' }}>System Logins & Accounts</h3>
+                                                <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.82rem' }}>Define purchaser and accounts roles. Accounts role has view-only access to purchases.</p>
+                                            </div>
+                                            <button 
+                                                onClick={() => { setShowAddUserForm(!showAddUserForm); setEditingUser(null); }}
+                                                style={{ background: '#009ceb', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 16px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.85rem' }}
+                                            >
+                                                {showAddUserForm ? 'Close Form' : '+ Create User'}
+                                            </button>
+                                        </div>
+
+                                        {/* Add User Form */}
+                                        {showAddUserForm && (
+                                            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.5rem' }}>
+                                                <h4 style={{ margin: '0 0 1rem 0' }}>➕ Create System Login</h4>
+                                                <form onSubmit={handleSaveUser} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+                                                    <div>
+                                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Display Name</label>
+                                                        <input type="text" value={newUser.name} onChange={e => setNewUser({ ...newUser, name: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} placeholder="e.g. Marchad / Nufoor" required />
+                                                    </div>
+                                                    <div>
+                                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Login Username / Email</label>
+                                                        <input type="text" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} placeholder="marchad@highlaban.com" required />
+                                                    </div>
+                                                    <div>
+                                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Password</label>
+                                                        <input type="text" value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} placeholder="Set password" required />
+                                                    </div>
+                                                    <div>
+                                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Role / Permission</label>
+                                                        <select value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}>
+                                                            <option value="purchaser">Purchaser (Add purchases, view all)</option>
+                                                            <option value="accounts">Accounts Team (View-only purchases)</option>
+                                                            <option value="admin">Administrator (Full Access)</option>
+                                                        </select>
+                                                    </div>
+                                                    <button type="submit" style={{ background: '#009ceb', color: 'white', border: 'none', borderRadius: '8px', padding: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Save User</button>
+                                                </form>
+                                            </div>
+                                        )}
+
+                                        {/* Edit User Form */}
+                                        {editingUser && (
+                                            <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '16px', padding: '1.5rem' }}>
+                                                <h4 style={{ margin: '0 0 1rem 0' }}>✏️ Edit User Details</h4>
+                                                <form onSubmit={handleUpdateUser} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+                                                    <div>
+                                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 'bold', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Display Name</label>
+                                                        <input type="text" value={editingUser.name} onChange={e => setEditingUser({ ...editingUser, name: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required />
+                                                    </div>
+                                                    <div>
+                                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 'bold', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Login Username</label>
+                                                        <input type="text" value={editingUser.email} onChange={e => setEditingUser({ ...editingUser, email: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required />
+                                                    </div>
+                                                    <div>
+                                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 'bold', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Password</label>
+                                                        <input type="text" value={editingUser.password} onChange={e => setEditingUser({ ...editingUser, password: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required />
+                                                    </div>
+                                                    <div>
+                                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 'bold', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Role / Permission</label>
+                                                        <select value={editingUser.role} onChange={e => setEditingUser({ ...editingUser, role: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}>
+                                                            <option value="purchaser">Purchaser (Add purchases, view all)</option>
+                                                            <option value="accounts">Accounts Team (View-only purchases)</option>
+                                                            <option value="admin">Administrator (Full Access)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                                        <button type="submit" style={{ flex: 1, background: '#009ceb', color: 'white', border: 'none', borderRadius: '8px', padding: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Update</button>
+                                                        <button type="button" onClick={() => setEditingUser(null)} style={{ flex: 1, background: 'white', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        )}
+
+                                        {/* User Grid */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
+                                            {systemUsers.map(usr => (
+                                                <div key={usr.id} style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.25rem', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                        <div>
+                                                            <div style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.98rem' }}>{usr.name}</div>
+                                                            <span style={{ 
+                                                                display: 'inline-block', padding: '2px 8px', borderRadius: '50px', fontSize: '0.7rem', fontWeight: 'bold', marginTop: '4px',
+                                                                background: usr.role === 'admin' ? '#fee2e2' : usr.role === 'accounts' ? '#ede9fe' : '#e0f2fe',
+                                                                color: usr.role === 'admin' ? '#991b1b' : usr.role === 'accounts' ? '#5b21b6' : '#0369a1',
+                                                                border: `1px solid ${usr.role === 'admin' ? '#fca5a5' : usr.role === 'accounts' ? '#c4b5fd' : '#7dd3fc'}`
+                                                            }}>
+                                                                {usr.role?.toUpperCase()}
+                                                            </span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                                            <button onClick={() => { setEditingUser(usr); setShowAddUserForm(false); }} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '5px 10px', fontSize: '0.75rem', fontWeight: 'bold', color: '#009ceb', cursor: 'pointer' }}>Edit</button>
+                                                            <button onClick={() => handleDeleteUser(usr.id)} style={{ background: '#fee2e2', border: 'none', borderRadius: '6px', padding: '5px 10px', fontSize: '0.75rem', fontWeight: 'bold', color: '#ef4444', cursor: 'pointer' }}>Del</button>
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ fontSize: '0.8rem', color: '#64748b', borderTop: '1px dashed #f1f5f9', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        <div>👤 Username: <strong style={{ color: '#334155' }}>{usr.email}</strong></div>
+                                                        <div>🔑 Password: <strong style={{ color: '#334155' }}>{usr.password}</strong></div>
                                                     </div>
                                                 </div>
-                                                <button onClick={() => handleDeleteSubscriber(sub.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Delete Subscriber">
-                                                    <TrashIcon />
-                                                </button>
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
                                     </div>
                                 ) : (
-                                    <p style={{ color: '#94a3b8' }}>No subscribers yet.</p>
+                                    <div className={styles.card} style={{ gridColumn: '1/-1', marginBottom: '2rem', border: 'none', boxShadow: 'none' }}>
+                                        <h3 style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', marginBottom: '1rem' }}>Newsletter Subscribers</h3>
+                                        {subscribers.length > 0 ? (
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
+                                                {subscribers.map(sub => (
+                                                    <div key={sub.id} style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{sub.email}</div>
+                                                            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
+                                                                Signed up: {sub.date ? new Date(sub.date).toLocaleDateString() : 'N/A'}
+                                                            </div>
+                                                        </div>
+                                                        <button onClick={() => handleDeleteSubscriber(sub.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Delete Subscriber">
+                                                            <TrashIcon />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p style={{ color: '#94a3b8' }}>No subscribers yet.</p>
+                                        )}
+                                    </div>
                                 )}
                             </div>
-
-
-                        </div>
-                    )
+                        );
+                    })()
                 }
 
 
@@ -4624,7 +4832,16 @@ const AdminDashboard = () => {
                     'Sweeteners & Flavours', 'Packaging', 'Cleaning & Supplies',
                     'Gas & Fuel', 'Equipment & Tools', 'Other'
                 ];
+
+                const locationOptions = ['Main Kitchen', ...runningFranchises.filter(f => f.status === 'Running').map(f => f.outletName)];
+                
+                // If filter location is not initialized yet or not in list, set default to Main Kitchen
+                const currentFilterLoc = purchaseFilterLocation === 'All' ? 'Main Kitchen' : purchaseFilterLocation;
+
                 const filteredPurchases = purchases.filter(p => {
+                    // Location separation filter
+                    if (currentFilterLoc !== 'All' && (p.location || 'Main Kitchen') !== currentFilterLoc) return false;
+
                     if (purchaseFilterDate && p.date !== purchaseFilterDate) return false;
                     if (purchaseFilterPurchaser !== 'All' && p.purchaserName !== purchaseFilterPurchaser) return false;
                     if (purchaseFilterCategory !== 'All' && p.category !== purchaseFilterCategory) return false;
@@ -4633,25 +4850,113 @@ const AdminDashboard = () => {
                         !(p.vendorName || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase())) return false;
                     return true;
                 });
+
                 const today = new Date().toISOString().split('T')[0];
                 const todayTotal = filteredPurchases.filter(p => p.date === today).reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
-                const allTotal = filteredPurchases.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+                const periodTotal = filteredPurchases.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
                 const cashTotal = filteredPurchases.filter(p => p.paymentMode === 'Cash').reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
                 const gpayTotal = filteredPurchases.filter(p => p.paymentMode === 'GPay').reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
                 const uniquePurchasers = [...new Set(purchases.map(p => p.purchaserName).filter(Boolean))];
-                const handleExportCSV = () => {
-                    if (!filteredPurchases.length) { showToast('No data to export', 'error'); return; }
-                    const headers = ['Date', 'Purchaser', 'Item', 'Category', 'Vendor', 'Amount (₹)', 'Payment Mode', 'Notes'];
-                    const rows = filteredPurchases.map(p =>
-                        [p.date, p.purchaserName, `"${p.item}"`, `"${p.category}"`, `"${p.vendorName || ''}"`, p.amount, p.paymentMode, `"${p.notes || ''}"`].join(',')
-                    );
-                    const blob = new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url; a.download = `purchases_${today}.csv`; a.click();
-                    URL.revokeObjectURL(url);
-                    showToast('Report exported!');
+
+                const getGroupedPurchases = () => {
+                    const sorted = [...filteredPurchases].sort((a, b) => b.date.localeCompare(a.date));
+                    
+                    if (purchaseFilterPeriod === 'daily') {
+                        const groups = {};
+                        sorted.forEach(p => {
+                            if (!groups[p.date]) groups[p.date] = { date: p.date, total: 0, items: [] };
+                            groups[p.date].total += parseFloat(p.amount || 0);
+                            groups[p.date].items.push(p);
+                        });
+                        return Object.values(groups);
+                    } else if (purchaseFilterPeriod === 'weekly') {
+                        const getWeekRange = (dateStr) => {
+                            const date = new Date(dateStr);
+                            const day = date.getDay();
+                            const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+                            const monday = new Date(date.setDate(diff));
+                            const sunday = new Date(date.setDate(diff + 6));
+                            return {
+                                label: `Week of ${monday.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} – ${sunday.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`,
+                                key: monday.toISOString().split('T')[0]
+                            };
+                        };
+
+                        const groups = {};
+                        sorted.forEach(p => {
+                            const range = getWeekRange(p.date);
+                            if (!groups[range.key]) groups[range.key] = { label: range.label, total: 0, items: [] };
+                            groups[range.key].total += parseFloat(p.amount || 0);
+                            groups[range.key].items.push(p);
+                        });
+                        return Object.values(groups).sort((a, b) => b.label.localeCompare(a.label));
+                    } else if (purchaseFilterPeriod === 'monthly') {
+                        const groups = {};
+                        sorted.forEach(p => {
+                            const monthKey = p.date.substring(0, 7);
+                            if (!groups[monthKey]) {
+                                const d = new Date(parseInt(monthKey.split('-')[0]), parseInt(monthKey.split('-')[1]) - 1, 1);
+                                const label = d.toLocaleDateString('default', { month: 'long', year: 'numeric' });
+                                groups[monthKey] = { label, total: 0, items: [] };
+                            }
+                            groups[monthKey].total += parseFloat(p.amount || 0);
+                            groups[monthKey].items.push(p);
+                        });
+                        return Object.values(groups).sort((a, b) => b.label.localeCompare(a.label));
+                    }
+                    return [];
                 };
+
+                const groupedData = getGroupedPurchases();
+
+                const handleSavePurchase = async (e) => {
+                    e.preventDefault();
+                    if (!newPurchase.item.trim() || !newPurchase.amount || parseFloat(newPurchase.amount) <= 0) {
+                        showToast('Please enter a valid item name and amount', 'error');
+                        return;
+                    }
+                    try {
+                        const selectedVendor = vendors.find(v => v.id === newPurchase.vendorId);
+                        const data = {
+                            ...newPurchase,
+                            amount: parseFloat(newPurchase.amount),
+                            location: currentFilterLoc,
+                            purchaserName: user.name,
+                            purchaserEmail: user.email,
+                            vendorName: selectedVendor?.name || '',
+                        };
+                        const saved = await db.addPurchase(data);
+                        setPurchases(prev => [saved, ...prev]);
+                        setNewPurchase({ date: new Date().toISOString().split('T')[0], item: '', category: 'Dairy & Milk', vendorId: '', amount: '', paymentMode: 'Cash', notes: '', billUrl: '', location: currentFilterLoc });
+                        setShowAddPurchaseForm(false);
+                        showToast('Purchase logged successfully!');
+                    } catch (error) {
+                        showToast('Failed to save purchase', 'error');
+                    }
+                };
+
+                const handleUpdatePurchase = async (e) => {
+                    e.preventDefault();
+                    if (!editingPurchase.item.trim() || !editingPurchase.amount || parseFloat(editingPurchase.amount) <= 0) {
+                        showToast('Please enter a valid item and amount', 'error');
+                        return;
+                    }
+                    try {
+                        const selectedVendor = vendors.find(v => v.id === editingPurchase.vendorId);
+                        const data = {
+                            ...editingPurchase,
+                            amount: parseFloat(editingPurchase.amount),
+                            vendorName: selectedVendor?.name || '',
+                        };
+                        await db.updatePurchase(editingPurchase.id, data);
+                        setPurchases(prev => prev.map(p => p.id === editingPurchase.id ? data : p));
+                        setEditingPurchase(null);
+                        showToast('Purchase updated successfully!');
+                    } catch (error) {
+                        showToast('Failed to update purchase', 'error');
+                    }
+                };
+
                 const handleDeletePurchase = async (id) => {
                     if (!window.confirm('Delete this purchase entry?')) return;
                     try {
@@ -4660,28 +4965,208 @@ const AdminDashboard = () => {
                         showToast('Purchase deleted');
                     } catch { showToast('Failed to delete', 'error'); }
                 };
+
+                const handleExportCSV = () => {
+                    if (!filteredPurchases.length) { showToast('No data to export', 'error'); return; }
+                    const headers = ['Date', 'Location', 'Purchaser', 'Item', 'Category', 'Vendor', 'Amount (₹)', 'Payment Mode', 'Notes'];
+                    const rows = filteredPurchases.map(p =>
+                        [p.date, p.location || 'Main Kitchen', p.purchaserName, `"${p.item}"`, `"${p.category}"`, `"${p.vendorName || ''}"`, p.amount, p.paymentMode, `"${p.notes || ''}"`].join(',')
+                    );
+                    const blob = new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = `purchases_${currentFilterLoc.replace(/\s+/g, '_')}_${today}.csv`; a.click();
+                    URL.revokeObjectURL(url);
+                    showToast('Report exported!');
+                };
+
+                const handleBillUpload = async (e, isEdit = false) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    setIsUploading(true);
+                    try {
+                        const url = await uploadMedia(file);
+                        if (isEdit) {
+                            setEditingPurchase(prev => ({ ...prev, billUrl: url }));
+                        } else {
+                            setNewPurchase(prev => ({ ...prev, billUrl: url }));
+                        }
+                        showToast('Bill receipt uploaded!');
+                    } catch {
+                        showToast('Upload failed', 'error');
+                    } finally {
+                        setIsUploading(false);
+                    }
+                };
+
                 const catIcon = (cat) => ({
                     'Dairy & Milk': '🥛', 'Eggs': '🥚', 'Fruits & Vegetables': '🍎',
                     'Dry Fruits & Nuts': '🥜', 'Sweeteners & Flavours': '🍯',
                     'Packaging': '📦', 'Gas & Fuel': '🔥', 'Equipment & Tools': '🔧',
                     'Cleaning & Supplies': '🧹'
                 }[cat] || '🛒');
+
                 return (
                     <div style={{ width: '100%' }}>
+                        {/* Location / Outlets selector menu bar */}
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '1.5rem', background: '#f1f5f9', padding: '6px', borderRadius: '14px', overflowX: 'auto', border: '1px solid #e2e8f0' }}>
+                            <button 
+                                onClick={() => setPurchaseFilterLocation('Main Kitchen')}
+                                style={{
+                                    border: 'none', background: currentFilterLoc === 'Main Kitchen' ? 'white' : 'transparent',
+                                    color: currentFilterLoc === 'Main Kitchen' ? '#0f172a' : '#64748b',
+                                    padding: '8px 18px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer',
+                                    fontSize: '0.85rem', boxShadow: currentFilterLoc === 'Main Kitchen' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
+                                    transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '6px'
+                                }}
+                            >
+                                🍳 Main Kitchen
+                            </button>
+                            {runningFranchises.filter(f => f.status === 'Running').map(outlet => (
+                                <button 
+                                    key={outlet.id}
+                                    onClick={() => setPurchaseFilterLocation(outlet.outletName)}
+                                    style={{
+                                        border: 'none', background: currentFilterLoc === outlet.outletName ? 'white' : 'transparent',
+                                        color: currentFilterLoc === outlet.outletName ? '#0f172a' : '#64748b',
+                                        padding: '8px 18px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer',
+                                        fontSize: '0.85rem', boxShadow: currentFilterLoc === outlet.outletName ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
+                                        transition: 'all 0.2s', whiteSpace: 'nowrap'
+                                    }}
+                                >
+                                    🏪 {outlet.outletName.replace('High Laban - ', '')}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Purchases Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
                             <div>
-                                <h2 style={{ margin: 0, fontWeight: '900', color: '#0f172a', fontSize: '1.5rem' }}>🛒 Daily Purchases</h2>
-                                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.85rem' }}>All team purchase entries · {filteredPurchases.length} entries</p>
+                                <h2 style={{ margin: 0, fontWeight: '900', color: '#0f172a', fontSize: '1.5rem' }}>🛒 Purchase Ledger: {currentFilterLoc}</h2>
+                                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.85rem' }}>Manage entries for {currentFilterLoc} · {filteredPurchases.length} records</p>
                             </div>
-                            <button onClick={handleExportCSV}
-                                style={{ background: '#059669', color: 'white', border: 'none', borderRadius: '12px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer', fontSize: '0.9rem' }}>
-                                📊 Export CSV
-                            </button>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button onClick={() => { setShowAddPurchaseForm(!showAddPurchaseForm); setEditingPurchase(null); }}
+                                    style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', border: 'none', borderRadius: '12px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                    {showAddPurchaseForm ? 'Close Form' : '+ Add Entry'}
+                                </button>
+                                <button onClick={handleExportCSV}
+                                    style={{ background: '#059669', color: 'white', border: 'none', borderRadius: '12px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                    📊 Export CSV
+                                </button>
+                            </div>
                         </div>
+
+                        {/* Add Manual Purchase Form */}
+                        {showAddPurchaseForm && (
+                            <div style={{ background: 'white', borderRadius: '20px', padding: '1.5rem', border: '1px solid #e2e8f0', marginBottom: '1.5rem', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                                <h3 style={{ margin: '0 0 1rem 0', fontWeight: '800', color: '#0f172a' }}>➕ Add Manual Purchase Entry ({currentFilterLoc})</h3>
+                                <form onSubmit={handleSavePurchase} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Date</label>
+                                        <input type="date" value={newPurchase.date} onChange={e => setNewPurchase({ ...newPurchase, date: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px' }} required />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Item Name *</label>
+                                        <input type="text" value={newPurchase.item} onChange={e => setNewPurchase({ ...newPurchase, item: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px' }} placeholder="e.g. Fresh Cream Milk" required />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Category</label>
+                                        <select value={newPurchase.category} onChange={e => setNewPurchase({ ...newPurchase, category: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', background: 'white' }}>
+                                            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Vendor (Optional)</label>
+                                        <select value={newPurchase.vendorId} onChange={e => setNewPurchase({ ...newPurchase, vendorId: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', background: 'white' }}>
+                                            <option value="">-- Select Vendor --</option>
+                                            {vendors.map(v => <option key={v.id} value={v.id}>{v.name} ({v.category})</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Amount (₹) *</label>
+                                        <input type="number" step="0.01" value={newPurchase.amount} onChange={e => setNewPurchase({ ...newPurchase, amount: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px' }} placeholder="0.00" required />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Payment Mode</label>
+                                        <select value={newPurchase.paymentMode} onChange={e => setNewPurchase({ ...newPurchase, paymentMode: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', background: 'white' }}>
+                                            <option value="Cash">Cash</option>
+                                            <option value="GPay">GPay</option>
+                                            <option value="Bank Transfer">Bank Transfer</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Notes</label>
+                                        <input type="text" value={newPurchase.notes} onChange={e => setNewPurchase({ ...newPurchase, notes: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px' }} placeholder="Notes details..." />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Upload Bill / Invoice</label>
+                                        <input type="file" onChange={(e) => handleBillUpload(e, false)} style={{ fontSize: '0.85rem' }} />
+                                    </div>
+                                    <button type="submit" style={{ background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '10px', padding: '12px', fontWeight: '800', cursor: 'pointer' }}>💾 Log Purchase</button>
+                                </form>
+                            </div>
+                        )}
+
+                        {/* Edit Purchase Modal */}
+                        {editingPurchase && (
+                            <div style={{ background: '#fef3c7', borderRadius: '20px', padding: '1.5rem', border: '1px solid #fde68a', marginBottom: '1.5rem', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                                <h3 style={{ margin: '0 0 1rem 0', fontWeight: '800', color: '#b45309' }}>✏️ Edit Purchase Details</h3>
+                                <form onSubmit={handleUpdatePurchase} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Date</label>
+                                        <input type="date" value={editingPurchase.date} onChange={e => setEditingPurchase({ ...editingPurchase, date: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px' }} required />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Item Name *</label>
+                                        <input type="text" value={editingPurchase.item} onChange={e => setEditingPurchase({ ...editingPurchase, item: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px' }} required />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Category</label>
+                                        <select value={editingPurchase.category} onChange={e => setEditingPurchase({ ...editingPurchase, category: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', background: 'white' }}>
+                                            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Vendor</label>
+                                        <select value={editingPurchase.vendorId} onChange={e => setEditingPurchase({ ...editingPurchase, vendorId: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', background: 'white' }}>
+                                            <option value="">-- Select Vendor --</option>
+                                            {vendors.map(v => <option key={v.id} value={v.id}>{v.name} ({v.category})</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Amount (₹) *</label>
+                                        <input type="number" step="0.01" value={editingPurchase.amount} onChange={e => setEditingPurchase({ ...editingPurchase, amount: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px' }} required />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Payment Mode</label>
+                                        <select value={editingPurchase.paymentMode} onChange={e => setEditingPurchase({ ...editingPurchase, paymentMode: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', background: 'white' }}>
+                                            <option value="Cash">Cash</option>
+                                            <option value="GPay">GPay</option>
+                                            <option value="Bank Transfer">Bank Transfer</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Notes</label>
+                                        <input type="text" value={editingPurchase.notes || ''} onChange={e => setEditingPurchase({ ...editingPurchase, notes: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Upload Bill</label>
+                                        <input type="file" onChange={(e) => handleBillUpload(e, true)} style={{ fontSize: '0.85rem' }} />
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button type="submit" style={{ flex: 1, background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '10px', padding: '12px', fontWeight: '800', cursor: 'pointer' }}>Update</button>
+                                        <button type="button" onClick={() => setEditingPurchase(null)} style={{ flex: 1, background: 'white', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '12px', fontWeight: '800', cursor: 'pointer' }}>Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+                        )}
+
+                        {/* Aggregate Spend Stats */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                             {[
                                 { label: "Today's Total", value: `₹${todayTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#0ea5e9', icon: '📅' },
-                                { label: 'Filtered Total', value: `₹${allTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#10b981', icon: '💰' },
+                                { label: 'Period Total', value: `₹${periodTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#10b981', icon: '💰' },
                                 { label: 'Cash Payments', value: `₹${cashTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#f59e0b', icon: '💵' },
                                 { label: 'GPay / Digital', value: `₹${gpayTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#8b5cf6', icon: '📱' },
                             ].map((s, i) => (
@@ -4692,45 +5177,76 @@ const AdminDashboard = () => {
                                 </div>
                             ))}
                         </div>
-                        <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1rem', marginBottom: '1.25rem', display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                            <input type="text" placeholder="🔍 Search item / vendor..." value={purchaseSearchQuery} onChange={e => setPurchaseSearchQuery(e.target.value)}
-                                style={{ flex: '1 1 180px', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }} />
-                            <input type="date" value={purchaseFilterDate} onChange={e => setPurchaseFilterDate(e.target.value)}
-                                style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }} />
-                            <select value={purchaseFilterPurchaser} onChange={e => setPurchaseFilterPurchaser(e.target.value)}
-                                style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }}>
-                                <option value="All">All Purchasers</option>
-                                {uniquePurchasers.map(p => <option key={p} value={p}>{p}</option>)}
-                            </select>
-                            <select value={purchaseFilterCategory} onChange={e => setPurchaseFilterCategory(e.target.value)}
-                                style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }}>
-                                <option value="All">All Categories</option>
-                                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                            <select value={purchaseFilterPayment} onChange={e => setPurchaseFilterPayment(e.target.value)}
-                                style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }}>
-                                <option value="All">All Payments</option>
-                                <option value="Cash">Cash</option>
-                                <option value="GPay">GPay</option>
-                                <option value="Bank Transfer">Bank Transfer</option>
-                            </select>
-                            {(purchaseFilterDate || purchaseFilterPurchaser !== 'All' || purchaseFilterCategory !== 'All' || purchaseFilterPayment !== 'All' || purchaseSearchQuery) && (
-                                <button onClick={() => { setPurchaseFilterDate(''); setPurchaseFilterPurchaser('All'); setPurchaseFilterCategory('All'); setPurchaseFilterPayment('All'); setPurchaseSearchQuery(''); }}
-                                    style={{ padding: '8px 12px', background: '#ef4444', border: 'none', borderRadius: '8px', color: 'white', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>
-                                    Clear
-                                </button>
-                            )}
+
+                        {/* Search, Filter & Period (Daily / Weekly / Monthly) controls */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.25rem', marginBottom: '1.5rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px', flexWrap: 'wrap', gap: '10px' }}>
+                                {/* Daily / Weekly / Monthly Switch */}
+                                <div style={{ display: 'flex', gap: '6px', background: '#f1f5f9', padding: '3px', borderRadius: '10px' }}>
+                                    {[
+                                        { id: 'daily', label: '📅 Daily Wise' },
+                                        { id: 'weekly', label: '📊 Weekly Wise' },
+                                        { id: 'monthly', label: '📈 Monthly Wise' },
+                                        { id: 'detailed', label: '📋 Detailed Log' }
+                                    ].map(item => (
+                                        <button 
+                                            key={item.id}
+                                            onClick={() => setPurchaseFilterPeriod(item.id)}
+                                            style={{
+                                                border: 'none', background: purchaseFilterPeriod === item.id ? 'white' : 'transparent',
+                                                color: purchaseFilterPeriod === item.id ? '#0ea5e9' : '#64748b',
+                                                padding: '6px 14px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer',
+                                                fontSize: '0.78rem', boxShadow: purchaseFilterPeriod === item.id ? '0 2px 6px rgba(0,0,0,0.05)' : 'none',
+                                                transition: 'all 0.15s'
+                                            }}
+                                        >
+                                            {item.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+                                <input type="text" placeholder="🔍 Search item / vendor..." value={purchaseSearchQuery} onChange={e => setPurchaseSearchQuery(e.target.value)}
+                                    style={{ flex: '1 1 180px', padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }} />
+                                <input type="date" value={purchaseFilterDate} onChange={e => setPurchaseFilterDate(e.target.value)}
+                                    style={{ padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }} />
+                                <select value={purchaseFilterPurchaser} onChange={e => setPurchaseFilterPurchaser(e.target.value)}
+                                    style={{ padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem', background: 'white' }}>
+                                    <option value="All">All Purchasers</option>
+                                    {uniquePurchasers.map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
+                                <select value={purchaseFilterCategory} onChange={e => setPurchaseFilterCategory(e.target.value)}
+                                    style={{ padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem', background: 'white' }}>
+                                    <option value="All">All Categories</option>
+                                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                                <select value={purchaseFilterPayment} onChange={e => setPurchaseFilterPayment(e.target.value)}
+                                    style={{ padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem', background: 'white' }}>
+                                    <option value="All">All Payments</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="GPay">GPay</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                </select>
+                                {(purchaseFilterDate || purchaseFilterPurchaser !== 'All' || purchaseFilterCategory !== 'All' || purchaseFilterPayment !== 'All' || purchaseSearchQuery) && (
+                                    <button onClick={() => { setPurchaseFilterDate(''); setPurchaseFilterPurchaser('All'); setPurchaseFilterCategory('All'); setPurchaseFilterPayment('All'); setPurchaseSearchQuery(''); }}
+                                        style={{ padding: '9px 14px', background: '#ef4444', border: 'none', borderRadius: '8px', color: 'white', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>
+                                        Clear
+                                    </button>
+                                )}
+                            </div>
                         </div>
+
+                        {/* List View depending on Period selection */}
                         {filteredPurchases.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: '4rem 2rem', color: '#94a3b8', background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
                                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
                                 <div style={{ fontWeight: '700', fontSize: '1.1rem', color: '#475569' }}>No purchase entries found</div>
-                                <div style={{ fontSize: '0.85rem', marginTop: '4px' }}>Entries logged by Marchad, Nufoor, and other team members will appear here.</div>
+                                <div style={{ fontSize: '0.85rem', marginTop: '4px' }}>Entries logged for {currentFilterLoc} will appear here.</div>
                             </div>
-                        ) : (
+                        ) : purchaseFilterPeriod === 'detailed' ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 {filteredPurchases.map(p => (
-                                    <div key={p.id} style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                    <div key={p.id} style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
                                         <div style={{ fontSize: '2rem', flexShrink: 0 }}>{catIcon(p.category)}</div>
                                         <div style={{ flex: 1, minWidth: 0 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -4745,7 +5261,7 @@ const AdminDashboard = () => {
                                                 <span>🏷️ {p.category}</span>
                                                 {p.vendorName && <span>🏪 {p.vendorName}</span>}
                                             </div>
-                                            {p.notes && <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: '4px', fontStyle: 'italic' }}>"{ p.notes}"</div>}
+                                            {p.notes && <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: '4px', fontStyle: 'italic' }}>"{p.notes}"</div>}
                                         </div>
                                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
                                             <span style={{ color: '#10b981', fontWeight: '900', fontSize: '1.1rem' }}>₹{parseFloat(p.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
@@ -4756,11 +5272,54 @@ const AdminDashboard = () => {
                                                         📷 Bill
                                                     </a>
                                                 )}
+                                                <button onClick={() => { setEditingPurchase(p); setShowAddPurchaseForm(false); }}
+                                                    style={{ background: '#f8fafc', color: '#0ea5e9', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer' }}>
+                                                    Edit
+                                                </button>
                                                 <button onClick={() => handleDeletePurchase(p.id)}
                                                     style={{ background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer' }}>
                                                     Delete
                                                 </button>
                                             </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {groupedData.map((group, idx) => (
+                                    <div key={idx} style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                                        {/* Group Header */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '12px 20px', borderBottom: '1px solid #e2e8f0' }}>
+                                            <span style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.92rem' }}>
+                                                {purchaseFilterPeriod === 'daily' ? `📅 ${group.date}` : `📁 ${group.label}`}
+                                            </span>
+                                            <span style={{ color: '#10b981', fontWeight: '900', fontSize: '1rem' }}>
+                                                Total spent: ₹{group.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                        {/* Group Items */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', padding: '10px 20px' }}>
+                                            {group.items.map(p => (
+                                                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
+                                                    <div style={{ minWidth: 0, flex: 1 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <span style={{ fontSize: '1.2rem' }}>{catIcon(p.category)}</span>
+                                                            <span style={{ fontWeight: '700', color: '#1e293b', fontSize: '0.88rem' }}>{p.item}</span>
+                                                            <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>by {p.purchaserName}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                                        <span style={{ fontWeight: '800', color: '#475569', fontSize: '0.9rem' }}>₹{parseFloat(p.amount).toLocaleString('en-IN')}</span>
+                                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                                            {p.billUrl && (
+                                                                <a href={p.billUrl} target="_blank" rel="noopener noreferrer" style={{ background: '#f0f9ff', color: '#0ea5e9', border: '1px solid #bae6fd', borderRadius: '4px', padding: '3px 8px', fontSize: '0.68rem', fontWeight: '700', textDecoration: 'none' }}>Bill</a>
+                                                            )}
+                                                            <button onClick={() => handleDeletePurchase(p.id)} style={{ background: '#fee2e2', border: 'none', borderRadius: '4px', padding: '3px 8px', fontSize: '0.68rem', fontWeight: '700', color: '#ef4444', cursor: 'pointer' }}>Delete</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 ))}

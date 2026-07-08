@@ -43,6 +43,7 @@ export default function PurchaserDashboard() {
 
     const [purchases, setPurchases] = useState([]);
     const [vendors, setVendors] = useState([]);
+    const [runningOutlets, setRunningOutlets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [uploadingBill, setUploadingBill] = useState(false);
@@ -52,7 +53,7 @@ export default function PurchaserDashboard() {
     const [form, setForm] = useState({
         date: TODAY(), item: '', category: CATEGORIES[0],
         vendorId: '', amount: '', paymentMode: 'Cash',
-        notes: '', billUrl: ''
+        notes: '', billUrl: '', location: 'Main Kitchen'
     });
 
     // Filters (for admin/accounts view)
@@ -60,6 +61,7 @@ export default function PurchaserDashboard() {
     const [filterPurchaser, setFilterPurchaser] = useState('All');
     const [filterCategory, setFilterCategory] = useState('All');
     const [filterPayment, setFilterPayment] = useState('All');
+    const [filterLocation, setFilterLocation] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
 
     const billInputRef = useRef(null);
@@ -78,9 +80,10 @@ export default function PurchaserDashboard() {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [p, v] = await Promise.all([db.getPurchases(), db.getVendors()]);
+            const [p, v, f] = await Promise.all([db.getPurchases(), db.getVendors(), db.getFranchises()]);
             setPurchases(p);
             setVendors(v);
+            setRunningOutlets(f.filter(item => item.status === 'Running'));
         } catch (e) {
             showToast('Failed to load data', 'error');
         } finally {
@@ -120,7 +123,7 @@ export default function PurchaserDashboard() {
             };
             const newP = await db.addPurchase(data);
             setPurchases(prev => [newP, ...prev]);
-            setForm({ date: TODAY(), item: '', category: CATEGORIES[0], vendorId: '', amount: '', paymentMode: 'Cash', notes: '', billUrl: '' });
+            setForm({ date: TODAY(), item: '', category: CATEGORIES[0], vendorId: '', amount: '', paymentMode: 'Cash', notes: '', billUrl: '', location: 'Main Kitchen' });
             if (billInputRef.current) billInputRef.current.value = '';
             showToast('Purchase logged successfully! ✅');
         } catch {
@@ -168,6 +171,7 @@ export default function PurchaserDashboard() {
         : purchases.filter(p => p.purchaserEmail === user.email);
 
     const filteredPurchases = myPurchases.filter(p => {
+        if (filterLocation !== 'All' && (p.location || 'Main Kitchen') !== filterLocation) return false;
         if (filterDate && p.date !== filterDate) return false;
         if (filterPurchaser !== 'All' && p.purchaserName !== filterPurchaser) return false;
         if (filterCategory !== 'All' && p.category !== filterCategory) return false;
@@ -288,6 +292,18 @@ export default function PurchaserDashboard() {
                                     </select>
                                 </div>
 
+                                {/* Location */}
+                                <div>
+                                    <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Location / Outlet</label>
+                                    <select value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
+                                        style={{ width: '100%', padding: '10px 12px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', color: 'white', fontSize: '0.9rem', boxSizing: 'border-box' }}>
+                                        <option value="Main Kitchen">🍳 Main Kitchen (Default)</option>
+                                        {runningOutlets.map(o => (
+                                            <option key={o.id} value={o.outletName}>🏪 {o.outletName.replace('High Laban - ', '')}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
                                 {/* Vendor */}
                                 <div>
                                     <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Vendor (Optional)</label>
@@ -377,6 +393,14 @@ export default function PurchaserDashboard() {
                                 <option value="All">All Categories</option>
                                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
+                            <select value={filterLocation} onChange={e => setFilterLocation(e.target.value)}
+                                style={{ padding: '8px 12px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'white', fontSize: '0.85rem' }}>
+                                <option value="All">All Locations</option>
+                                <option value="Main Kitchen">Main Kitchen</option>
+                                {runningOutlets.map(o => (
+                                    <option key={o.id} value={o.outletName}>{o.outletName.replace('High Laban - ', '')}</option>
+                                ))}
+                            </select>
                             <select value={filterPayment} onChange={e => setFilterPayment(e.target.value)}
                                 style={{ padding: '8px 12px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'white', fontSize: '0.85rem' }}>
                                 <option value="All">All Payments</option>
@@ -384,8 +408,8 @@ export default function PurchaserDashboard() {
                                 <option value="GPay">GPay</option>
                                 <option value="Bank Transfer">Bank Transfer</option>
                             </select>
-                            {(filterDate || filterPurchaser !== 'All' || filterCategory !== 'All' || filterPayment !== 'All' || searchQuery) && (
-                                <button onClick={() => { setFilterDate(''); setFilterPurchaser('All'); setFilterCategory('All'); setFilterPayment('All'); setSearchQuery(''); }}
+                            {(filterDate || filterPurchaser !== 'All' || filterCategory !== 'All' || filterLocation !== 'All' || filterPayment !== 'All' || searchQuery) && (
+                                <button onClick={() => { setFilterDate(''); setFilterPurchaser('All'); setFilterCategory('All'); setFilterLocation('All'); setFilterPayment('All'); setSearchQuery(''); }}
                                     style={{ padding: '8px 12px', background: '#ef4444', border: 'none', borderRadius: '8px', color: 'white', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>
                                     Clear
                                 </button>
@@ -433,6 +457,7 @@ export default function PurchaserDashboard() {
                                             <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '3px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                                                 <span>📅 {formatDate(p.date)}</span>
                                                 {(isReadOnly || isAdmin) && <span>👤 {p.purchaserName}</span>}
+                                                <span>📍 {p.location || 'Main Kitchen'}</span>
                                                 <span>🏷️ {p.category}</span>
                                                 {p.vendorName && <span>🏪 {p.vendorName}</span>}
                                             </div>

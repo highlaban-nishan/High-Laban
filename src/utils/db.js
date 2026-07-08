@@ -771,9 +771,87 @@ const db = {
         }
     },
 
-    // --- Auth ---
+    // --- Auth & User Management ---
+    getUsers: async () => {
+        try {
+            const querySnapshot = await getDocs(collection(firestore, 'users'));
+            const list = [];
+            querySnapshot.forEach((doc) => list.push({ id: doc.id, ...doc.data() }));
+            
+            if (list.length === 0) {
+                // Seed default users
+                const defaults = [
+                    { name: 'Admin', email: 'highlaban@gmail.com', password: 'Laban@2025', role: 'admin' },
+                    { name: 'Marchad', email: 'marchad@highlaban.com', password: 'Marchad@2026', role: 'purchaser' },
+                    { name: 'Nufoor', email: 'nufoor@highlaban.com', password: 'Nufoor@2026', role: 'purchaser' },
+                    { name: 'Accounts Team', email: 'accounts@highlaban.com', password: 'Accounts@2026', role: 'accounts' }
+                ];
+                for (const u of defaults) {
+                    const docRef = await addDoc(collection(firestore, 'users'), u);
+                    list.push({ id: docRef.id, ...u });
+                }
+            }
+            return list;
+        } catch (error) {
+            console.error('Firestore Error getting users:', error);
+            return [];
+        }
+    },
+
+    addUser: async (data) => {
+        try {
+            const finalData = { ...data, createdAt: new Date().toISOString() };
+            const docRef = await addDoc(collection(firestore, 'users'), finalData);
+            return { id: docRef.id, ...finalData };
+        } catch (error) {
+            console.error('Firestore Error adding user:', error);
+            throw error;
+        }
+    },
+
+    updateUser: async (id, data) => {
+        try {
+            const docRef = doc(firestore, 'users', id);
+            await updateDoc(docRef, data);
+            return { id, ...data };
+        } catch (error) {
+            console.error('Firestore Error updating user:', error);
+            throw error;
+        }
+    },
+
+    deleteUser: async (id) => {
+        try {
+            await deleteDoc(doc(firestore, 'users', id));
+            return id;
+        } catch (error) {
+            console.error('Firestore Error deleting user:', error);
+            throw error;
+        }
+    },
+
     login: async (email, password) => {
         const cleanEmail = email.toLowerCase().trim();
+        try {
+            // First check Firestore users
+            const querySnapshot = await getDocs(collection(firestore, 'users'));
+            let foundUser = null;
+            querySnapshot.forEach((doc) => {
+                const u = doc.data();
+                if (u.email && u.email.toLowerCase().trim() === cleanEmail && u.password === password) {
+                    foundUser = { id: doc.id, ...u };
+                }
+            });
+            if (foundUser) {
+                const user = { email: foundUser.email, name: foundUser.name, role: foundUser.role };
+                localStorage.setItem('highlaban_user', JSON.stringify(user));
+                return user;
+            }
+        } catch (error) {
+            console.error('Firestore login query failed, checking static credentials:', error);
+        }
+
+        // Fallback to static credentials if Firestore query didn't find anything or failed
         if (cleanEmail === 'highlaban@gmail.com' && password === 'Laban@2025') {
             const user = { email: cleanEmail, name: 'Admin', role: 'admin' };
             localStorage.setItem('highlaban_user', JSON.stringify(user));
