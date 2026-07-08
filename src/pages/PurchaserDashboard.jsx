@@ -188,6 +188,7 @@ export default function PurchaserDashboard() {
     const allTotal = filteredPurchases.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
 
     const uniquePurchasers = [...new Set(purchases.map(p => p.purchaserName).filter(Boolean))];
+    const uniquePreviousItems = [...new Set(purchases.map(p => p.item).filter(Boolean))];
 
     return (
         <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', fontFamily: "'Inter', -apple-system, sans-serif" }}>
@@ -279,7 +280,7 @@ export default function PurchaserDashboard() {
                                 {/* Item */}
                                 <div>
                                     <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Item Purchased *</label>
-                                    <input type="text" placeholder="e.g. Eggs, Milk, Pistachio..." value={form.item} onChange={e => setForm(f => ({ ...f, item: e.target.value }))} required
+                                    <input type="text" placeholder="e.g. Eggs, Milk, Pistachio..." value={form.item} onChange={e => setForm(f => ({ ...f, item: e.target.value }))} required list="prev-items"
                                         style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', color: 'white', fontSize: '0.9rem', boxSizing: 'border-box' }} />
                                 </div>
 
@@ -488,6 +489,9 @@ export default function PurchaserDashboard() {
                     </div>
                 </div>
             </div>
+            <datalist id="prev-items">
+                {uniquePreviousItems.map(item => <option key={item} value={item} />)}
+            </datalist>
 
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');

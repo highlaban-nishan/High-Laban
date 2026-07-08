@@ -4832,6 +4832,7 @@ const AdminDashboard = () => {
                     'Sweeteners & Flavours', 'Packaging', 'Cleaning & Supplies',
                     'Gas & Fuel', 'Equipment & Tools', 'Other'
                 ];
+                const uniquePreviousItems = [...new Set(purchases.map(p => p.item).filter(Boolean))];
 
                 const locationOptions = ['Main Kitchen', ...runningFranchises.filter(f => f.status === 'Running').map(f => f.outletName)];
                 
@@ -5068,7 +5069,7 @@ const AdminDashboard = () => {
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Item Name *</label>
-                                        <input type="text" value={newPurchase.item} onChange={e => setNewPurchase({ ...newPurchase, item: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px' }} placeholder="e.g. Fresh Cream Milk" required />
+                                        <input type="text" value={newPurchase.item} onChange={e => setNewPurchase({ ...newPurchase, item: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px' }} placeholder="e.g. Fresh Cream Milk" required list="prev-items" />
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Category</label>
@@ -5119,7 +5120,7 @@ const AdminDashboard = () => {
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Item Name *</label>
-                                        <input type="text" value={editingPurchase.item} onChange={e => setEditingPurchase({ ...editingPurchase, item: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px' }} required />
+                                        <input type="text" value={editingPurchase.item} onChange={e => setEditingPurchase({ ...editingPurchase, item: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px' }} required list="prev-items" />
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Category</label>
@@ -5325,6 +5326,9 @@ const AdminDashboard = () => {
                                 ))}
                             </div>
                         )}
+                        <datalist id="prev-items">
+                            {uniquePreviousItems.map(item => <option key={item} value={item} />)}
+                        </datalist>
                     </div>
                 );
             })()}
