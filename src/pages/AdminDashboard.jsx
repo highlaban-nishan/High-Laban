@@ -6590,30 +6590,51 @@ const AdminDashboard = () => {
                                                 <h5 style={{ margin: '0 0 10px 0', fontWeight: '700', color: '#1e293b' }}>Toppings & Variants Configuration (e.g. Salakatia Toppings)</h5>
                                                 {(editingRecipe.toppings || []).map((topping, tIdx) => (
                                                     <div key={tIdx} style={{ background: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px', marginBottom: '10px' }}>
-                                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
-                                                            <input type="text" placeholder="Topping Name (e.g. Nutella)" value={topping.name} onChange={e => {
-                                                                const updated = [...editingRecipe.toppings];
-                                                                updated[tIdx].name = e.target.value;
-                                                                setEditingRecipe({ ...editingRecipe, toppings: updated });
-                                                            }} style={{ flex: 2, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: '700' }} required />
-                                                            <input type="number" step="0.01" placeholder="Container (₹)" value={topping.containerCost || '0'} onChange={e => {
-                                                                 const updated = [...editingRecipe.toppings];
-                                                                 updated[tIdx].containerCost = e.target.value;
-                                                                 setEditingRecipe({ ...editingRecipe, toppings: updated });
-                                                             }} style={{ flex: 1, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
-                                                             <input type="number" step="0.01" placeholder="Spoon (₹)" value={topping.spoonCost || '0'} onChange={e => {
-                                                                 const updated = [...editingRecipe.toppings];
-                                                                 updated[tIdx].spoonCost = e.target.value;
-                                                                 setEditingRecipe({ ...editingRecipe, toppings: updated });
-                                                             }} style={{ flex: 1, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
-                                                             <input type="number" step="0.01" placeholder="Sticker (₹)" value={topping.stickerCost || '0'} onChange={e => {
-                                                                 const updated = [...editingRecipe.toppings];
-                                                                 updated[tIdx].stickerCost = e.target.value;
-                                                                 setEditingRecipe({ ...editingRecipe, toppings: updated });
-                                                             }} style={{ flex: 1, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
-                                                            <button type="button" onClick={() => {
-                                                                setEditingRecipe({ ...editingRecipe, toppings: editingRecipe.toppings.filter((_, i) => i !== tIdx) });
-                                                            }} style={{ border: 'none', background: '#fee2e2', color: '#ef4444', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' }}>Delete Topping</button>
+                                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', marginBottom: '10px', flexWrap: 'wrap' }}>
+                                                            <div style={{ flex: 2, minWidth: '160px' }}>
+                                                                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: '700', color: '#64748b', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Topping / Variant Name</label>
+                                                                <input type="text" placeholder="e.g. Nutella, Pistachio, Original" value={topping.name} onChange={e => {
+                                                                    const updated = [...editingRecipe.toppings];
+                                                                    updated[tIdx].name = e.target.value;
+                                                                    setEditingRecipe({ ...editingRecipe, toppings: updated });
+                                                                }} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: '700' }} required />
+                                                            </div>
+                                                            <div style={{ flex: 1, minWidth: '110px' }}>
+                                                                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: '700', color: '#0369a1', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>🥡 Container (₹)</label>
+                                                                <input type="number" step="0.01" placeholder="0" value={topping.containerCost || '0'} onChange={e => {
+                                                                     const updated = [...editingRecipe.toppings];
+                                                                     updated[tIdx].containerCost = e.target.value;
+                                                                     setEditingRecipe({ ...editingRecipe, toppings: updated });
+                                                                 }} style={{ width: '100%', padding: '8px 12px', border: '1px solid #bae6fd', borderRadius: '6px', background: '#f0f9ff' }} />
+                                                            </div>
+                                                            <div style={{ flex: 1, minWidth: '110px' }}>
+                                                                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: '700', color: '#0369a1', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>🥄 Spoon / Cutlery (₹)</label>
+                                                                <input type="number" step="0.01" placeholder="0" value={topping.spoonCost || '0'} onChange={e => {
+                                                                     const updated = [...editingRecipe.toppings];
+                                                                     updated[tIdx].spoonCost = e.target.value;
+                                                                     setEditingRecipe({ ...editingRecipe, toppings: updated });
+                                                                 }} style={{ width: '100%', padding: '8px 12px', border: '1px solid #bae6fd', borderRadius: '6px', background: '#f0f9ff' }} />
+                                                            </div>
+                                                            <div style={{ flex: 1, minWidth: '110px' }}>
+                                                                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: '700', color: '#0369a1', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>🏷️ Sticker / Label (₹)</label>
+                                                                <input type="number" step="0.01" placeholder="0" value={topping.stickerCost || '0'} onChange={e => {
+                                                                     const updated = [...editingRecipe.toppings];
+                                                                     updated[tIdx].stickerCost = e.target.value;
+                                                                     setEditingRecipe({ ...editingRecipe, toppings: updated });
+                                                                 }} style={{ width: '100%', padding: '8px 12px', border: '1px solid #bae6fd', borderRadius: '6px', background: '#f0f9ff' }} />
+                                                            </div>
+                                                            <div style={{ minWidth: '110px' }}>
+                                                                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: '700', color: '#94a3b8', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Packing</label>
+                                                                <div style={{ padding: '8px 12px', background: '#f1f5f9', borderRadius: '6px', fontWeight: '800', fontSize: '0.85rem', color: '#334155', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                                                    ₹{((parseFloat(topping.containerCost) || 0) + (parseFloat(topping.spoonCost) || 0) + (parseFloat(topping.stickerCost) || 0)).toFixed(2)}
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: '700', color: 'transparent', marginBottom: '3px' }}>-</label>
+                                                                <button type="button" onClick={() => {
+                                                                    setEditingRecipe({ ...editingRecipe, toppings: editingRecipe.toppings.filter((_, i) => i !== tIdx) });
+                                                                }} style={{ border: 'none', background: '#fee2e2', color: '#ef4444', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', whiteSpace: 'nowrap' }}>Delete Topping</button>
+                                                            </div>
                                                         </div>
 
                                                         {/* Topping Ingredients */}
