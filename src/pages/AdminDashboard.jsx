@@ -97,11 +97,12 @@ const AdminDashboard = () => {
     const [bundleItems, setBundleItems] = useState([]);
     const [recipesList, setRecipesList] = useState([]);
     const [costingSubTab, setCostingSubTab] = useState('raw'); // 'raw' | 'bundle' | 'final'
+    const [selectedToppings, setSelectedToppings] = useState({}); // { [productId]: toppingIndex }
     
     // Add raw material form state
     const [showAddRawForm, setShowAddRawForm] = useState(false);
     const [editingRaw, setEditingRaw] = useState(null);
-    const [newRaw, setNewRaw] = useState({ name: '', category: 'Dairy & Milk', price: '', quantity: '', unit: 'g' });
+    const [newRaw, setNewRaw] = useState({ name: '', category: 'Dairy & Milk', price: '', quantity: '', unit: 'g', vendorId: '', vendorItemName: '' });
     
     // Add bundle item form state
     const [showAddBundleForm, setShowAddBundleForm] = useState(false);
@@ -110,7 +111,7 @@ const AdminDashboard = () => {
 
     // Product recipe form state
     const [selectedRecipeProduct, setSelectedRecipeProduct] = useState(null); // product ID for editing recipe
-    const [editingRecipe, setEditingRecipe] = useState({ ingredients: [], packagingCost: '0', batchSize: '1', overheadAllocation: '0' }); // ingredients: [{ type: 'raw'/'bundle', id: '', quantity: '' }]
+    const [editingRecipe, setEditingRecipe] = useState({ ingredients: [], packagingCost: '0', batchSize: '1', overheadAllocation: '0', toppings: [] }); // ingredients: [{ type: 'raw'/'bundle', id: '', quantity: '' }]
 
     // Vendors State
     const [vendors, setVendors] = useState([]);
@@ -5495,9 +5496,9 @@ const AdminDashboard = () => {
                     return totalCost / yieldQty;
                 };
 
-                const getProductRecipeCost = (productId) => {
+                const getProductRecipeCost = (productId, selectedToppingIndex = -1) => {
                     const recipe = recipesList.find(r => r.id === productId);
-                    if (!recipe) return { ingredientsCost: 0, packagingCost: 0, overheadCost: 0, totalUnitCost: 0 };
+                    if (!recipe) return { ingredientsCost: 0, packagingCost: 0, overheadCost: 0, toppingCost: 0, totalUnitCost: 0 };
 
                     let ingCost = 0;
                     (recipe.ingredients || []).forEach(ing => {
@@ -5514,15 +5515,31 @@ const AdminDashboard = () => {
                     const batch = parseFloat(recipe.batchSize) || 1;
                     const overhead = parseFloat(recipe.overheadAllocation) || 0;
 
+                    let toppingCost = 0;
+                    if (selectedToppingIndex > -1 && recipe.toppings && recipe.toppings[selectedToppingIndex]) {
+                        const topping = recipe.toppings[selectedToppingIndex];
+                        (topping.ingredients || []).forEach(ing => {
+                            if (ing.type === 'raw') {
+                                const raw = rawMaterials.find(r => r.id === ing.id);
+                                if (raw) toppingCost += getRawMaterialUnitPrice(raw) * (parseFloat(ing.quantity) || 0);
+                            } else if (ing.type === 'bundle') {
+                                const bundle = bundleItems.find(b => b.id === ing.id);
+                                if (bundle) toppingCost += getBundleItemUnitCost(bundle) * (parseFloat(ing.quantity) || 0);
+                            }
+                        });
+                        toppingCost += parseFloat(topping.packagingCost) || 0;
+                    }
+
                     const unitIngCost = ingCost;
                     const unitPkgCost = pkg;
                     const unitOverheadCost = batch > 0 ? (overhead / batch) : 0;
-                    const totalUnitCost = unitIngCost + unitPkgCost + unitOverheadCost;
+                    const totalUnitCost = unitIngCost + unitPkgCost + unitOverheadCost + toppingCost;
 
                     return {
                         ingredientsCost: unitIngCost,
                         packagingCost: unitPkgCost,
                         overheadCost: unitOverheadCost,
+                        toppingCost: toppingCost,
                         totalUnitCost: totalUnitCost
                     };
                 };
@@ -5541,6 +5558,8 @@ const AdminDashboard = () => {
                             price: parseFloat(newRaw.price),
                             quantity: parseFloat(newRaw.quantity),
                             unit: newRaw.unit,
+                            vendorId: newRaw.vendorId || '',
+                            vendorItemName: newRaw.vendorItemName || '',
                             updatedAt: new Date().toISOString()
                         };
                         if (editingRaw) {
@@ -5553,7 +5572,7 @@ const AdminDashboard = () => {
                             setRawMaterials(prev => [added, ...prev]);
                             showToast('Raw material added successfully!');
                         }
-                        setNewRaw({ name: '', category: 'Dairy & Milk', price: '', quantity: '', unit: 'g' });
+                        setNewRaw({ name: '', category: 'Dairy & Milk', price: '', quantity: '', unit: 'g', vendorId: '', vendorItemName: '' });
                         setShowAddRawForm(false);
                     } catch (error) {
                         showToast('Failed to save raw material', 'error');
@@ -5626,6 +5645,7 @@ const AdminDashboard = () => {
                             packagingCost: parseFloat(editingRecipe.packagingCost) || 0,
                             batchSize: parseFloat(editingRecipe.batchSize) || 1,
                             overheadAllocation: parseFloat(editingRecipe.overheadAllocation) || 0,
+                            toppings: editingRecipe.toppings || [],
                             updatedAt: new Date().toISOString()
                         };
                         await db.saveRecipe(selectedRecipeProduct.id, payload);
@@ -5692,6 +5712,42 @@ const AdminDashboard = () => {
                                         <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>{editingRaw ? '✏️ Edit Raw Material' : '➕ Add New Raw Material'}</h4>
                                         <form onSubmit={handleSaveRawMaterial} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
                                             <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Link to Vendor (Optional)</label>
+                                                <select value={newRaw.vendorId || ''} onChange={e => {
+                                                    const vId = e.target.value;
+                                                    setNewRaw({ ...newRaw, vendorId: vId, vendorItemName: '' });
+                                                }} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }}>
+                                                    <option value="">-- No Vendor Linked --</option>
+                                                    {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                                                </select>
+                                            </div>
+                                            {newRaw.vendorId && (() => {
+                                                const vendorObj = vendors.find(v => v.id === newRaw.vendorId);
+                                                const vendorItems = vendorObj?.items || [];
+                                                return (
+                                                    <div>
+                                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Choose Vendor Item</label>
+                                                        <select value={newRaw.vendorItemName || ''} onChange={e => {
+                                                            const itemNm = e.target.value;
+                                                            const itemObj = vendorItems.find(it => it.itemName === itemNm);
+                                                            if (itemObj) {
+                                                                setNewRaw({
+                                                                    ...newRaw,
+                                                                    vendorItemName: itemNm,
+                                                                    name: itemNm,
+                                                                    price: itemObj.price.toString(),
+                                                                    quantity: '1',
+                                                                    unit: itemObj.unit || 'g'
+                                                                });
+                                                            }
+                                                        }} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }}>
+                                                            <option value="">-- Choose Item --</option>
+                                                            {vendorItems.map(it => <option key={it.itemName} value={it.itemName}>{it.itemName} (₹{it.price}/{it.unit})</option>)}
+                                                        </select>
+                                                    </div>
+                                                );
+                                            })()}
+                                            <div>
                                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Material Name</label>
                                                 <input type="text" value={newRaw.name} onChange={e => setNewRaw({ ...newRaw, name: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px' }} required placeholder="e.g. Pistachio Kernels" />
                                             </div>
@@ -5735,12 +5791,18 @@ const AdminDashboard = () => {
                                                         <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', padding: '3px 8px', borderRadius: '20px', fontWeight: '700' }}>{raw.category}</span>
                                                         {(!isReadOnly && !isChef) && (
                                                             <div style={{ display: 'flex', gap: '6px' }}>
-                                                                <button onClick={() => { setEditingRaw(raw); setNewRaw({ name: raw.name, category: raw.category, price: raw.price.toString(), quantity: raw.quantity.toString(), unit: raw.unit }); setShowAddRawForm(true); }} style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.8rem', cursor: 'pointer', fontWeight: '600' }}>Edit</button>
+                                                                <button onClick={() => { setEditingRaw(raw); setNewRaw({ name: raw.name, category: raw.category, price: raw.price.toString(), quantity: raw.quantity.toString(), unit: raw.unit, vendorId: raw.vendorId || '', vendorItemName: raw.vendorItemName || '' }); setShowAddRawForm(true); }} style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.8rem', cursor: 'pointer', fontWeight: '600' }}>Edit</button>
                                                                 <button onClick={() => handleDeleteRawMaterial(raw.id)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer', fontWeight: '600' }}>Delete</button>
                                                             </div>
                                                         )}
                                                     </div>
                                                     <h4 style={{ margin: '10px 0 4px', fontWeight: '800', color: '#0f172a', fontSize: '1rem' }}>{raw.name}</h4>
+                                                    {raw.vendorId && (() => {
+                                                        const vendorObj = vendors.find(v => v.id === raw.vendorId);
+                                                        return vendorObj ? (
+                                                            <p style={{ margin: '0 0 6px', fontSize: '0.75rem', color: '#0ea5e9', fontWeight: '700' }}>🏪 Vendor: {vendorObj.name}</p>
+                                                        ) : null;
+                                                    })()}
                                                     <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>Cost: ₹{raw.price} per {raw.quantity}{raw.unit}</p>
                                                 </div>
                                                 <div style={{ marginTop: '1.25rem', borderTop: '1px dashed #e2e8f0', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -5951,6 +6013,84 @@ const AdminDashboard = () => {
                                                     + Add Ingredient
                                                 </button>
                                             </div>
+ 
+                                            {/* Toppings Section */}
+                                            <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '1rem', background: '#f8fafc' }}>
+                                                <h5 style={{ margin: '0 0 10px 0', fontWeight: '700', color: '#1e293b' }}>Toppings & Variants Configuration (e.g. Salakatia Toppings)</h5>
+                                                {(editingRecipe.toppings || []).map((topping, tIdx) => (
+                                                    <div key={tIdx} style={{ background: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px', marginBottom: '10px' }}>
+                                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
+                                                            <input type="text" placeholder="Topping Name (e.g. Nutella)" value={topping.name} onChange={e => {
+                                                                const updated = [...editingRecipe.toppings];
+                                                                updated[tIdx].name = e.target.value;
+                                                                setEditingRecipe({ ...editingRecipe, toppings: updated });
+                                                            }} style={{ flex: 2, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: '700' }} required />
+                                                            <input type="number" step="0.01" placeholder="Extra Packing Cost" value={topping.packagingCost || '0'} onChange={e => {
+                                                                const updated = [...editingRecipe.toppings];
+                                                                updated[tIdx].packagingCost = e.target.value;
+                                                                setEditingRecipe({ ...editingRecipe, toppings: updated });
+                                                            }} style={{ flex: 1, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
+                                                            <button type="button" onClick={() => {
+                                                                setEditingRecipe({ ...editingRecipe, toppings: editingRecipe.toppings.filter((_, i) => i !== tIdx) });
+                                                            }} style={{ border: 'none', background: '#fee2e2', color: '#ef4444', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' }}>Delete Topping</button>
+                                                        </div>
+
+                                                        {/* Topping Ingredients */}
+                                                        <div style={{ paddingLeft: '20px', borderLeft: '3px solid #0ea5e9' }}>
+                                                            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b' }}>Topping Ingredients:</span>
+                                                            {(topping.ingredients || []).map((ing, ingIdx) => {
+                                                                const options = ing.type === 'raw' ? rawMaterials : bundleItems;
+                                                                const matchItem = options.find(o => o.id === ing.id);
+                                                                const unitName = ing.type === 'raw' ? matchItem?.unit : matchItem?.yieldUnit;
+                                                                return (
+                                                                    <div key={ingIdx} style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px' }}>
+                                                                        <select value={ing.type} onChange={e => {
+                                                                            const updated = [...editingRecipe.toppings];
+                                                                            updated[tIdx].ingredients[ingIdx].type = e.target.value;
+                                                                            updated[tIdx].ingredients[ingIdx].id = '';
+                                                                            setEditingRecipe({ ...editingRecipe, toppings: updated });
+                                                                        }} style={{ padding: '6px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', fontSize: '0.8rem' }}>
+                                                                            <option value="raw">🌾 Raw</option>
+                                                                            <option value="bundle">📦 Prep</option>
+                                                                        </select>
+                                                                        <select value={ing.id} onChange={e => {
+                                                                            const updated = [...editingRecipe.toppings];
+                                                                            updated[tIdx].ingredients[ingIdx].id = e.target.value;
+                                                                            setEditingRecipe({ ...editingRecipe, toppings: updated });
+                                                                        }} style={{ flex: 1, padding: '6px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', fontSize: '0.8rem' }}>
+                                                                            <option value="">-- Choose Ingredient --</option>
+                                                                            {options.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+                                                                        </select>
+                                                                        <input type="number" step="0.001" placeholder="Qty" value={ing.quantity} onChange={e => {
+                                                                            const updated = [...editingRecipe.toppings];
+                                                                            updated[tIdx].ingredients[ingIdx].quantity = e.target.value;
+                                                                            setEditingRecipe({ ...editingRecipe, toppings: updated });
+                                                                        }} style={{ width: '80px', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem' }} />
+                                                                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{unitName || ''}</span>
+                                                                        <button type="button" onClick={() => {
+                                                                            const updated = [...editingRecipe.toppings];
+                                                                            updated[tIdx].ingredients = updated[tIdx].ingredients.filter((_, i) => i !== ingIdx);
+                                                                            setEditingRecipe({ ...editingRecipe, toppings: updated });
+                                                                        }} style={{ border: 'none', background: 'transparent', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer' }}>✕</button>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                            <button type="button" onClick={() => {
+                                                                const updated = [...editingRecipe.toppings];
+                                                                updated[tIdx].ingredients = [...(updated[tIdx].ingredients || []), { type: 'raw', id: '', quantity: '' }];
+                                                                setEditingRecipe({ ...editingRecipe, toppings: updated });
+                                                            }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: '700', color: '#475569', fontSize: '0.72rem', marginTop: '6px', display: 'block' }}>
+                                                                + Add Ingredient to Topping
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                <button type="button" onClick={() => {
+                                                    setEditingRecipe({ ...editingRecipe, toppings: [...(editingRecipe.toppings || []), { name: '', ingredients: [], packagingCost: '0' }] });
+                                                }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', color: '#475569', fontSize: '0.8rem', marginTop: '5px' }}>
+                                                    + Add Topping Variant
+                                                </button>
+                                            </div>
 
                                             <div style={{ display: 'flex', gap: '8px', alignSelf: 'flex-end' }}>
                                                 <button type="submit" style={{ background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 24px', fontWeight: '700', cursor: 'pointer' }}>💾 Save Costing Configuration</button>
@@ -5976,16 +6116,41 @@ const AdminDashboard = () => {
                                         </thead>
                                         <tbody>
                                             {products.map(prod => {
-                                                const analysis = getProductRecipeCost(prod.id);
                                                 const currentRecipe = recipesList.find(r => r.id === prod.id);
+                                                const activeToppingIndex = selectedToppings[prod.id] !== undefined ? selectedToppings[prod.id] : -1;
+                                                const analysis = getProductRecipeCost(prod.id, activeToppingIndex);
                                                 const retailPrice = parseFloat(prod.price) || 0;
                                                 return (
                                                     <tr key={prod.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                        <td style={{ padding: '14px 20px', fontWeight: '700', color: '#1e293b' }}>{prod.name}</td>
+                                                        <td style={{ padding: '14px 20px', color: '#1e293b' }}>
+                                                            <div style={{ fontWeight: '700' }}>{prod.name}</div>
+                                                            {currentRecipe?.toppings && currentRecipe.toppings.length > 0 && (
+                                                                <div style={{ marginTop: '6px' }}>
+                                                                    <select value={activeToppingIndex} onChange={e => {
+                                                                        setSelectedToppings({ ...selectedToppings, [prod.id]: parseInt(e.target.value) });
+                                                                    }} style={{ padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.72rem', background: '#f8fafc', fontWeight: '700', color: '#0f172a' }}>
+                                                                        <option value="-1">Base Only</option>
+                                                                        {currentRecipe.toppings.map((top, idx) => (
+                                                                            <option key={idx} value={idx}>+ Topping: {top.name}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+                                                            )}
+                                                        </td>
                                                         <td style={{ padding: '14px 20px', color: '#475569' }}>₹{analysis.ingredientsCost.toFixed(2)}</td>
                                                         <td style={{ padding: '14px 20px', color: '#475569' }}>₹{analysis.packagingCost.toFixed(2)}</td>
-                                                        <td style={{ padding: '14px 20px', color: '#475569' }}>₹{analysis.overheadCost.toFixed(2)} <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>(batch: {currentRecipe?.batchSize || 1})</span></td>
-                                                        <td style={{ padding: '14px 20px', fontWeight: '800', color: '#16a34a' }}>₹{analysis.totalUnitCost.toFixed(2)}</td>
+                                                        <td style={{ padding: '14px 20px', color: '#475569' }}>
+                                                            ₹{analysis.overheadCost.toFixed(2)}
+                                                            <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>(batch: {currentRecipe?.batchSize || 1})</span>
+                                                        </td>
+                                                        <td style={{ padding: '14px 20px', fontWeight: '800', color: '#16a34a' }}>
+                                                            ₹{analysis.totalUnitCost.toFixed(2)}
+                                                            {analysis.toppingCost > 0 && (
+                                                                <span style={{ display: 'block', fontSize: '0.7rem', color: '#0ea5e9' }}>
+                                                                    (Base: ₹{(analysis.totalUnitCost - analysis.toppingCost).toFixed(2)} + Topping: ₹{analysis.toppingCost.toFixed(2)})
+                                                                </span>
+                                                            )}
+                                                        </td>
                                                         <td style={{ padding: '14px 20px', fontWeight: '800', color: '#0284c7' }}>₹{(analysis.totalUnitCost * 2).toFixed(2)}</td>
                                                         <td style={{ padding: '14px 20px', fontWeight: '800', color: '#e11d48' }}>₹{retailPrice.toFixed(2)}</td>
                                                         <td style={{ padding: '14px 20px' }}>
@@ -5996,7 +6161,8 @@ const AdminDashboard = () => {
                                                                         ingredients: currentRecipe?.ingredients || [],
                                                                         packagingCost: (currentRecipe?.packagingCost || 0).toString(),
                                                                         batchSize: (currentRecipe?.batchSize || 1).toString(),
-                                                                        overheadAllocation: (currentRecipe?.overheadAllocation || 0).toString()
+                                                                        overheadAllocation: (currentRecipe?.overheadAllocation || 0).toString(),
+                                                                        toppings: currentRecipe?.toppings || []
                                                                     });
                                                                 }} style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>
                                                                     Configure Costing
