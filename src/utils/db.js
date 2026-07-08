@@ -785,7 +785,8 @@ const db = {
                     { name: 'Marchad', email: 'marchad@highlaban.com', password: 'Marchad@2026', role: 'purchaser' },
                     { name: 'Nufoor', email: 'nufoor@highlaban.com', password: 'Nufoor@2026', role: 'purchaser' },
                     { name: 'Accounts Team', email: 'accounts@highlaban.com', password: 'Accounts@2026', role: 'accounts' },
-                    { name: 'Chef', email: 'chef@highlaban.com', password: 'Chef@2026', role: 'chef' }
+                    { name: 'Chef', email: 'chef@highlaban.com', password: 'Chef@2026', role: 'chef' },
+                    { name: 'Partner', email: 'partner@highlaban.com', password: 'Partner@2026', role: 'partner' }
                 ];
                 for (const u of defaults) {
                     const docRef = await addDoc(collection(firestore, 'users'), u);
@@ -871,6 +872,10 @@ const db = {
             return user;
         } else if (cleanEmail === 'chef@highlaban.com' && password === 'Chef@2026') {
             const user = { email: cleanEmail, name: 'Chef', role: 'chef' };
+            localStorage.setItem('highlaban_user', JSON.stringify(user));
+            return user;
+        } else if (cleanEmail === 'partner@highlaban.com' && password === 'Partner@2026') {
+            const user = { email: cleanEmail, name: 'Partner', role: 'partner' };
             localStorage.setItem('highlaban_user', JSON.stringify(user));
             return user;
         } else {

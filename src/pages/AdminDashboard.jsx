@@ -83,7 +83,7 @@ const getProrationFactor = (staff, monthStr) => {
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const user = db.getUser(); // Check auth immediately
-    const isReadOnly = user?.role === 'accounts';
+    const isReadOnly = user?.role === 'accounts' || user?.role === 'partner';
     const isChef = user?.role === 'chef';
     const [activeTab, setActiveTab] = useState(user?.role === 'chef' ? 'costing' : 'products');
     const [products, setProducts] = useState([]);
@@ -1261,14 +1261,15 @@ const AdminDashboard = () => {
                 </div>
 
                 <nav className={styles.nav}>
+                    {(!isChef || user?.role === 'chef') && (
+                        <div className={`${styles.navItem} ${activeTab === 'products' ? styles.active : ''}`} onClick={() => { setActiveTab('products'); setIsMobileOpen(false); }}>
+                            <span style={{ fontSize: '1.2rem' }}>🛍️</span> Products
+                            {activeTab === 'products' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
+
                     {!isChef ? (
                         <>
-                            <div className={`${styles.navItem} ${activeTab === 'products' ? styles.active : ''}`} onClick={() => { setActiveTab('products'); setIsMobileOpen(false); }}>
-                                <span style={{ fontSize: '1.2rem' }}>🛍️</span> Products
-                                {activeTab === 'products' && <div className={styles.activeDot}></div>}
-                            </div>
-
-
                             <div className={`${styles.navItem} ${activeTab === 'content' ? styles.active : ''}`} onClick={() => { setActiveTab('content'); setIsMobileOpen(false); }}>
                                 <span style={{ fontSize: '1.2rem' }}>📝</span> Content
                                 {activeTab === 'content' && <div className={styles.activeDot}></div>}
@@ -1501,12 +1502,14 @@ const AdminDashboard = () => {
                         <section>
                             <div className={styles.catalogHeader}>
                                 <h2 className={styles.sectionTitle}>Products Catalog</h2>
-                                <button
-                                    className={styles.addButton}
-                                    onClick={() => setShowAddForm(!showAddForm)}
-                                >
-                                    <span>{showAddForm ? '−' : '+'}</span> {showAddForm ? 'CLOSE FORM' : 'ADD PRODUCT'}
-                                </button>
+                                {(!isReadOnly && !isChef) && (
+                                    <button
+                                        className={styles.addButton}
+                                        onClick={() => setShowAddForm(!showAddForm)}
+                                    >
+                                        <span>{showAddForm ? '−' : '+'}</span> {showAddForm ? 'CLOSE FORM' : 'ADD PRODUCT'}
+                                    </button>
+                                )}
                             </div>
 
                             {/* Add Product Form (Slide Open) */}
@@ -1669,14 +1672,16 @@ const AdminDashboard = () => {
                                             <div className={styles.cardTitle} style={{ width: '70%' }}>
                                                 <h4 style={{ margin: 0, fontSize: '1.1rem' }}>{product.name}</h4>
                                             </div>
-                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <button className={styles.editBtn} onClick={() => handleEditClick(product)} title="Edit Product">
-                                                    <EditIcon />
-                                                </button>
-                                                <button className={styles.deleteBtn} onClick={() => handleDeleteProduct(product.id)} title="Delete Product">
-                                                    <TrashIcon />
-                                                </button>
-                                            </div>
+                                            {(!isReadOnly && !isChef) && (
+                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                    <button className={styles.editBtn} onClick={() => handleEditClick(product)} title="Edit Product">
+                                                        <EditIcon />
+                                                    </button>
+                                                    <button className={styles.deleteBtn} onClick={() => handleDeleteProduct(product.id)} title="Delete Product">
+                                                        <TrashIcon />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className={styles.cardTag}>
@@ -1830,6 +1835,8 @@ const AdminDashboard = () => {
                                                         <select value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}>
                                                             <option value="purchaser">Purchaser (Add purchases, view all)</option>
                                                             <option value="accounts">Accounts Team (View-only purchases)</option>
+                                                            <option value="chef">Chef (Food costing control & shop items)</option>
+                                                            <option value="partner">Partner (Reports, staff, food cost, vendors)</option>
                                                             <option value="admin">Administrator (Full Access)</option>
                                                         </select>
                                                     </div>
@@ -1837,7 +1844,7 @@ const AdminDashboard = () => {
                                                 </form>
                                             </div>
                                         )}
-
+ 
                                         {/* Edit User Form */}
                                         {editingUser && (
                                             <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '16px', padding: '1.5rem' }}>
@@ -1860,6 +1867,8 @@ const AdminDashboard = () => {
                                                         <select value={editingUser.role} onChange={e => setEditingUser({ ...editingUser, role: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}>
                                                             <option value="purchaser">Purchaser (Add purchases, view all)</option>
                                                             <option value="accounts">Accounts Team (View-only purchases)</option>
+                                                            <option value="chef">Chef (Food costing control & shop items)</option>
+                                                            <option value="partner">Partner (Reports, staff, food cost, vendors)</option>
                                                             <option value="admin">Administrator (Full Access)</option>
                                                         </select>
                                                     </div>
