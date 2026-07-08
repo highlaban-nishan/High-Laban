@@ -4928,9 +4928,33 @@ const AdminDashboard = () => {
                         };
                         const saved = await db.addPurchase(data);
                         setPurchases(prev => [saved, ...prev]);
-                        setNewPurchase({ date: new Date().toISOString().split('T')[0], item: '', category: 'Dairy & Milk', vendorId: '', amount: '', paymentMode: 'Cash', notes: '', billUrl: '', location: currentFilterLoc });
+
+                        // Auto-update vendor item price
+                        if (newPurchase.vendorId && selectedVendor) {
+                            const updatedItems = [...(selectedVendor.items || [])];
+                            const matchingItemIndex = updatedItems.findIndex(
+                                it => it.itemName.toLowerCase().trim() === newPurchase.item.toLowerCase().trim()
+                            );
+                            if (matchingItemIndex > -1) {
+                                updatedItems[matchingItemIndex] = {
+                                    ...updatedItems[matchingItemIndex],
+                                    price: parseFloat(newPurchase.amount).toString()
+                                };
+                            } else {
+                                updatedItems.push({
+                                    itemName: newPurchase.item.trim(),
+                                    unit: 'kg',
+                                    price: parseFloat(newPurchase.amount).toString()
+                                });
+                            }
+                            const updatedVendor = { ...selectedVendor, items: updatedItems };
+                            await db.updateVendor(selectedVendor.id, updatedVendor);
+                            setVendors(prev => prev.map(v => v.id === selectedVendor.id ? updatedVendor : v));
+                        }
+
+                        setNewPurchase({ date: new Date().toISOString().split('T')[0], item: '', category: 'Dairy & Milk', vendorId: '', amount: '', paymentMode: 'Cash', notes: '', billUrl: '', transactionUrl: '', location: currentFilterLoc });
                         setShowAddPurchaseForm(false);
-                        showToast('Purchase logged successfully!');
+                        showToast('Purchase logged successfully and vendor catalog updated!');
                     } catch (error) {
                         showToast('Failed to save purchase', 'error');
                     }
@@ -4951,8 +4975,32 @@ const AdminDashboard = () => {
                         };
                         await db.updatePurchase(editingPurchase.id, data);
                         setPurchases(prev => prev.map(p => p.id === editingPurchase.id ? data : p));
+
+                        // Auto-update vendor item price
+                        if (editingPurchase.vendorId && selectedVendor) {
+                            const updatedItems = [...(selectedVendor.items || [])];
+                            const matchingItemIndex = updatedItems.findIndex(
+                                it => it.itemName.toLowerCase().trim() === editingPurchase.item.toLowerCase().trim()
+                            );
+                            if (matchingItemIndex > -1) {
+                                updatedItems[matchingItemIndex] = {
+                                    ...updatedItems[matchingItemIndex],
+                                    price: parseFloat(editingPurchase.amount).toString()
+                                };
+                            } else {
+                                updatedItems.push({
+                                    itemName: editingPurchase.item.trim(),
+                                    unit: 'kg',
+                                    price: parseFloat(editingPurchase.amount).toString()
+                                });
+                            }
+                            const updatedVendor = { ...selectedVendor, items: updatedItems };
+                            await db.updateVendor(selectedVendor.id, updatedVendor);
+                            setVendors(prev => prev.map(v => v.id === selectedVendor.id ? updatedVendor : v));
+                        }
+
                         setEditingPurchase(null);
-                        showToast('Purchase updated successfully!');
+                        showToast('Purchase and vendor catalog updated successfully!');
                     } catch (error) {
                         showToast('Failed to update purchase', 'error');
                     }
@@ -4993,6 +5041,25 @@ const AdminDashboard = () => {
                             setNewPurchase(prev => ({ ...prev, billUrl: url }));
                         }
                         showToast('Bill receipt uploaded!');
+                    } catch {
+                        showToast('Upload failed', 'error');
+                    } finally {
+                        setIsUploading(false);
+                    }
+                };
+
+                const handleTransactionUpload = async (e, isEdit = false) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    setIsUploading(true);
+                    try {
+                        const url = await uploadMedia(file);
+                        if (isEdit) {
+                            setEditingPurchase(prev => ({ ...prev, transactionUrl: url }));
+                        } else {
+                            setNewPurchase(prev => ({ ...prev, transactionUrl: url }));
+                        }
+                        showToast('Transaction proof uploaded!');
                     } catch {
                         showToast('Upload failed', 'error');
                     } finally {
@@ -5101,8 +5168,14 @@ const AdminDashboard = () => {
                                         <input type="text" value={newPurchase.notes} onChange={e => setNewPurchase({ ...newPurchase, notes: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px' }} placeholder="Notes details..." />
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Upload Bill / Invoice</label>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>🧾 Upload Bill / Invoice</label>
                                         <input type="file" onChange={(e) => handleBillUpload(e, false)} style={{ fontSize: '0.85rem' }} />
+                                        {newPurchase.billUrl && <span style={{ fontSize: '0.75rem', color: '#0ea5e9', display: 'block', marginTop: '4px' }}>✅ Invoice Attached</span>}
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>📱 Upload Transaction Proof</label>
+                                        <input type="file" onChange={(e) => handleTransactionUpload(e, false)} style={{ fontSize: '0.85rem' }} />
+                                        {newPurchase.transactionUrl && <span style={{ fontSize: '0.75rem', color: '#22c55e', display: 'block', marginTop: '4px' }}>✅ Proof Attached</span>}
                                     </div>
                                     <button type="submit" style={{ background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '10px', padding: '12px', fontWeight: '800', cursor: 'pointer' }}>💾 Log Purchase</button>
                                 </form>
@@ -5152,8 +5225,14 @@ const AdminDashboard = () => {
                                         <input type="text" value={editingPurchase.notes || ''} onChange={e => setEditingPurchase({ ...editingPurchase, notes: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px' }} />
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Upload Bill</label>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>🧾 Upload Invoice / Bill</label>
                                         <input type="file" onChange={(e) => handleBillUpload(e, true)} style={{ fontSize: '0.85rem' }} />
+                                        {editingPurchase.billUrl && <span style={{ fontSize: '0.75rem', color: '#0ea5e9', display: 'block', marginTop: '4px' }}>✅ Invoice Attached</span>}
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>📱 Upload Transaction screenshot</label>
+                                        <input type="file" onChange={(e) => handleTransactionUpload(e, true)} style={{ fontSize: '0.85rem' }} />
+                                        {editingPurchase.transactionUrl && <span style={{ fontSize: '0.75rem', color: '#22c55e', display: 'block', marginTop: '4px' }}>✅ Proof Attached</span>}
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         <button type="submit" style={{ flex: 1, background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '10px', padding: '12px', fontWeight: '800', cursor: 'pointer' }}>Update</button>
@@ -5270,7 +5349,13 @@ const AdminDashboard = () => {
                                                 {p.billUrl && (
                                                     <a href={p.billUrl} target="_blank" rel="noopener noreferrer"
                                                         style={{ background: '#f0f9ff', color: '#0ea5e9', border: '1px solid #bae6fd', borderRadius: '6px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: '700', textDecoration: 'none' }}>
-                                                        📷 Bill
+                                                        🧾 Invoice
+                                                    </a>
+                                                )}
+                                                {p.transactionUrl && (
+                                                    <a href={p.transactionUrl} target="_blank" rel="noopener noreferrer"
+                                                        style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: '700', textDecoration: 'none' }}>
+                                                        📱 Proof
                                                     </a>
                                                 )}
                                                 <button onClick={() => { setEditingPurchase(p); setShowAddPurchaseForm(false); }}
@@ -5314,9 +5399,14 @@ const AdminDashboard = () => {
                                                         <span style={{ fontWeight: '800', color: '#475569', fontSize: '0.9rem' }}>₹{parseFloat(p.amount).toLocaleString('en-IN')}</span>
                                                         <div style={{ display: 'flex', gap: '4px' }}>
                                                             {p.billUrl && (
-                                                                <a href={p.billUrl} target="_blank" rel="noopener noreferrer" style={{ background: '#f0f9ff', color: '#0ea5e9', border: '1px solid #bae6fd', borderRadius: '4px', padding: '3px 8px', fontSize: '0.68rem', fontWeight: '700', textDecoration: 'none' }}>Bill</a>
+                                                                <a href={p.billUrl} target="_blank" rel="noopener noreferrer" style={{ background: '#f0f9ff', color: '#0ea5e9', border: '1px solid #bae6fd', borderRadius: '4px', padding: '3px 8px', fontSize: '0.68rem', fontWeight: '700', textDecoration: 'none' }}>Invoice</a>
                                                             )}
-                                                            <button onClick={() => handleDeletePurchase(p.id)} style={{ background: '#fee2e2', border: 'none', borderRadius: '4px', padding: '3px 8px', fontSize: '0.68rem', fontWeight: '700', color: '#ef4444', cursor: 'pointer' }}>Delete</button>
+                                                            {p.transactionUrl && (
+                                                                <a href={p.transactionUrl} target="_blank" rel="noopener noreferrer" style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: '4px', padding: '3px 8px', fontSize: '0.68rem', fontWeight: '700', textDecoration: 'none' }}>Proof</a>
+                                                            )}
+                                                            {!isReadOnly && (
+                                                                <button onClick={() => handleDeletePurchase(p.id)} style={{ background: '#fee2e2', border: 'none', borderRadius: '4px', padding: '3px 8px', fontSize: '0.68rem', fontWeight: '700', color: '#ef4444', cursor: 'pointer' }}>Delete</button>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>

@@ -48,12 +48,13 @@ export default function PurchaserDashboard() {
     const [submitting, setSubmitting] = useState(false);
     const [uploadingBill, setUploadingBill] = useState(false);
     const [toast, setToast] = useState(null);
+    const [uploadingTransaction, setUploadingTransaction] = useState(false);
 
     // Form state
     const [form, setForm] = useState({
         date: TODAY(), item: '', category: CATEGORIES[0],
         vendorId: '', amount: '', paymentMode: 'Cash',
-        notes: '', billUrl: '', location: 'Main Kitchen'
+        notes: '', billUrl: '', transactionUrl: '', location: 'Main Kitchen'
     });
 
     // Filters (for admin/accounts view)
@@ -65,6 +66,7 @@ export default function PurchaserDashboard() {
     const [searchQuery, setSearchQuery] = useState('');
 
     const billInputRef = useRef(null);
+    const transactionInputRef = useRef(null);
 
     const showToast = (msg, type = 'success') => {
         setToast({ msg, type });
@@ -106,6 +108,21 @@ export default function PurchaserDashboard() {
         }
     };
 
+    const handleTransactionUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setUploadingTransaction(true);
+        try {
+            const url = await uploadMedia(file);
+            setForm(f => ({ ...f, transactionUrl: url }));
+            showToast('Transaction proof uploaded!');
+        } catch {
+            showToast('Failed to upload transaction proof', 'error');
+        } finally {
+            setUploadingTransaction(false);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!form.item.trim()) { showToast('Item name is required', 'error'); return; }
@@ -123,9 +140,34 @@ export default function PurchaserDashboard() {
             };
             const newP = await db.addPurchase(data);
             setPurchases(prev => [newP, ...prev]);
-            setForm({ date: TODAY(), item: '', category: CATEGORIES[0], vendorId: '', amount: '', paymentMode: 'Cash', notes: '', billUrl: '', location: 'Main Kitchen' });
+
+            // Auto-update vendor item price
+            if (form.vendorId && selectedVendor) {
+                const updatedItems = [...(selectedVendor.items || [])];
+                const matchingItemIndex = updatedItems.findIndex(
+                    it => it.itemName.toLowerCase().trim() === form.item.toLowerCase().trim()
+                );
+                if (matchingItemIndex > -1) {
+                    updatedItems[matchingItemIndex] = {
+                        ...updatedItems[matchingItemIndex],
+                        price: parseFloat(form.amount).toString()
+                    };
+                } else {
+                    updatedItems.push({
+                        itemName: form.item.trim(),
+                        unit: 'kg',
+                        price: parseFloat(form.amount).toString()
+                    });
+                }
+                const updatedVendor = { ...selectedVendor, items: updatedItems };
+                await db.updateVendor(selectedVendor.id, updatedVendor);
+                setVendors(prev => prev.map(v => v.id === selectedVendor.id ? updatedVendor : v));
+            }
+
+            setForm({ date: TODAY(), item: '', category: CATEGORIES[0], vendorId: '', amount: '', paymentMode: 'Cash', notes: '', billUrl: '', transactionUrl: '', location: 'Main Kitchen' });
             if (billInputRef.current) billInputRef.current.value = '';
-            showToast('Purchase logged successfully! ✅');
+            if (transactionInputRef.current) transactionInputRef.current.value = '';
+            showToast('Purchase logged and vendor price synced successfully! ✅');
         } catch {
             showToast('Failed to log purchase', 'error');
         } finally {
@@ -342,11 +384,11 @@ export default function PurchaserDashboard() {
 
                                 {/* Bill Upload */}
                                 <div>
-                                    <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Upload Bill / Screenshot</label>
+                                    <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>🧾 Upload Invoice / Bill</label>
                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                         <button type="button" onClick={() => billInputRef.current?.click()}
                                             style={{ background: 'rgba(255,255,255,0.08)', color: '#94a3b8', border: '1px dashed rgba(255,255,255,0.2)', borderRadius: '10px', padding: '10px 16px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600', flex: 1 }}>
-                                            {uploadingBill ? 'Uploading...' : form.billUrl ? '✅ Bill Uploaded' : '📷 Choose File'}
+                                            {uploadingBill ? 'Uploading...' : form.billUrl ? '✅ Invoice Attached' : '📷 Choose Invoice'}
                                         </button>
                                         {form.billUrl && (
                                             <a href={form.billUrl} target="_blank" rel="noopener noreferrer"
@@ -354,6 +396,22 @@ export default function PurchaserDashboard() {
                                         )}
                                     </div>
                                     <input ref={billInputRef} type="file" accept="image/*,application/pdf" onChange={handleBillUpload} style={{ display: 'none' }} />
+                                </div>
+
+                                {/* Transaction Screenshot Upload */}
+                                <div>
+                                    <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>📱 Upload Transaction screenshot</label>
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        <button type="button" onClick={() => transactionInputRef.current?.click()}
+                                            style={{ background: 'rgba(255,255,255,0.08)', color: '#94a3b8', border: '1px dashed rgba(255,255,255,0.2)', borderRadius: '10px', padding: '10px 16px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600', flex: 1 }}>
+                                            {uploadingTransaction ? 'Uploading...' : form.transactionUrl ? '✅ Proof Attached' : '📷 Choose Proof'}
+                                        </button>
+                                        {form.transactionUrl && (
+                                            <a href={form.transactionUrl} target="_blank" rel="noopener noreferrer"
+                                                style={{ color: '#22c55e', fontSize: '0.75rem', fontWeight: '700', textDecoration: 'none' }}>View</a>
+                                        )}
+                                    </div>
+                                    <input ref={transactionInputRef} type="file" accept="image/*,application/pdf" onChange={handleTransactionUpload} style={{ display: 'none' }} />
                                 </div>
 
                                 <button type="submit" disabled={submitting}
@@ -471,7 +529,13 @@ export default function PurchaserDashboard() {
                                                 {p.billUrl && (
                                                     <a href={p.billUrl} target="_blank" rel="noopener noreferrer"
                                                         style={{ background: 'rgba(14,165,233,0.15)', color: '#0ea5e9', border: '1px solid rgba(14,165,233,0.3)', borderRadius: '6px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', textDecoration: 'none' }}>
-                                                        📷 Bill
+                                                        🧾 Bill
+                                                    </a>
+                                                )}
+                                                {p.transactionUrl && (
+                                                    <a href={p.transactionUrl} target="_blank" rel="noopener noreferrer"
+                                                        style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '6px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', textDecoration: 'none' }}>
+                                                        📱 Proof
                                                     </a>
                                                 )}
                                                 {(!isReadOnly && p.purchaserEmail === user.email || isAdmin) && (
