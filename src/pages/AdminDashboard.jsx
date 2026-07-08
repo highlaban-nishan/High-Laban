@@ -146,6 +146,7 @@ const AdminDashboard = () => {
     const [bundleItems, setBundleItems] = useState([]);
     const [recipesList, setRecipesList] = useState([]);
     const [costingSubTab, setCostingSubTab] = useState('raw'); // 'raw' | 'bundle' | 'final'
+    const [rawMaterialCategoryFilter, setRawMaterialCategoryFilter] = useState('All');
     const [selectedToppings, setSelectedToppings] = useState({}); // { [productId]: toppingIndex }
     
     // Add raw material form state
@@ -5978,8 +5979,18 @@ const AdminDashboard = () => {
                         {/* SUB TAB 1: RAW MATERIALS */}
                         {costingSubTab === 'raw' && (
                             <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                    <h3 style={{ margin: 0, color: '#1e293b', fontWeight: '800' }}>Raw Materials Registry</h3>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '10px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+                                        <h3 style={{ margin: 0, color: '#1e293b', fontWeight: '800' }}>Raw Materials Registry</h3>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#64748b' }}>Filter Category:</span>
+                                            <select value={rawMaterialCategoryFilter} onChange={e => setRawMaterialCategoryFilter(e.target.value)}
+                                                style={{ padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white', fontSize: '0.78rem', fontWeight: '600', color: '#334155' }}>
+                                                <option value="All">All Categories</option>
+                                                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
                                     {(!isReadOnly && !isChef) && (
                                         <button onClick={() => { setShowAddRawForm(!showAddRawForm); setEditingRaw(null); }}
                                             style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
@@ -6063,8 +6074,21 @@ const AdminDashboard = () => {
                                 )}
 
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
-                                    {rawMaterials.map(raw => {
-                                        const unitCost = getRawMaterialUnitPrice(raw);
+                                    {rawMaterials
+                                        .filter(raw => rawMaterialCategoryFilter === 'All' || raw.category === rawMaterialCategoryFilter)
+                                        .sort((a, b) => {
+                                            const catA = (a.category || '').toLowerCase();
+                                            const catB = (b.category || '').toLowerCase();
+                                            if (catA < catB) return -1;
+                                            if (catA > catB) return 1;
+                                            const nameA = (a.name || '').toLowerCase();
+                                            const nameB = (b.name || '').toLowerCase();
+                                            if (nameA < nameB) return -1;
+                                            if (nameA > nameB) return 1;
+                                            return 0;
+                                        })
+                                        .map(raw => {
+                                            const unitCost = getRawMaterialUnitPrice(raw);
                                         return (
                                             <div key={raw.id} style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 2px 6px rgba(0,0,0,0.01)' }}>
                                                 <div>
