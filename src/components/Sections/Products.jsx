@@ -11,6 +11,7 @@ const ProductCard = ({ product, index, isModal = false }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [isHovering, setIsHovering] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
+    const [activeTopping, setActiveTopping] = useState(null);
 
     // Normalize images: use array if exists, else fallback to single img, else empty array
     // Also ensure all items are treated as objects with {url, tag} for internal consistency in this component
@@ -46,10 +47,29 @@ const ProductCard = ({ product, index, isModal = false }) => {
 
         const interval = setInterval(() => {
             setCurrentImageIndex((prev) => (prev + 1) % images.length);
-        }, 2000);
+        }, 3000); // 3 seconds interval for smooth reading
 
         return () => clearInterval(interval);
     }, [images.length, isHovering]);
+
+    // Bidirectional sync: current slide change highlights corresponding topping
+    useEffect(() => {
+        const currentImage = images[currentImageIndex];
+        if (currentImage && currentImage.tag) {
+            const normalizedTag = currentImage.tag.toLowerCase().trim();
+            const toppingsList = Array.isArray(product.toppings) 
+                ? product.toppings 
+                : (product.toppings ? product.toppings.split(',').map(t => t.trim()) : []);
+            const matchedTopping = toppingsList.find(t => t.toLowerCase().trim() === normalizedTag);
+            if (matchedTopping) {
+                setActiveTopping(matchedTopping);
+            } else {
+                setActiveTopping(null);
+            }
+        } else {
+            setActiveTopping(null);
+        }
+    }, [currentImageIndex, images, product.toppings]);
 
     // Determine current tag: if specific image tag exists, use it; otherwise fallback to general product tag
     const currentTag = images[currentImageIndex]?.tag || product.tag;
@@ -118,7 +138,53 @@ const ProductCard = ({ product, index, isModal = false }) => {
 
             {product.ingredients && (
                 <div style={{ marginBottom: '0.5rem' }}>
-                    <span className={styles.ingredientsTag}>{product.ingredients}</span>
+                    <span className={styles.ingredientsTag}>
+                        🍰 Layers: {product.ingredients.split(/[-•,]/).map(s => s.trim()).filter(Boolean).join(' • ')}
+                    </span>
+                </div>
+            )}
+
+            {product.toppings && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '0.75rem', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>✨ Toppings:</span>
+                    {(Array.isArray(product.toppings) ? product.toppings : product.toppings.split(',')).map((topping, tIdx) => {
+                        const hasMatchingPic = images.some(img => 
+                            img.tag && img.tag.toLowerCase().trim() === topping.trim().toLowerCase()
+                        );
+                        const isActive = activeTopping && activeTopping.toLowerCase().trim() === topping.toLowerCase().trim();
+
+                        return (
+                            <span 
+                                key={tIdx} 
+                                onClick={() => {
+                                    if (hasMatchingPic) {
+                                        const matchingIdx = images.findIndex(img => 
+                                            img.tag && img.tag.toLowerCase().trim() === topping.trim().toLowerCase()
+                                        );
+                                        if (matchingIdx !== -1) {
+                                            goToSlide(matchingIdx);
+                                        }
+                                    }
+                                }}
+                                style={{ 
+                                    fontSize: '0.65rem', 
+                                    color: isActive ? '#ffffff' : '#009ceb', 
+                                    background: isActive ? '#009ceb' : '#f0f9ff', 
+                                    border: isActive ? '1px solid #009ceb' : '1px solid #cbd5e1',
+                                    padding: '3px 10px', 
+                                    borderRadius: '50px', 
+                                    fontWeight: '800',
+                                    cursor: hasMatchingPic ? 'pointer' : 'default',
+                                    transition: 'all 0.2s ease',
+                                    transform: isActive ? 'scale(1.08)' : 'scale(1)',
+                                    boxShadow: isActive ? '0 2px 8px rgba(0, 156, 235, 0.4)' : 'none'
+                                }}
+                                title={hasMatchingPic ? "Click to view photo" : ""}
+                            >
+                                {topping.trim()} {hasMatchingPic && '📷'}
+                            </span>
+                        );
+                    })}
                 </div>
             )}
 

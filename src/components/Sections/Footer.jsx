@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from './Footer.module.css';
 import logo from '../../assets/footer.png';
 import db from '../../utils/db';
 import { FaInstagram, FaFacebookF, FaWhatsapp, FaArrowUp, FaPaperPlane } from 'react-icons/fa';
 
 export default function Footer() {
+    const navigate = useNavigate();
     const [isVisible, setIsVisible] = useState(false);
     const [email, setEmail] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,7 +75,7 @@ export default function Footer() {
                         <h4 className={styles.columnTitle}>EXPLORE</h4>
                         <a href="#story-section" className={styles.link} onClick={(e) => scrollToSection(e, 'story-section')}>Our Story</a>
                         <a href="#products" className={styles.link}>Menu</a>
-                        <a href="#franchise-section" className={styles.link} onClick={(e) => scrollToSection(e, 'franchise-section')}>Franchise</a>
+                        <a href="/franchise-inquiry" className={styles.link} onClick={(e) => { e.preventDefault(); navigate('/franchise-inquiry'); }}>Franchise</a>
                         <a href="https://www.google.com/maps/search/High+Laban" target="_blank" rel="noopener noreferrer" className={styles.link}>Find Us</a>
                     </div>
 

@@ -18,6 +18,68 @@ const LogoutIcon = () => <svg width="20" height="20" fill="none" viewBox="0 0 24
 const SaveIcon = () => <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>;
 const EditIcon = () => <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>;
 
+const toInputDate = (dateStr) => {
+    if (!dateStr) return '';
+    if (dateStr.includes('-')) return dateStr; // already YYYY-MM-DD
+    if (dateStr.includes('/')) {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+            // Assuming DD/MM/YYYY
+            const day = parts[0].padStart(2, '0');
+            const month = parts[1].padStart(2, '0');
+            const year = parts[2];
+            return `${year}-${month}-${day}`;
+        }
+    }
+    return dateStr;
+};
+
+const getProrationFactor = (staff, monthStr) => {
+    if (!monthStr) return 1;
+    try {
+        const [year, month] = monthStr.split('-').map(Number);
+        const monthStart = new Date(year, month - 1, 1);
+        const monthEnd = new Date(year, month, 0); // Last day of month
+        const totalDaysInMonth = monthEnd.getDate();
+
+        let joinDateObj = null;
+        const joinStr = staff.joinDate || staff.doj;
+        if (joinStr) {
+            joinDateObj = new Date(toInputDate(joinStr));
+        }
+
+        let termDateObj = null;
+        if (staff.status === 'Terminated' && (staff.termDate || staff.termDate === '')) {
+            termDateObj = staff.termDate ? new Date(toInputDate(staff.termDate)) : new Date();
+        }
+
+        // Determine start boundary for this month
+        let activeStart = monthStart;
+        if (joinDateObj && joinDateObj > monthStart) {
+            activeStart = joinDateObj;
+        }
+
+        // Determine end boundary for this month
+        let activeEnd = monthEnd;
+        if (termDateObj && termDateObj < monthEnd) {
+            activeEnd = termDateObj;
+        }
+
+        // Boundaries check
+        if (joinDateObj && joinDateObj > monthEnd) return 0;
+        if (termDateObj && termDateObj < monthStart) return 0;
+        if (activeStart > activeEnd) return 0;
+
+        const diffTime = Math.abs(activeEnd - activeStart);
+        const activeDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+        return Math.min(1, Math.max(0, activeDays / totalDaysInMonth));
+    } catch (e) {
+        console.error("Proration error:", e);
+        return 1;
+    }
+};
+
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const user = db.getUser(); // Check auth immediately
@@ -28,13 +90,173 @@ const AdminDashboard = () => {
     const [subscribers, setSubscribers] = useState([]);
     const [franchiseInquiries, setFranchiseInquiries] = useState([]);
 
+    // Vendors State
+    const [vendors, setVendors] = useState([]);
+    const [showAddVendorForm, setShowAddVendorForm] = useState(false);
+    const [editingVendor, setEditingVendor] = useState(null);
+    const [vendorCategoryFilter, setVendorCategoryFilter] = useState('All');
+    const [vendorSearchQuery, setVendorSearchQuery] = useState('');
+    const [vendorItemSearch, setVendorItemSearch] = useState('');
+    const [newVendor, setNewVendor] = useState({
+        name: '', category: 'Dairy & Milk', phone: '', whatsapp: '', address: '',
+        notes: '', items: [] // [{ itemName, unit, price }]
+    });
+
+    // Purchases State
+    const [purchases, setPurchases] = useState([]);
+    const [purchaseFilterDate, setPurchaseFilterDate] = useState('');
+    const [purchaseFilterPurchaser, setPurchaseFilterPurchaser] = useState('All');
+    const [purchaseFilterCategory, setPurchaseFilterCategory] = useState('All');
+    const [purchaseFilterPayment, setPurchaseFilterPayment] = useState('All');
+    const [purchaseSearchQuery, setPurchaseSearchQuery] = useState('');
+
+
     // Locations State
     const [locations, setLocations] = useState([]);
-    const [newLocation, setNewLocation] = useState({ name: '', area: '', mapUrl: '', status: 'Open' });
+    const [newLocation, setNewLocation] = useState({ name: '', area: '', mapUrl: '', status: 'Open', imageUrl: '', imageUrls: [], whatsapp: '', zomato: '', swiggy: '', magicpin: '', ondc: '', phone: '', ownerName: '', ownerEmail: '', address: '', franchiseId: '' });
     const [editingLocationId, setEditingLocationId] = useState(null);
 
+    // Franchise Filters & Manual Form State
+    const [editingFranchise, setEditingFranchise] = useState(null);
+    const [selectedStateFilter, setSelectedStateFilter] = useState('All');
+    const [franchiseStatusFilter, setFranchiseStatusFilter] = useState('All');
+    const [showAddFranchiseForm, setShowAddFranchiseForm] = useState(false);
+    const [newFranchise, setNewFranchise] = useState({
+        name: '', email: '', phone: '', street: '', city: '', state: 'DL', pincode: '',
+        currentJob: '', ownSpace: 'no', spaceArea: '', shopDescription: '', franchiseType: 'Standard',
+        status: 'New'
+    });
+
+    // Staff HR Management State
+    const [staffList, setStaffList] = useState([]);
+    const [showAddStaffForm, setShowAddStaffForm] = useState(false);
+    const [newStaff, setNewStaff] = useState({
+        fullName: '', nickname: '', gender: 'Male', dob: '', bloodGroup: '',
+        email: '', phone: '', alternatePhone: '', currentAddress: '', permanentAddress: '', emergencyContact: '', emergencyPhone: '',
+        status: 'Permanent', payType: 'Monthly', position: 'Chef', salary: '', dailyRate: '', incentive: '', kpiRating: '5', joinDate: '', termDate: '',
+        bankName: '', accountNumber: '', ifscCode: '', workingDays: '26', leavesTaken: '0',
+        aadhaarCollected: false, panCollected: false, medicalCollected: false,
+        assignedOutlet: '', aadhaarDocUrl: '', resumeDocUrl: '', medicalDocUrl: '', documents: []
+    });
+    const [editingStaff, setEditingStaff] = useState(null);
+    const [staffSearchQuery, setStaffSearchQuery] = useState('');
+    const [staffStatusFilter, setStaffStatusFilter] = useState('All');
+    const [staffRoleFilter, setStaffRoleFilter] = useState('All');
+    const [staffOutletFilter, setStaffOutletFilter] = useState('All');
+    const [selectedHrTab, setSelectedHrTab] = useState('personal');
+
+    // New states for Approved Franchises, Payroll, and Document Attachments
+    const [franchiseSubTab, setFranchiseSubTab] = useState('pipeline'); // 'pipeline' | 'outlets'
+    const [runningFranchises, setRunningFranchises] = useState([]);
+    const [showAddFranchiseOutletForm, setShowAddFranchiseOutletForm] = useState(false);
+    const [editingFranchiseOutlet, setEditingFranchiseOutlet] = useState(null);
+    const [newFranchiseOutlet, setNewFranchiseOutlet] = useState({
+        outletName: '', ownerName: '', phone: '', email: '', city: '', state: 'KA',
+        address: '', modelType: 'Standard', status: 'Running', openDate: '',
+        agreementUrl: '', gstUrl: '', ownerIdUrl: '',
+        mapUrl: '', imageUrl: '', whatsapp: '', zomato: '', swiggy: '', magicpin: '', ondc: '',
+        documents: [],
+        locationId: ''
+    });
+    const [payrollMonth, setPayrollMonth] = useState('2026-07');
+    const [payrollRecords, setPayrollRecords] = useState([]);
+    const [selectedPayrollOutlet, setSelectedPayrollOutlet] = useState('All');
+    const [selectedDetailStaff, setSelectedDetailStaff] = useState(null);
+    const [allHistoricalPayroll, setAllHistoricalPayroll] = useState([]);
+    const [hikeStaff, setHikeStaff] = useState(null);
+    const [hikeAmount, setHikeAmount] = useState('');
+    const [hikeReason, setHikeReason] = useState('Salary Adjustment');
+    const [hikeDate, setHikeDate] = useState(new Date().toISOString().split('T')[0]);
+    const [payrollActiveStaffId, setPayrollActiveStaffId] = useState(null);
+    // Termination modal state
+    const [termModal, setTermModal] = useState(null); // { staff, newStatus }
+    const [termModalDate, setTermModalDate] = useState(new Date().toISOString().split('T')[0]);
+    const [termModalReason, setTermModalReason] = useState('Resigned');
+    const [termModalNotes, setTermModalNotes] = useState('');
+    // Doc label modal state
+    const [docLabelModal, setDocLabelModal] = useState(null); // { staff, file }
+    const [docLabelInput, setDocLabelInput] = useState('');
+    const [franchiseDocLabel, setFranchiseDocLabel] = useState('');
+    const [franchiseDocLabelEdit, setFranchiseDocLabelEdit] = useState('');
+    // Daily Wage payment modal
+    const [dailyWagePayModal, setDailyWagePayModal] = useState(null); // { staff, payData }
+    const [dailyWageDays, setDailyWageDays] = useState('');
+    // Toast notification
+    const [toast, setToast] = useState(null);
+    const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
+    
+    // Live Counter Stats Setup
+    const [statsConfig, setStatsConfig] = useState({
+        happyCustomersVal: '10',
+        happyCustomersSuffix: 'K+',
+        varietiesVal: '30',
+        varietiesSuffix: '+'
+    });
+    const [isSavingStats, setIsSavingStats] = useState(false);
+
+    const [payrollActiveMonth, setPayrollActiveMonth] = useState(null);
+    const [profileActiveSubTab, setProfileActiveSubTab] = useState('personal');
+    const [payrollDraft, setPayrollDraft] = useState({
+        workingDays: 26,
+        presentDays: 24,
+        weeklyOff: 4,
+        paidLeave: 0,
+        unpaidLeaves: 0,
+        halfDays: 0,
+        kpiRating: 5,
+        overtime: 0,
+        advanceRecovery: 0,
+        otherDeductions: 0,
+        paymentMethod: 'Bank Transfer',
+        transactionId: '',
+        remarks: 'Salary credited successfully.',
+        isPaid: false
+    });
+
+    useEffect(() => {
+        if (payrollActiveStaffId && payrollActiveMonth) {
+            const staff = staffList.find(s => s.id === payrollActiveStaffId);
+            const saved = allHistoricalPayroll.find(r => r.staffId === payrollActiveStaffId && r.month === payrollActiveMonth);
+            if (saved) {
+                setPayrollDraft({
+                    workingDays: saved.workingDays || 26,
+                    presentDays: saved.presentDays || 24,
+                    weeklyOff: saved.weeklyOff || 4,
+                    paidLeave: saved.paidLeave || 0,
+                    unpaidLeaves: saved.unpaidLeaves || 0,
+                    halfDays: saved.halfDays || 0,
+                    kpiRating: saved.kpiRating || 5,
+                    overtime: saved.overtime || 0,
+                    advanceRecovery: saved.advanceRecovery || 0,
+                    otherDeductions: saved.otherDeductions || 0,
+                    paymentMethod: saved.paymentMethod || 'Bank Transfer',
+                    transactionId: saved.transactionId || '',
+                    remarks: saved.remarks || 'Salary credited successfully.',
+                    isPaid: true
+                });
+            } else if (staff) {
+                setPayrollDraft({
+                    workingDays: 26,
+                    presentDays: 26 - (parseInt(staff.leavesTaken) || 0),
+                    weeklyOff: 4,
+                    paidLeave: parseInt(staff.leavesTaken) || 0,
+                    unpaidLeaves: 0,
+                    halfDays: 0,
+                    kpiRating: parseInt(staff.kpiRating) || 5,
+                    overtime: 0,
+                    advanceRecovery: 0,
+                    otherDeductions: 0,
+                    paymentMethod: 'Bank Transfer',
+                    transactionId: '',
+                    remarks: 'Salary credited successfully.',
+                    isPaid: false
+                });
+            }
+        }
+    }, [payrollActiveStaffId, payrollActiveMonth, allHistoricalPayroll, staffList]);
+
     /* Stats removed */
-    const [newProduct, setNewProduct] = useState({ name: '', ingredients: '', tag: '', price: '', description: '', badge: '', img: '', images: [] });
+    const [newProduct, setNewProduct] = useState({ name: '', ingredients: '', tag: '', price: '', description: '', badge: '', img: '', images: [], toppings: [] });
     // Content Management State
     const defaultSiteContent = {
         storyTitle: 'Our Story',
@@ -80,6 +302,8 @@ const AdminDashboard = () => {
         } else if (activeTab === 'franchise') {
             const inquiries = await db.getFranchiseInquiries();
             setFranchiseInquiries(inquiries);
+            const franchises = await db.getFranchises();
+            setRunningFranchises(franchises);
         } else if (activeTab === 'content') {
             const content = await db.getSiteContent('highlights');
             if (content) {
@@ -90,6 +314,47 @@ const AdminDashboard = () => {
         } else if (activeTab === 'locations') {
             const locs = await db.getLocations();
             setLocations(locs);
+            const statsData = await db.getSiteContent('stats');
+            if (statsData) {
+                setStatsConfig({
+                    happyCustomersVal: statsData.happyCustomersVal || '10',
+                    happyCustomersSuffix: statsData.happyCustomersSuffix || 'K+',
+                    varietiesVal: statsData.varietiesVal || '30',
+                    varietiesSuffix: statsData.varietiesSuffix || '+'
+                });
+            }
+        } else if (activeTab === 'staff') {
+            const staff = await db.getStaff();
+            setStaffList(staff);
+            const franchises = await db.getFranchises();
+            setRunningFranchises(franchises);
+        } else if (activeTab === 'payroll') {
+            const staff = await db.getStaff();
+            setStaffList(staff);
+            const records = await db.getPayrollRecords(payrollMonth);
+            setPayrollRecords(records);
+            const allRecords = await db.getAllPayrollRecords();
+            setAllHistoricalPayroll(allRecords);
+        } else if (activeTab === 'vendors') {
+            const v = await db.getVendors();
+            setVendors(v);
+        } else if (activeTab === 'purchases') {
+            const [p, v] = await Promise.all([db.getPurchases(), db.getVendors()]);
+            setPurchases(p);
+            setVendors(v);
+        }
+    };
+
+    const handleSaveStats = async (e) => {
+        e.preventDefault();
+        setIsSavingStats(true);
+        try {
+            await db.updateSiteContent('stats', statsConfig);
+            showToast("Counter stats updated successfully!");
+        } catch (err) {
+            showToast("Failed to save stats: " + err.message, "error");
+        } finally {
+            setIsSavingStats(false);
         }
     };
 
@@ -102,6 +367,17 @@ const AdminDashboard = () => {
         // Removed polling to prevent overwriting local state while editing
     }, [activeTab, navigate]);
 
+    useEffect(() => {
+        if (activeTab === 'payroll' && user) {
+            db.getPayrollRecords(payrollMonth).then(records => {
+                setPayrollRecords(records);
+            });
+            db.getAllPayrollRecords().then(records => {
+                setAllHistoricalPayroll(records);
+            });
+        }
+    }, [payrollMonth, activeTab, user]);
+
     // Prevent rendering if not logged in (stops flash of content)
     if (!user) return null;
 
@@ -109,13 +385,431 @@ const AdminDashboard = () => {
         if (window.confirm("Are you sure you want to RESET all data? This will clear all orders and revenue.")) {
             await db.resetOrders();
             refreshData();
-            alert("All sales data has been reset to 0.");
+            showToast("All sales data has been reset to 0.")
         }
     };
 
     const handleLogout = () => {
         db.logout();
         window.location.href = '/login';
+    };
+
+    // --- Franchise Handlers ---
+
+    const handleStatusChange = async (inquiryId, newStatus) => {
+        try {
+            await db.updateFranchiseInquiry(inquiryId, { status: newStatus });
+            setFranchiseInquiries(prev => prev.map(inq => inq.id === inquiryId ? { ...inq, status: newStatus } : inq));
+            showToast("Franchise inquiry status updated successfully!")
+        } catch (error) {
+            console.error("Failed to update status", error);
+            showToast("Failed to update status", "error")
+        }
+    };
+
+    const handleAddFranchise = async (e) => {
+        e.preventDefault();
+        try {
+            const addedInq = await db.addFranchiseInquiry(newFranchise);
+            setFranchiseInquiries(prev => [addedInq, ...prev]);
+            setNewFranchise({
+                name: '', email: '', phone: '', street: '', city: '', state: 'DL', pincode: '',
+                currentJob: '', ownSpace: 'no', spaceArea: '', shopDescription: '', franchiseType: 'Standard',
+                status: 'New'
+            });
+            setShowAddFranchiseForm(false);
+            showToast("Franchise inquiry added manually successfully!")
+        } catch (error) {
+            console.error("Failed to add franchise inquiry", error);
+            showToast("Failed to add franchise inquiry", "error")
+        }
+    };
+
+    const handleUpdateFranchise = async (e) => {
+        e.preventDefault();
+        if (!editingFranchise) return;
+        try {
+            await db.updateFranchiseInquiry(editingFranchise.id, editingFranchise);
+            setFranchiseInquiries(prev => prev.map(inq => inq.id === editingFranchise.id ? editingFranchise : inq));
+            setEditingFranchise(null);
+            showToast("Franchise inquiry updated successfully!")
+        } catch (error) {
+            console.error("Failed to update franchise inquiry", error);
+            showToast("Failed to update franchise inquiry", "error")
+        }
+    };
+
+    const handleDeleteFranchise = async (id) => {
+        if (window.confirm("Are you sure you want to delete this franchise inquiry?")) {
+            try {
+                await db.deleteFranchiseInquiry(id);
+                setFranchiseInquiries(prev => prev.filter(inq => inq.id !== id));
+                showToast("Franchise inquiry deleted successfully!")
+            } catch (error) {
+                console.error("Failed to delete franchise inquiry", error);
+                showToast("Failed to delete franchise inquiry", "error")
+            }
+        }
+    };
+
+    const handleDeleteSubscriber = async (id) => {
+        if (window.confirm("Are you sure you want to delete this subscriber?")) {
+            try {
+                await db.deleteSubscriber(id);
+                setSubscribers(prev => prev.filter(sub => sub.id !== id));
+                showToast("Subscriber deleted successfully!")
+            } catch (error) {
+                console.error("Failed to delete subscriber", error);
+                showToast("Failed to delete subscriber", "error")
+            }
+        }
+    };
+
+    const handleAddFranchiseOutlet = async (e) => {
+        e.preventDefault();
+        try {
+            const added = await db.addFranchiseOutlet(newFranchiseOutlet);
+            setRunningFranchises(prev => [...prev, added]);
+            
+            if (newFranchiseOutlet.locationId) {
+                const loc = locations.find(l => l.id === newFranchiseOutlet.locationId);
+                if (loc) {
+                    await db.updateLocation(loc.id, { ...loc, franchiseId: added.id });
+                    // Refresh locations data locally
+                    setLocations(prev => prev.map(l => l.id === loc.id ? { ...l, franchiseId: added.id } : l));
+                }
+            }
+
+            setNewFranchiseOutlet({
+                outletName: '', ownerName: '', phone: '', email: '', city: '', state: 'KA',
+                address: '', modelType: 'Standard', status: 'Running', openDate: '',
+                agreementUrl: '', gstUrl: '', ownerIdUrl: '',
+                mapUrl: '', imageUrl: '', whatsapp: '', zomato: '', swiggy: '', magicpin: '', ondc: '',
+                documents: [],
+                locationId: ''
+            });
+            setShowAddFranchiseOutletForm(false);
+            showToast("Approved Franchise Outlet added successfully!");
+        } catch (error) {
+            console.error("Failed to add franchise outlet", error);
+        }
+    };
+
+    const handleUpdateFranchiseOutlet = async (e) => {
+        e.preventDefault();
+        if (!editingFranchiseOutlet) return;
+        try {
+            const updated = await db.updateFranchiseOutlet(editingFranchiseOutlet.id, editingFranchiseOutlet);
+            setRunningFranchises(prev => prev.map(o => o.id === editingFranchiseOutlet.id ? updated : o));
+            
+            // Sync details to the linked Location if present
+            const linkedLoc = locations.find(l => l.franchiseId === editingFranchiseOutlet.id || l.id === editingFranchiseOutlet.locationId);
+            if (linkedLoc) {
+                const updatedLoc = {
+                    ...linkedLoc,
+                    name: editingFranchiseOutlet.outletName,
+                    area: editingFranchiseOutlet.city,
+                    address: editingFranchiseOutlet.address || '',
+                    mapUrl: editingFranchiseOutlet.mapUrl || '',
+                    whatsapp: editingFranchiseOutlet.whatsapp || '',
+                    zomato: editingFranchiseOutlet.zomato || '',
+                    swiggy: editingFranchiseOutlet.swiggy || '',
+                    magicpin: editingFranchiseOutlet.magicpin || '',
+                    ondc: editingFranchiseOutlet.ondc || '',
+                    imageUrl: editingFranchiseOutlet.imageUrl || linkedLoc.imageUrl || '',
+                    franchiseId: editingFranchiseOutlet.id
+                };
+                await db.updateLocation(linkedLoc.id, updatedLoc);
+                setLocations(prev => prev.map(l => l.id === linkedLoc.id ? updatedLoc : l));
+            }
+
+            setEditingFranchiseOutlet(null);
+            showToast("Approved Franchise Outlet and linked Location updated successfully!");
+        } catch (error) {
+            console.error("Failed to update franchise outlet", error);
+        }
+    };
+
+    const handleDeleteFranchiseOutlet = async (id) => {
+        if (window.confirm("Are you sure you want to delete this running franchise outlet?")) {
+            try {
+                await db.deleteFranchiseOutlet(id);
+                setRunningFranchises(prev => prev.filter(o => o.id !== id));
+                showToast("Approved Franchise Outlet deleted successfully!")
+            } catch (error) {
+                console.error("Failed to delete franchise outlet", error);
+            }
+        }
+    };
+
+    const handleStaffDocUpload = async (e, fieldType, isEdit = false) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setIsUploading(true);
+        try {
+            const url = await uploadMedia(file);
+            if (isEdit) {
+                setEditingStaff(prev => ({ ...prev, [fieldType]: url }));
+            } else {
+                setNewStaff(prev => ({ ...prev, [fieldType]: url }));
+            }
+            showToast("Document uploaded successfully!")
+        } catch (error) {
+            console.error("Document upload failed", error);
+            showToast("Upload failed: " + error.message, "error")
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleFranchiseDocUpload = async (e, fieldType, isEdit = false) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setIsUploading(true);
+        try {
+            const url = await uploadMedia(file);
+            if (isEdit) {
+                setEditingFranchiseOutlet(prev => ({ ...prev, [fieldType]: url }));
+            } else {
+                setNewFranchiseOutlet(prev => ({ ...prev, [fieldType]: url }));
+            }
+            showToast("Franchise document uploaded successfully!")
+        } catch (error) {
+            console.error("Document upload failed", error);
+            showToast("Upload failed: " + error.message, "error")
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleFranchiseCustomDocUpload = async (e, isEdit = false) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const label = isEdit ? franchiseDocLabelEdit : franchiseDocLabel;
+        if (!label.trim()) {
+            showToast("Please enter a document label first.", "error");
+            e.target.value = null;
+            return;
+        }
+        setIsUploading(true);
+        try {
+            const url = await uploadMedia(file);
+            const docObj = { name: label.trim(), url };
+            if (isEdit) {
+                setEditingFranchiseOutlet(prev => ({
+                    ...prev,
+                    documents: [...(prev.documents || []), docObj]
+                }));
+                setFranchiseDocLabelEdit('');
+            } else {
+                setNewFranchiseOutlet(prev => ({
+                    ...prev,
+                    documents: [...(prev.documents || []), docObj]
+                }));
+                setFranchiseDocLabel('');
+            }
+            showToast("Document added to outlet vault!");
+        } catch (error) {
+            console.error("Upload failed", error);
+            showToast("Upload failed: " + error.message, "error");
+        } finally {
+            setIsUploading(false);
+        }
+        e.target.value = null;
+    };
+
+    // --- Staff HR Handlers ---
+
+    const handleAddStaff = async (e) => {
+        e.preventDefault();
+        try {
+            const initialHike = {
+                date: newStaff.joinDate || new Date().toISOString().split('T')[0],
+                amount: parseFloat(newStaff.salary) || 0,
+                reason: "Initial Salary Setup"
+            };
+            const newStaffWithHistory = {
+                ...newStaff,
+                salaryHistory: [initialHike]
+            };
+            const addedStaff = await db.addStaff(newStaffWithHistory);
+            setStaffList(prev => [addedStaff, ...prev]);
+            setNewStaff({
+                fullName: '', nickname: '', gender: 'Male', dob: '', bloodGroup: '',
+                email: '', phone: '', alternatePhone: '', currentAddress: '', permanentAddress: '', emergencyContact: '', emergencyPhone: '',
+                status: 'Permanent', position: 'Chef', salary: '', incentive: '', kpiRating: '5', joinDate: '', termDate: '',
+                bankName: '', accountNumber: '', ifscCode: '', workingDays: '26', leavesTaken: '0',
+                aadhaarCollected: false, panCollected: false, medicalCollected: false,
+                assignedOutlet: '', aadhaarDocUrl: '', resumeDocUrl: '', medicalDocUrl: '', documents: []
+            });
+            setShowAddStaffForm(false);
+            showToast("Staff profile created successfully!")
+        } catch (error) {
+            console.error("Failed to add staff member", error);
+            showToast("Failed to add staff profile", "error")
+        }
+    };
+
+    const handleUpdateStaff = async (e) => {
+        e.preventDefault();
+        if (!editingStaff) return;
+        try {
+            const original = staffList.find(s => s.id === editingStaff.id);
+            let updatedStaff = { ...editingStaff };
+            
+            if (original && original.salary !== editingStaff.salary) {
+                const oldHistory = original.salaryHistory || [];
+                const hikeRecord = {
+                    date: new Date().toISOString().split('T')[0],
+                    amount: parseFloat(editingStaff.salary) || 0,
+                    reason: `Profile Edit Adjustment`
+                };
+                updatedStaff.salaryHistory = [...oldHistory, hikeRecord];
+            }
+            
+            await db.updateStaff(updatedStaff.id, updatedStaff);
+            setStaffList(prev => prev.map(s => s.id === updatedStaff.id ? updatedStaff : s));
+            setEditingStaff(null);
+            showToast("Staff profile updated successfully!")
+        } catch (error) {
+            console.error("Failed to update staff member", error);
+            showToast("Failed to update staff profile", "error")
+        }
+    };
+
+    const handleSaveHike = async (e) => {
+        e.preventDefault();
+        if (!hikeStaff) return;
+        const newSalaryVal = parseFloat(hikeAmount);
+        if (isNaN(newSalaryVal) || newSalaryVal <= 0) {
+            showToast("Please enter a valid salary amount.")
+            return;
+        }
+        try {
+            const oldHistory = hikeStaff.salaryHistory || [];
+            const hikeRecord = {
+                date: hikeDate,
+                amount: newSalaryVal,
+                reason: hikeReason
+            };
+            const updatedStaff = {
+                ...hikeStaff,
+                salary: newSalaryVal.toString(),
+                salaryHistory: [...oldHistory, hikeRecord]
+            };
+            
+            await db.updateStaff(hikeStaff.id, updatedStaff);
+            setStaffList(prev => prev.map(s => s.id === hikeStaff.id ? updatedStaff : s));
+            setHikeStaff(null);
+            setHikeAmount('');
+            setHikeReason('Salary Adjustment');
+            showToast(`Salary hike of ₹${newSalaryVal.toLocaleString('en-IN')} processed successfully!`)
+        } catch (error) {
+            console.error("Failed to process salary adjustment", error);
+            showToast("Failed to process salary adjustment", "error")
+        }
+    };
+
+    const handleDeleteStaff = async (id) => {
+        if (window.confirm("Are you sure you want to delete this staff profile?")) {
+            try {
+                await db.deleteStaff(id);
+                setStaffList(prev => prev.filter(s => s.id !== id));
+                showToast("Staff profile deleted successfully!")
+            } catch (error) {
+                console.error("Failed to delete staff member", error);
+                showToast("Failed to delete staff profile", "error")
+            }
+        }
+    };
+
+    // --- Payroll Handlers ---
+    const handlePayPayroll = async (staffId, recordData) => {
+        try {
+            await db.savePayrollRecord(payrollMonth, staffId, recordData);
+            const records = await db.getPayrollRecords(payrollMonth);
+            setPayrollRecords(records);
+            const allRecords = await db.getAllPayrollRecords();
+            setAllHistoricalPayroll(allRecords);
+            showToast("Payroll marked as PAID successfully!")
+        } catch (error) {
+            console.error("Failed to mark payroll as paid", error);
+            showToast("Failed to record payment: " + error.message, "error")
+        }
+    };
+
+    const handlePayPayrollDetails = async (paymentMethod, transactionId, remarks) => {
+        if (!payrollActiveStaffId || !payrollActiveMonth) return;
+        const staff = staffList.find(s => s.id === payrollActiveStaffId);
+        if (!staff) return;
+
+        const basic = parseFloat(staff.salary) || 0;
+        const maxIncentive = parseFloat(staff.incentive) || 0;
+        
+        const unpaid = parseFloat(payrollDraft.unpaidLeaves) || 0;
+        const half = parseFloat(payrollDraft.halfDays) || 0;
+        const leaves = parseFloat(payrollDraft.paidLeave) || 0;
+        const workingDays = parseFloat(payrollDraft.workingDays) || 26;
+        
+        const presentDays = workingDays - unpaid - (half * 0.5);
+        const attRate = Math.max(0, presentDays / workingDays);
+        
+        const rating = parseInt(payrollDraft.kpiRating) || 5;
+        let kpiMultiplier = 0.5;
+        if (rating === 5) kpiMultiplier = 1.0;
+        else if (rating === 4) kpiMultiplier = 0.8;
+        else if (rating === 3) kpiMultiplier = 0.5;
+        else if (rating === 2) kpiMultiplier = 0.2;
+        else if (rating === 1) kpiMultiplier = 0;
+        
+        const overrideKpi = !!payrollDraft.overrideKpiBonus;
+        const customKpi = parseFloat(payrollDraft.customKpiBonus) || 0;
+        const kpiBonus = overrideKpi ? customKpi : (maxIncentive * kpiMultiplier * attRate);
+        const attDeduction = (basic * (unpaid + half * 0.5)) / workingDays;
+        
+        const overtime = parseFloat(payrollDraft.overtime) || 0;
+        const advance = parseFloat(payrollDraft.advanceRecovery) || 0;
+        const other = parseFloat(payrollDraft.otherDeductions) || 0;
+        
+        const calculatedNet = (basic - attDeduction) + kpiBonus + overtime - advance - other;
+
+        const recordData = {
+            fullName: staff.fullName,
+            position: staff.position,
+            assignedOutlet: staff.assignedOutlet || 'Head Office',
+            basicSalary: basic,
+            leavesTaken: leaves,
+            unpaidLeaves: unpaid,
+            halfDays: half,
+            workingDays: workingDays,
+            presentDays: presentDays,
+            kpiRating: rating,
+            kpiBonusPaid: kpiBonus,
+            overrideKpiBonus: overrideKpi,
+            customKpiBonus: customKpi,
+            overtime: overtime,
+            advanceRecovery: advance,
+            otherDeduction: other,
+            netSalaryPaid: calculatedNet,
+            datePaid: new Date().toISOString(),
+            paymentMethod: paymentMethod || 'Bank Transfer',
+            transactionId: transactionId || '',
+            remarks: remarks || 'Salary credited successfully.',
+            processedBy: 'Admin'
+        };
+
+        try {
+            await db.savePayrollRecord(payrollActiveMonth, payrollActiveStaffId, recordData);
+            const records = await db.getPayrollRecords(payrollMonth);
+            setPayrollRecords(records);
+            const allRecords = await db.getAllPayrollRecords();
+            setAllHistoricalPayroll(allRecords);
+            setPayrollDraft(prev => ({ ...prev, isPaid: true }));
+            showToast("Payroll record updated and marked as Paid successfully!")
+        } catch (e) {
+            console.error(e);
+            showToast("Failed to save payment record: " + e.message, "error")
+        }
     };
 
     // --- Product Handlers ---
@@ -127,13 +821,13 @@ const AdminDashboard = () => {
             // Race condition to prevent hanging (increased to 60s)
             const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Network Timeout: Database is not responding. Check your internet connection or Firebase Quota.")), 60000));
             await Promise.race([db.addProduct(newProduct), timeoutPromise]);
-            setNewProduct({ name: '', ingredients: '', tag: '', price: '', description: '', badge: '', img: '', images: [] });
+            setNewProduct({ name: '', ingredients: '', tag: '', price: '', description: '', badge: '', img: '', images: [], toppings: [] });
             setShowAddForm(false);
-            alert('Product added successfully!');
+            showToast('Product added successfully!')
             refreshData();
         } catch (error) {
             console.error(error);
-            alert(`Error adding product: ${error.message}`);
+            showToast(`Error adding product: ${error.message}`, "error")
         } finally {
             setIsUploading(false);
         }
@@ -161,7 +855,7 @@ const AdminDashboard = () => {
                 refreshData();
             } catch (error) {
                 console.error(error);
-                alert('Error deleting product');
+                showToast('Error deleting product', "error")
             }
         }
     };
@@ -239,7 +933,7 @@ const AdminDashboard = () => {
                 const url = await uploadMedia(file);
                 addImageToState(url, target, productId);
             } catch (e) {
-                alert(e.message);
+                showToast(e.message)
             } finally {
                 setIsUploading(false);
             }
@@ -264,7 +958,7 @@ const AdminDashboard = () => {
             setCropTarget(null);
             setEditingProductId(null);
         } catch (e) {
-            alert(e.message);
+            showToast(e.message)
         } finally {
             setIsUploading(false);
         }
@@ -276,7 +970,10 @@ const AdminDashboard = () => {
         // Normalize strings to objects
         images = images.map(img => typeof img === 'string' ? { url: img, tag: '' } : img);
 
-        setEditingProduct({ ...product, images });
+        const toppingsArr = Array.isArray(product.toppings) 
+            ? product.toppings 
+            : (product.toppings ? product.toppings.split(',').map(t => t.trim()).filter(Boolean) : []);
+        setEditingProduct({ ...product, images, toppings: toppingsArr });
     };
 
     const handleSaveEdit = async () => {
@@ -289,10 +986,10 @@ const AdminDashboard = () => {
             // Update local state
             setProducts(products.map(p => p.id === editingProduct.id ? editingProduct : p));
             setEditingProduct(null);
-            alert("Changes saved successfully!");
+            showToast("Changes saved successfully!")
         } catch (error) {
             console.error(error);
-            alert("Failed to save changes.");
+            showToast("Failed to save changes.", "error")
         } finally {
             setIsUploading(false);
         }
@@ -303,18 +1000,100 @@ const AdminDashboard = () => {
         e.preventDefault();
         try {
             if (editingLocationId) {
+                // Fetch the old location record to check franchise ID
+                const oldLoc = locations.find(l => l.id === editingLocationId);
                 await db.updateLocation(editingLocationId, newLocation);
-                alert('Location updated successfully!');
+                
+                const oldFranchiseId = oldLoc ? (oldLoc.franchiseId || '') : '';
+                const newFranchiseId = newLocation.franchiseId || '';
+
+                // If linked franchise changed or unlinked, clear the location link from the old franchise
+                if (oldFranchiseId && oldFranchiseId !== newFranchiseId) {
+                    const oldFranchise = runningFranchises.find(f => f.id === oldFranchiseId);
+                    if (oldFranchise) {
+                        const cleanedFranchise = { ...oldFranchise, locationId: '' };
+                        await db.updateFranchiseOutlet(oldFranchiseId, cleanedFranchise);
+                        setRunningFranchises(prev => prev.map(f => f.id === oldFranchiseId ? cleanedFranchise : f));
+                    }
+                }
+
+                // If a franchise is linked now, sync details to it
+                if (newFranchiseId) {
+                    const franchise = runningFranchises.find(f => f.id === newFranchiseId);
+                    if (franchise) {
+                        const updatedFranchise = {
+                            ...franchise,
+                            locationId: editingLocationId,
+                            outletName: newLocation.name,
+                            city: newLocation.area,
+                            address: newLocation.address || franchise.address || newLocation.name,
+                            mapUrl: newLocation.mapUrl || '',
+                            whatsapp: newLocation.whatsapp || '',
+                            zomato: newLocation.zomato || '',
+                            swiggy: newLocation.swiggy || '',
+                            magicpin: newLocation.magicpin || '',
+                            ondc: newLocation.ondc || '',
+                            phone: newLocation.phone || franchise.phone || ''
+                        };
+                        await db.updateFranchiseOutlet(newFranchiseId, updatedFranchise);
+                        setRunningFranchises(prev => prev.map(f => f.id === newFranchiseId ? updatedFranchise : f));
+                    }
+                }
+
+                showToast('Location and linked franchise updated successfully!');
                 setEditingLocationId(null);
             } else {
-                await db.addLocation(newLocation);
-                alert('Location added successfully!');
+                // Adding a new Location
+                const addedLoc = await db.addLocation(newLocation);
+                
+                let targetFranchiseId = newLocation.franchiseId;
+                if (!targetFranchiseId) {
+                    // Auto-create Franchise Outlet
+                    const newOutlet = {
+                        outletName: newLocation.name,
+                        ownerName: 'Admin / Owner Pending',
+                        phone: newLocation.phone || 'N/A',
+                        email: '',
+                        city: newLocation.area,
+                        state: 'KA',
+                        address: newLocation.name,
+                        modelType: 'Standard',
+                        status: 'Running',
+                        openDate: new Date().toISOString().split('T')[0],
+                        agreementUrl: '',
+                        gstUrl: '',
+                        ownerIdUrl: '',
+                        mapUrl: newLocation.mapUrl || '',
+                        whatsapp: newLocation.whatsapp || '',
+                        zomato: newLocation.zomato || '',
+                        swiggy: newLocation.swiggy || '',
+                        magicpin: newLocation.magicpin || '',
+                        ondc: newLocation.ondc || '',
+                        documents: [],
+                        locationId: addedLoc.id
+                    };
+                    const createdOutlet = await db.addFranchiseOutlet(newOutlet);
+                    targetFranchiseId = createdOutlet.id;
+                    setRunningFranchises(prev => [...prev, createdOutlet]);
+                    
+                    // Update location with franchise reference
+                    await db.updateLocation(addedLoc.id, { ...addedLoc, franchiseId: targetFranchiseId });
+                } else {
+                    // Update existing franchise to point to this location
+                    const franchise = runningFranchises.find(f => f.id === targetFranchiseId);
+                    if (franchise) {
+                        await db.updateFranchiseOutlet(targetFranchiseId, { ...franchise, locationId: addedLoc.id });
+                        setRunningFranchises(prev => prev.map(f => f.id === targetFranchiseId ? { ...f, locationId: addedLoc.id } : f));
+                    }
+                }
+
+                showToast('Location added and Franchise synced successfully!');
             }
-            setNewLocation({ name: '', area: '', mapUrl: '', status: 'Open' });
+            setNewLocation({ name: '', area: '', mapUrl: '', status: 'Open', imageUrl: '', imageUrls: [], whatsapp: '', zomato: '', swiggy: '', magicpin: '', ondc: '', phone: '', ownerName: '', ownerEmail: '', address: '', franchiseId: '' });
             refreshData();
         } catch (error) {
             console.error(error);
-            alert('Error saving location');
+            showToast('Error saving location', "error")
         }
     };
 
@@ -323,15 +1102,80 @@ const AdminDashboard = () => {
             name: loc.name || '',
             area: loc.area || '',
             mapUrl: loc.mapUrl || '',
-            status: loc.status || 'Open'
+            status: loc.status || 'Open',
+            imageUrl: loc.imageUrl || '',
+            imageUrls: loc.imageUrls || [],
+            whatsapp: loc.whatsapp || '',
+            zomato: loc.zomato || '',
+            swiggy: loc.swiggy || '',
+            magicpin: loc.magicpin || '',
+            ondc: loc.ondc || '',
+            phone: loc.phone || '',
+            ownerName: loc.ownerName || '',
+            ownerEmail: loc.ownerEmail || '',
+            address: loc.address || '',
+            franchiseId: loc.franchiseId || ''
         });
         setEditingLocationId(loc.id);
         setShowLocationForm(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    const handleLocationFranchiseLink = (fid) => {
+        if (!fid) {
+            setNewLocation(prev => ({ ...prev, franchiseId: '' }));
+            return;
+        }
+        const franchise = runningFranchises.find(f => f.id === fid);
+        if (franchise) {
+            setNewLocation(prev => ({
+                ...prev,
+                franchiseId: fid,
+                name: franchise.outletName,
+                area: franchise.city,
+                address: franchise.address || '',
+                whatsapp: franchise.whatsapp || '',
+                zomato: franchise.zomato || '',
+                swiggy: franchise.swiggy || '',
+                magicpin: franchise.magicpin || '',
+                ondc: franchise.ondc || '',
+                phone: franchise.phone || '',
+                ownerName: franchise.ownerName || '',
+                ownerEmail: franchise.email || '',
+                mapUrl: franchise.mapUrl || ''
+            }));
+            showToast(`Auto-filled details from Franchise: ${franchise.outletName}`);
+        }
+    };
+
+    const handleFranchiseLocationLink = (locId) => {
+        if (!locId) {
+            setNewFranchiseOutlet(prev => ({ ...prev, locationId: '' }));
+            return;
+        }
+        const loc = locations.find(l => l.id === locId);
+        if (loc) {
+            setNewFranchiseOutlet(prev => ({
+                ...prev,
+                locationId: locId,
+                outletName: loc.name,
+                city: loc.area,
+                whatsapp: loc.whatsapp || '',
+                swiggy: loc.swiggy || '',
+                zomato: loc.zomato || '',
+                magicpin: loc.magicpin || '',
+                ondc: loc.ondc || '',
+                phone: loc.phone || '',
+                ownerName: loc.ownerName || '',
+                email: loc.ownerEmail || '',
+                mapUrl: loc.mapUrl || ''
+            }));
+            showToast(`Auto-filled outlet info from store location: ${loc.name}`);
+        }
+    };
+
     const handleCancelEdit = () => {
-        setNewLocation({ name: '', area: '', mapUrl: '', status: 'Open' });
+        setNewLocation({ name: '', area: '', mapUrl: '', status: 'Open', imageUrl: '', imageUrls: [], whatsapp: '', zomato: '', swiggy: '', magicpin: '', ondc: '', phone: '', ownerName: '', ownerEmail: '', address: '', franchiseId: '' });
         setEditingLocationId(null);
     };
 
@@ -342,7 +1186,7 @@ const AdminDashboard = () => {
                 refreshData();
             } catch (error) {
                 console.error(error);
-                alert('Error deleting location');
+                showToast('Error deleting location', "error")
             }
         }
     };
@@ -393,6 +1237,22 @@ const AdminDashboard = () => {
                     <div className={`${styles.navItem} ${activeTab === 'franchise' ? styles.active : ''}`} onClick={() => { setActiveTab('franchise'); setIsMobileOpen(false); }}>
                         <span style={{ fontSize: '1.2rem' }}>🤝</span> Franchise
                         {activeTab === 'franchise' && <div className={styles.activeDot}></div>}
+                    </div>
+                    <div className={`${styles.navItem} ${activeTab === 'staff' ? styles.active : ''}`} onClick={() => { setActiveTab('staff'); setIsMobileOpen(false); }}>
+                        <span style={{ fontSize: '1.2rem' }}>🧑‍🍳</span> HR Staff
+                        {activeTab === 'staff' && <div className={styles.activeDot}></div>}
+                    </div>
+                    <div className={`${styles.navItem} ${activeTab === 'payroll' ? styles.active : ''}`} onClick={() => { setActiveTab('payroll'); setIsMobileOpen(false); }}>
+                        <span style={{ fontSize: '1.2rem' }}>💵</span> Payroll
+                        {activeTab === 'payroll' && <div className={styles.activeDot}></div>}
+                    </div>
+                    <div className={`${styles.navItem} ${activeTab === 'vendors' ? styles.active : ''}`} onClick={() => { setActiveTab('vendors'); setIsMobileOpen(false); }}>
+                        <span style={{ fontSize: '1.2rem' }}>🏪</span> Vendors
+                        {activeTab === 'vendors' && <div className={styles.activeDot}></div>}
+                    </div>
+                    <div className={`${styles.navItem} ${activeTab === 'purchases' ? styles.active : ''}`} onClick={() => { setActiveTab('purchases'); setIsMobileOpen(false); }}>
+                        <span style={{ fontSize: '1.2rem' }}>🛒</span> Purchases
+                        {activeTab === 'purchases' && <div className={styles.activeDot}></div>}
                     </div>
                 </nav>
 
@@ -448,9 +1308,9 @@ const AdminDashboard = () => {
                                     setIsSavingContent(true);
                                     try {
                                         await db.updateSiteContent('highlights', siteContent);
-                                        alert('Content updated successfully!');
+                                        showToast('Content updated successfully!')
                                     } catch (e) {
-                                        alert('Error saving content: ' + e.message);
+                                        showToast('Error saving content: ' + e.message, "error")
                                     } finally {
                                         setIsSavingContent(false);
                                     }
@@ -623,6 +1483,67 @@ const AdminDashboard = () => {
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 'bold', color: '#94a3b8', marginBottom: '0.5rem' }}>Badge</label>
                                             <input type="text" placeholder="e.g. Trending" value={newProduct.badge || ''} onChange={e => setNewProduct({ ...newProduct, badge: e.target.value })} className={styles.footerField} style={{ background: '#f8fafc', padding: '10px', border: 'none', borderRadius: '8px', width: '100%', outline: 'none' }} />
                                         </div>
+                                        <div style={{ gridColumn: '1/-1' }}>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', marginBottom: '0.5rem' }}>✨ Customize Toppings (Added Toppings count as extra varieties)</label>
+                                            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                                                <input 
+                                                    type="text" 
+                                                    id="new-topping-input"
+                                                    placeholder="Type topping name (e.g. Nutella) and press Enter or click Add" 
+                                                    className={styles.footerField} 
+                                                    style={{ background: '#f8fafc', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', flex: 1, outline: 'none' }}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            const val = e.target.value.trim();
+                                                            if (val && !(newProduct.toppings || []).includes(val)) {
+                                                                setNewProduct(prev => ({ ...prev, toppings: [...(prev.toppings || []), val] }));
+                                                                e.target.value = '';
+                                                            }
+                                                        }
+                                                    }}
+                                                />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const el = document.getElementById('new-topping-input');
+                                                        const val = el ? el.value.trim() : '';
+                                                        if (val && !(newProduct.toppings || []).includes(val)) {
+                                                            setNewProduct(prev => ({ ...prev, toppings: [...(prev.toppings || []), val] }));
+                                                            el.value = '';
+                                                        }
+                                                    }}
+                                                    style={{ background: '#009ceb', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+                                                >
+                                                    Add Topping
+                                                </button>
+                                            </div>
+                                            
+                                            {/* Tag list */}
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                                {(newProduct.toppings || []).map((topping, idx) => (
+                                                    <span 
+                                                        key={idx} 
+                                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f0f9ff', border: '1px solid #cbd5e1', color: '#009ceb', padding: '4px 12px', borderRadius: '50px', fontSize: '0.8rem', fontWeight: 'bold' }}
+                                                    >
+                                                        {topping}
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => {
+                                                                const updated = (newProduct.toppings || []).filter((_, i) => i !== idx);
+                                                                setNewProduct(prev => ({ ...prev, toppings: updated }));
+                                                            }}
+                                                            style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem', padding: 0, display: 'flex', alignItems: 'center' }}
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                                {(newProduct.toppings || []).length === 0 && (
+                                                    <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>No toppings configured. Type a topping name above and click "Add Topping".</span>
+                                                )}
+                                            </div>
+                                        </div>
                                         <div style={{ gridColumn: '1 / -1' }}>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 'bold', color: '#94a3b8', marginBottom: '0.5rem' }}>Description</label>
                                             <textarea placeholder="Write a short description..." value={newProduct.description || ''} onChange={e => setNewProduct({ ...newProduct, description: e.target.value })} style={{ background: '#f8fafc', padding: '10px', border: 'none', borderRadius: '8px', width: '100%', minHeight: '80px', outline: 'none' }} />
@@ -737,11 +1658,16 @@ const AdminDashboard = () => {
                                 {subscribers.length > 0 ? (
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
                                         {subscribers.map(sub => (
-                                            <div key={sub.id} style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                                <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{sub.email}</div>
-                                                <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem' }}>
-                                                    Signed up: {new Date(sub.date).toLocaleDateString()}
+                                            <div key={sub.id} style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div>
+                                                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{sub.email}</div>
+                                                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
+                                                        Signed up: {sub.date ? new Date(sub.date).toLocaleDateString() : 'N/A'}
+                                                    </div>
                                                 </div>
+                                                <button onClick={() => handleDeleteSubscriber(sub.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Delete Subscriber">
+                                                    <TrashIcon />
+                                                </button>
                                             </div>
                                         ))}
                                     </div>
@@ -759,36 +1685,414 @@ const AdminDashboard = () => {
 
                 {/* --- FRANCHISE TAB --- */}
                 {
-                    activeTab === 'franchise' && (
-                        <div className={styles.grid}>
-                            {franchiseInquiries.length > 0 ? (
-                                franchiseInquiries.map((inquiry) => (
-                                    <div key={inquiry.id} className={styles.card} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                                            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b' }}>{inquiry.name}</h3>
-                                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{new Date(inquiry.date).toLocaleDateString()}</span>
-                                        </div>
-                                        <div style={{ color: '#009ceb', fontWeight: '600', fontSize: '0.9rem' }}>{inquiry.email}</div>
-                                        <div style={{ fontSize: '0.9rem', color: '#64748b' }}>📞 {inquiry.phone}</div>
+                    activeTab === 'franchise' && (() => {
+                        // Group by state counts
+                        const getCountForState = (stateCode) => {
+                            return franchiseInquiries.filter(i => i.state === stateCode).length;
+                        };
 
-                                        <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '8px', fontSize: '0.85rem' }}>
-                                            <p style={{ margin: '0 0 5px 0' }}><strong>Location:</strong> {inquiry.city}, {inquiry.state}</p>
-                                            <p style={{ margin: '0 0 5px 0' }}><strong>Type:</strong> {inquiry.franchiseType}</p>
-                                            <p style={{ margin: '0' }}><strong>Own Space:</strong> {inquiry.ownSpace === 'yes' ? 'Yes' : 'No'}</p>
-                                        </div>
+                        const stateTabs = [
+                            { code: 'All', name: 'All States', count: franchiseInquiries.length },
+                            { code: 'DL', name: 'Delhi (DL)', count: getCountForState('DL') },
+                            { code: 'MH', name: 'Maharashtra (MH)', count: getCountForState('MH') },
+                            { code: 'KA', name: 'Karnataka (KA)', count: getCountForState('KA') },
+                            { code: 'TN', name: 'Tamil Nadu (TN)', count: getCountForState('TN') },
+                            { code: 'KL', name: 'Kerala (KL)', count: getCountForState('KL') }
+                        ];
 
-                                        {inquiry.shopDescription && (
-                                            <p style={{ fontSize: '0.85rem', color: '#475569', fontStyle: 'italic', margin: 0 }}>"{inquiry.shopDescription}"</p>
-                                        )}
-                                    </div>
-                                ))
-                            ) : (
-                                <div className={styles.card} style={{ gridColumn: '1/-1', textAlign: 'center', padding: '3rem' }}>
-                                    <p style={{ color: '#94a3b8' }}>No franchise inquiries yet.</p>
+                        const filteredInquiries = franchiseInquiries.filter(i => {
+                            const matchesState = selectedStateFilter === 'All' || i.state === selectedStateFilter;
+                            const matchesStatus = franchiseStatusFilter === 'All' || i.status === franchiseStatusFilter;
+                            return matchesState && matchesStatus;
+                        });
+
+                        return (
+                            <div className={styles.tabContent} style={{ width: '100%' }}>
+                                
+                                {/* Sub-Tab switcher */}
+                                <div style={{ display: 'flex', gap: '8px', marginBottom: '1.5rem', background: '#f1f5f9', padding: '4px', borderRadius: '12px', width: 'fit-content' }}>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setFranchiseSubTab('pipeline')}
+                                        style={{ 
+                                            border: 'none', 
+                                            background: franchiseSubTab === 'pipeline' ? '#009ceb' : 'none', 
+                                            color: franchiseSubTab === 'pipeline' ? 'white' : '#64748b', 
+                                            padding: '0.5rem 1.2rem', 
+                                            borderRadius: '8px', 
+                                            fontWeight: 'bold', 
+                                            cursor: 'pointer',
+                                            fontSize: '0.85rem',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        🤝 Inquiry Pipeline ({franchiseInquiries.length})
+                                    </button>
+                                                                    <button 
+                                        type="button" 
+                                        onClick={() => setFranchiseSubTab('outlets')}
+                                        style={{ 
+                                            border: 'none', 
+                                            background: franchiseSubTab === 'outlets' ? '#009ceb' : 'none', 
+                                            color: franchiseSubTab === 'outlets' ? 'white' : '#64748b', 
+                                            padding: '0.5rem 1.2rem', 
+                                            borderRadius: '8px', 
+                                            fontWeight: 'bold', 
+                                            cursor: 'pointer',
+                                            fontSize: '0.85rem',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        🏪 Running Outlets ({runningFranchises.length})
+                                    </button>
                                 </div>
-                            )}
-                        </div>
-                    )
+
+                                {franchiseSubTab === 'pipeline' ? (
+                                    <>
+                                        <div className={styles.catalogHeader}>
+                                            <h2 className={styles.sectionTitle}>Franchise Applications & Pipeline</h2>
+                                            <button
+                                                className={styles.addButton}
+                                                onClick={() => setShowAddFranchiseForm(!showAddFranchiseForm)}
+                                            >
+                                                <span>{showAddFranchiseForm ? '−' : '+'}</span> {showAddFranchiseForm ? 'CLOSE FORM' : 'ADD MANUALLY'}
+                                            </button>
+                                        </div>
+
+                                        {/* Slide down Manual Franchise Form */}
+                                        <div style={{
+                                            maxHeight: showAddFranchiseForm ? '1500px' : '0',
+                                            opacity: showAddFranchiseForm ? 1 : 0,
+                                            overflow: 'hidden',
+                                            transition: 'all 0.5s ease-in-out',
+                                            marginBottom: showAddFranchiseForm ? '2rem' : 0
+                                        }}>
+                                            <div className={styles.formCard} style={{ maxWidth: '850px' }}>
+                                                <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>Manually Record Franchise Inquiry</h3>
+                                                <form onSubmit={handleAddFranchise} className={styles.staffForm}>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                                                        <div className={styles.formGroup}>
+                                                            <label>Applicant Full Name *</label>
+                                                            <input type="text" value={newFranchise.name} onChange={e => setNewFranchise({ ...newFranchise, name: e.target.value })} className={styles.input} required placeholder="Full Name" />
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label>Email ID *</label>
+                                                            <input type="email" value={newFranchise.email} onChange={e => setNewFranchise({ ...newFranchise, email: e.target.value })} className={styles.input} required placeholder="Email Address" />
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label>Phone Number *</label>
+                                                            <input type="tel" value={newFranchise.phone} onChange={e => setNewFranchise({ ...newFranchise, phone: e.target.value })} className={styles.input} required placeholder="Primary Phone Number" />
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label>Current Profession</label>
+                                                            <input type="text" value={newFranchise.currentJob} onChange={e => setNewFranchise({ ...newFranchise, currentJob: e.target.value })} className={styles.input} placeholder="Job / Business" />
+                                                        </div>
+                                                    </div>
+
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                                                        <div className={styles.formGroup}>
+                                                            <label>Street Address</label>
+                                                            <input type="text" value={newFranchise.street} onChange={e => setNewFranchise({ ...newFranchise, street: e.target.value })} className={styles.input} placeholder="Area / Layout / Road" />
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label>City *</label>
+                                                            <input type="text" value={newFranchise.city} onChange={e => setNewFranchise({ ...newFranchise, city: e.target.value })} className={styles.input} required placeholder="City Name" />
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label>State *</label>
+                                                            <select value={newFranchise.state} onChange={e => setNewFranchise({ ...newFranchise, state: e.target.value })} className={styles.input}>
+                                                                <option value="DL">Delhi (DL)</option>
+                                                                <option value="MH">Maharashtra (MH)</option>
+                                                                <option value="KA">Karnataka (KA)</option>
+                                                                <option value="TN">Tamil Nadu (TN)</option>
+                                                                <option value="KL">Kerala (KL)</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label>Pincode</label>
+                                                            <input type="text" value={newFranchise.pincode} onChange={e => setNewFranchise({ ...newFranchise, pincode: e.target.value })} className={styles.input} placeholder="6-digit ZIP code" />
+                                                        </div>
+                                                    </div>
+
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                                                        <div className={styles.formGroup}>
+                                                            <label>Own Commercial Space?</label>
+                                                            <select value={newFranchise.ownSpace} onChange={e => setNewFranchise({ ...newFranchise, ownSpace: e.target.value })} className={styles.input}>
+                                                                <option value="yes">Yes</option>
+                                                                <option value="no">No</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label>Space Area (sq. ft.)</label>
+                                                            <input type="text" value={newFranchise.spaceArea} onChange={e => setNewFranchise({ ...newFranchise, spaceArea: e.target.value })} className={styles.input} placeholder="e.g. 500 sqft" />
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label>Franchise Model Type</label>
+                                                            <select value={newFranchise.franchiseType} onChange={e => setNewFranchise({ ...newFranchise, franchiseType: e.target.value })} className={styles.input}>
+                                                                <option value="Standard">Standard Model</option>
+                                                                <option value="Express">Express Model</option>
+                                                                <option value="Premium">Premium Cafe</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className={styles.formGroup} style={{ marginTop: '1rem' }}>
+                                                        <label>Additional Notes / Shop Description</label>
+                                                        <textarea rows={3} value={newFranchise.shopDescription} onChange={e => setNewFranchise({ ...newFranchise, shopDescription: e.target.value })} style={{ width: '100%', padding: '0.8rem', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', fontFamily: 'inherit' }} placeholder="Add details about locations, preferences, or call feedback notes..." />
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                                                        <button type="submit" className={styles.addButton}>Add Inquiry Record</button>
+                                                        <button type="button" className={styles.cancelBtn} onClick={() => setShowAddFranchiseForm(false)}>Cancel</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+
+                                        {/* State Wise Tabs Bar */}
+                                        <div className={styles.stateFilterBar} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', borderBottom: '2px solid #f1f5f9', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+                                            {stateTabs.map(tab => (
+                                                <button
+                                                    key={tab.code}
+                                                    type="button"
+                                                    className={`${styles.stateTabItem} ${selectedStateFilter === tab.code ? styles.stateTabItemActive : ''}`}
+                                                    onClick={() => setSelectedStateFilter(tab.code)}
+                                                    style={{
+                                                        border: 'none',
+                                                        background: selectedStateFilter === tab.code ? '#009ceb' : '#f8fafc',
+                                                        color: selectedStateFilter === tab.code ? 'white' : '#64748b',
+                                                        padding: '0.6rem 1.2rem',
+                                                        borderRadius: '50px',
+                                                        fontWeight: 'bold',
+                                                        fontSize: '0.85rem',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '8px',
+                                                        transition: 'all 0.2s ease',
+                                                        boxShadow: selectedStateFilter === tab.code ? '0 4px 6px -1px rgba(0, 156, 235, 0.2)' : 'none'
+                                                    }}
+                                                >
+                                                    {tab.name}
+                                                    <span 
+                                                        className={styles.stateTabBadge} 
+                                                        style={{ 
+                                                            background: selectedStateFilter === tab.code ? 'rgba(255,255,255,0.25)' : '#e2e8f0', 
+                                                            color: selectedStateFilter === tab.code ? 'white' : '#475569',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '50px',
+                                                            fontSize: '0.75rem'
+                                                        }}
+                                                    >
+                                                        {tab.count}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Double filtering row */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                                            <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+                                                Showing <strong>{filteredInquiries.length}</strong> inquiries matching state <strong>{selectedStateFilter}</strong> and status <strong>{franchiseStatusFilter}</strong>.
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 'bold' }}>Filter by Status:</span>
+                                                <select
+                                                    value={franchiseStatusFilter}
+                                                    onChange={e => setFranchiseStatusFilter(e.target.value)}
+                                                    className={styles.statusSelect}
+                                                    style={{ minWidth: '160px' }}
+                                                >
+                                                    <option value="All">All Statuses</option>
+                                                    <option value="New">New Lead</option>
+                                                    <option value="Called">Called / Emailed</option>
+                                                    <option value="Interested">Interested / Hot</option>
+                                                    <option value="Follow-up">Follow-up Funnel</option>
+                                                    <option value="Terminated">Terminated</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {/* Inquiries Cards Grid */}
+                                        <div className={styles.grid} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+                                            {filteredInquiries.length > 0 ? (
+                                                filteredInquiries.map((inquiry) => (
+                                                    <div key={inquiry.id} className={styles.card} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem', position: 'relative', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+                                                        
+                                                        {/* Top row */}
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: '10px' }}>
+                                                            <div>
+                                                                <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#1e293b', fontWeight: 'bold' }}>{inquiry.name}</h3>
+                                                                <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px', display: 'block' }}>
+                                                                    Applied: {inquiry.date ? new Date(inquiry.date).toLocaleDateString() : 'N/A'}
+                                                                </span>
+                                                            </div>
+                                                            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                                                                <button onClick={() => setEditingFranchise(inquiry)} className={styles.editBtn} style={{ width: '28px', height: '28px', padding: '4px', border: 'none', background: '#f1f5f9', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Edit Lead">
+                                                                    <EditIcon />
+                                                                </button>
+                                                                <button onClick={() => handleDeleteFranchise(inquiry.id)} className={styles.deleteButton} style={{ width: '28px', height: '28px', padding: '4px', border: 'none', background: '#fee2e2', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Delete Lead">
+                                                                    <TrashIcon />
+                                                                </button>
+                                                                <span className={`${styles.statusBadge} ${styles['status_' + (inquiry.status || 'new').toLowerCase().replace(' ', '_').replace('-', '_')]}`} style={{ marginLeft: '4px' }}>
+                                                                    {inquiry.status || 'New'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Contacts */}
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                                                            <a href={`mailto:${inquiry.email}`} style={{ color: '#009ceb', textDecoration: 'none', fontWeight: '600', fontSize: '0.9rem' }}>📧 {inquiry.email}</a>
+                                                            <a href={`tel:${inquiry.phone}`} style={{ color: '#475569', textDecoration: 'none', fontSize: '0.9rem' }}>📞 {inquiry.phone}</a>
+                                                        </div>
+
+                                                        {/* Details Box */}
+                                                        <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '6px', border: '1px solid #f1f5f9' }}>
+                                                            <div><strong>Location:</strong> {inquiry.street ? `${inquiry.street}, ` : ''}{inquiry.city}, {inquiry.state} {inquiry.pincode ? `- ${inquiry.pincode}` : ''}</div>
+                                                            <div><strong>Type:</strong> {inquiry.franchiseType || 'Standard'} Model</div>
+                                                            <div><strong>Profession:</strong> {inquiry.currentJob || 'Not Specified'}</div>
+                                                            <div><strong>Own Space:</strong> {inquiry.ownSpace === 'yes' ? `Yes (${inquiry.spaceArea || 'N/A'})` : 'No'}</div>
+                                                        </div>
+
+                                                        {/* Description */}
+                                                        {inquiry.shopDescription && (
+                                                            <p style={{ fontSize: '0.85rem', color: '#64748b', fontStyle: 'italic', margin: 0, padding: '4px 0', borderLeft: '3px solid #e2e8f0', paddingLeft: '8px' }}>
+                                                                "{inquiry.shopDescription}"
+                                                            </p>
+                                                        )}
+
+                                                        {/* Status Selector Dropdown */}
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+                                                            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'bold' }}>Stage pipeline:</span>
+                                                            <select
+                                                                value={inquiry.status || 'New'}
+                                                                onChange={(e) => handleStatusChange(inquiry.id, e.target.value)}
+                                                                className={styles.statusSelect}
+                                                            >
+                                                                <option value="New">New Lead</option>
+                                                                <option value="Called">Called / Emailed</option>
+                                                                <option value="Interested">Interested / Hot</option>
+                                                                <option value="Follow-up">Follow-up</option>
+                                                                <option value="Terminated">Terminated</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className={styles.card} style={{ gridColumn: '1/-1', textAlign: 'center', padding: '4rem', background: 'white' }}>
+                                                    <p style={{ color: '#94a3b8', fontSize: '1rem' }}>No inquiries match the filters.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        {/* APPROVED RUNNING OUTLETS VIEW */}
+                                        <div className={styles.catalogHeader}>
+                                            <h2 className={styles.sectionTitle}>Approved & Running Franchises</h2>
+                                            <button
+                                                className={styles.addButton}
+                                                onClick={() => setShowAddFranchiseOutletForm(true)}
+                                            >
+                                                + ADD NEW OUTLET
+                                            </button>
+                                        </div>
+
+                                        <div className={styles.grid} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem', marginTop: '1rem' }}>
+                                            {runningFranchises.length > 0 ? (
+                                                runningFranchises.map((outlet) => (
+                                                    <div key={outlet.id} className={styles.card} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem', position: 'relative', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+                                                        
+                                                        {/* Header */}
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                                                            <div>
+                                                                <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#1e293b', fontWeight: 'bold' }}>{outlet.outletName}</h3>
+                                                                <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginTop: '2px' }}>
+                                                                    Opened: {outlet.openDate ? new Date(outlet.openDate).toLocaleDateString() : 'N/A'}
+                                                                </span>
+                                                            </div>
+                                                            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                                                                <button onClick={() => setEditingFranchiseOutlet(outlet)} className={styles.editBtn} style={{ width: '28px', height: '28px', padding: '4px', border: 'none', background: '#f1f5f9', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Edit Outlet">
+                                                                    <EditIcon />
+                                                                </button>
+                                                                <button onClick={() => handleDeleteFranchiseOutlet(outlet.id)} className={styles.deleteButton} style={{ width: '28px', height: '28px', padding: '4px', border: 'none', background: '#fee2e2', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Delete Outlet">
+                                                                    <TrashIcon />
+                                                                </button>
+                                                                <span className={`${styles.statusBadge} ${styles['status_' + (outlet.status || 'running').toLowerCase().replace(' ', '_').replace('-', '_')]}`} style={{ marginLeft: '4px' }}>
+                                                                    {outlet.status || 'Running'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        {/* Owner details */}
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.9rem' }}>
+                                                            <div style={{ fontWeight: '500', color: '#334155' }}>Owner: <strong>{outlet.ownerName}</strong></div>
+                                                            <a href={`tel:${outlet.phone}`} style={{ color: '#475569', textDecoration: 'none' }}>📞 {outlet.phone}</a>
+                                                            {outlet.email && <a href={`mailto:${outlet.email}`} style={{ color: '#009ceb', textDecoration: 'none' }}>📧 {outlet.email}</a>}
+                                                        </div>
+
+                                                        {/* Address Box */}
+                                                        <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '8px', fontSize: '0.85rem', border: '1px solid #f1f5f9' }}>
+                                                            <div><strong>Model:</strong> {outlet.modelType}</div>
+                                                            <div style={{ marginTop: '4px', color: '#64748b' }}>📍 {outlet.address}, {outlet.city}, {outlet.state}</div>
+                                                        </div>
+
+                                                        {/* Linked Store Location status */}
+                                                        {(() => {
+                                                            const linkedLoc = locations.find(l => l.franchiseId === outlet.id);
+                                                            if (linkedLoc) {
+                                                                return (
+                                                                    <div style={{ padding: '10px', background: '#ecfdf5', borderRadius: '8px', fontSize: '0.8rem', border: '1px solid #a7f3d0' }}>
+                                                                        <div style={{ color: '#047857', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                            <span>📍 Store Location: {linkedLoc.name}</span>
+                                                                            <span style={{ fontSize: '0.7rem', padding: '1px 5px', background: '#10b981', color: 'white', borderRadius: '4px', fontWeight: 'bold' }}>{linkedLoc.status}</span>
+                                                                        </div>
+                                                                        <div style={{ color: '#065f46', marginTop: '2px' }}>Area: {linkedLoc.area}</div>
+                                                                        {linkedLoc.mapUrl && (
+                                                                            <a href={linkedLoc.mapUrl} target="_blank" rel="noreferrer" style={{ color: '#047857', textDecoration: 'underline', display: 'inline-block', marginTop: '4px', fontWeight: '600' }}>Open Google Map ↗</a>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        })()}
+
+                                                        {/* Documents Box */}
+                                                        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.8rem', marginTop: '0.4rem' }}>
+                                                            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem' }}>📄 Saved Documents</div>
+                                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                                {outlet.agreementUrl ? (
+                                                                    <a href={outlet.agreementUrl} target="_blank" rel="noreferrer" style={{ background: '#e0f2fe', color: '#0369a1', textDecoration: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold' }}>Agreement 📥</a>
+                                                                ) : (
+                                                                    <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem' }}>No Agreement</span>
+                                                                )}
+                                                                {outlet.gstUrl ? (
+                                                                    <a href={outlet.gstUrl} target="_blank" rel="noreferrer" style={{ background: '#e2fbee', color: '#15803d', textDecoration: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold' }}>GST Cert 📥</a>
+                                                                ) : (
+                                                                    <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem' }}>No GST</span>
+                                                                )}
+                                                                {outlet.ownerIdUrl ? (
+                                                                    <a href={outlet.ownerIdUrl} target="_blank" rel="noreferrer" style={{ background: '#f3e8ff', color: '#6b21a8', textDecoration: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold' }}>Owner ID 📥</a>
+                                                                ) : (
+                                                                    <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem' }}>No ID Copy</span>
+                                                                )}
+                                                                {outlet.documents && outlet.documents.map((doc, idx) => (
+                                                                    <a key={idx} href={doc.url} target="_blank" rel="noreferrer" style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', textDecoration: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold' }}>{doc.name} 📥</a>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className={styles.card} style={{ gridColumn: '1/-1', textAlign: 'center', padding: '4rem', background: 'white' }}>
+                                                    <p style={{ color: '#94a3b8', fontSize: '1rem' }}>No active franchise outlets recorded.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        );
+                    })()
                 }
 
                 {/* Locations Tab */}
@@ -824,6 +2128,19 @@ const AdminDashboard = () => {
                                     {/* Left Side: Form */}
                                     <form onSubmit={handleAddLocation} className={styles.form}>
                                         <div className={styles.formGroup}>
+                                            <label>🔗 Link to Running Franchise Outlet (Optional)</label>
+                                            <select
+                                                value={newLocation.franchiseId || ''}
+                                                onChange={e => handleLocationFranchiseLink(e.target.value)}
+                                                className={styles.input}
+                                            >
+                                                <option value="">-- No Franchise Linked --</option>
+                                                {runningFranchises.map(f => (
+                                                    <option key={f.id} value={f.id}>{f.outletName}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className={styles.formGroup}>
                                             <label>Location Name (e.g., High Laban India)</label>
                                             <input
                                                 type="text"
@@ -842,6 +2159,36 @@ const AdminDashboard = () => {
                                                 value={newLocation.area || ''}
                                                 onChange={e => setNewLocation({ ...newLocation, area: e.target.value })}
                                                 required
+                                                className={styles.input}
+                                            />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Owner Name (Optional)</label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. John Doe"
+                                                value={newLocation.ownerName || ''}
+                                                onChange={e => setNewLocation({ ...newLocation, ownerName: e.target.value })}
+                                                className={styles.input}
+                                            />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Owner Email (Optional)</label>
+                                            <input
+                                                type="email"
+                                                placeholder="e.g. owner@highlaban.com"
+                                                value={newLocation.ownerEmail || ''}
+                                                onChange={e => setNewLocation({ ...newLocation, ownerEmail: e.target.value })}
+                                                className={styles.input}
+                                            />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Store Address (Optional)</label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. MG Road, Bengaluru"
+                                                value={newLocation.address || ''}
+                                                onChange={e => setNewLocation({ ...newLocation, address: e.target.value })}
                                                 className={styles.input}
                                             />
                                         </div>
@@ -866,6 +2213,186 @@ const AdminDashboard = () => {
                                                 <option value="Coming Soon">Coming Soon</option>
                                                 <option value="Closed">Closed</option>
                                             </select>
+                                        </div>
+
+                                        <div className={styles.formGroup}>
+                                            <label style={{ fontWeight: 'bold' }}>Outlet Images (Multiple)</label>
+                                            
+                                            {/* List of uploaded images with Delete options */}
+                                            {(((newLocation.imageUrls && newLocation.imageUrls.length > 0) || newLocation.imageUrl)) && (
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                                                    {/* If legacy imageUrl is set and not in imageUrls, show it first */}
+                                                    {newLocation.imageUrl && !(newLocation.imageUrls || []).includes(newLocation.imageUrl) && (
+                                                        <div style={{ position: 'relative', width: '80px', height: '60px', borderRadius: '8px', overflow: 'hidden', border: '2px solid #0284c7' }} title="Cover Image">
+                                                            <img src={newLocation.imageUrl} alt="Cover Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setNewLocation(prev => ({ ...prev, imageUrl: '' }));
+                                                                }}
+                                                                style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(239, 68, 68, 0.9)', color: 'white', border: 'none', borderRadius: '50%', width: '18px', height: '18px', fontSize: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                            >
+                                                                ×
+                                                            </button>
+                                                            <span style={{ position: 'absolute', bottom: '0', left: '0', right: '0', background: 'rgba(2, 132, 199, 0.8)', color: 'white', fontSize: '8px', textAlign: 'center', fontWeight: 'bold' }}>COVER</span>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* Show all images in imageUrls */}
+                                                    {(newLocation.imageUrls || []).map((imgUrl, index) => (
+                                                        <div key={index} style={{ position: 'relative', width: '80px', height: '60px', borderRadius: '8px', overflow: 'hidden', border: newLocation.imageUrl === imgUrl ? '2px solid #0284c7' : '1px solid #cbd5e1' }}>
+                                                            <img src={imgUrl} alt={`Preview ${index + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const updated = (newLocation.imageUrls || []).filter((_, i) => i !== index);
+                                                                    const newCover = newLocation.imageUrl === imgUrl ? (updated[0] || '') : newLocation.imageUrl;
+                                                                    setNewLocation(prev => ({ ...prev, imageUrls: updated, imageUrl: newCover }));
+                                                                }}
+                                                                style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(239, 68, 68, 0.9)', color: 'white', border: 'none', borderRadius: '50%', width: '18px', height: '18px', fontSize: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                            >
+                                                                ×
+                                                            </button>
+                                                            {newLocation.imageUrl === imgUrl ? (
+                                                                <span style={{ position: 'absolute', bottom: '0', left: '0', right: '0', background: 'rgba(2, 132, 199, 0.8)', color: 'white', fontSize: '8px', textAlign: 'center', fontWeight: 'bold' }}>COVER</span>
+                                                            ) : (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setNewLocation(prev => ({ ...prev, imageUrl: imgUrl }))}
+                                                                    style={{ position: 'absolute', bottom: '0', left: '0', right: '0', background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', fontSize: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                                                                >
+                                                                    SET COVER
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Paste image link and press Enter..." 
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            const val = e.target.value.trim();
+                                                            if (val) {
+                                                                const currentUrls = newLocation.imageUrls || [];
+                                                                const newCover = newLocation.imageUrl || val;
+                                                                setNewLocation(prev => ({ ...prev, imageUrls: [...currentUrls, val], imageUrl: newCover }));
+                                                                e.target.value = '';
+                                                            }
+                                                        }
+                                                    }}
+                                                    className={styles.input}
+                                                    style={{ flex: 1 }}
+                                                />
+                                                <input 
+                                                    type="file"
+                                                    multiple
+                                                    onChange={async (e) => {
+                                                        const files = Array.from(e.target.files);
+                                                        if (files.length === 0) return;
+                                                        setIsUploading(true);
+                                                        try {
+                                                            const urls = [];
+                                                            for (const file of files) {
+                                                                const url = await uploadMedia(file);
+                                                                urls.push(url);
+                                                            }
+                                                            const currentUrls = newLocation.imageUrls || [];
+                                                            const newCover = newLocation.imageUrl || urls[0] || '';
+                                                            setNewLocation(prev => ({ 
+                                                                ...prev, 
+                                                                imageUrls: [...currentUrls, ...urls],
+                                                                imageUrl: newCover
+                                                            }));
+                                                            showToast(`Successfully uploaded ${files.length} images!`)
+                                                        } catch (err) {
+                                                            showToast("Upload failed: " + err.message, "error")
+                                                        } finally {
+                                                            setIsUploading(false);
+                                                        }
+                                                    }}
+                                                    style={{ width: '150px', fontSize: '0.75rem' }}
+                                                />
+                                            </div>
+                                            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginTop: '4px' }}>
+                                                💡 You can upload multiple files or paste a URL and press Enter. Click <strong>"SET COVER"</strong> to choose which image displays on the card.
+                                            </span>
+                                        </div>
+
+                                        <div style={{ marginTop: '1.2rem', padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
+                                            <h4 style={{ color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '0.75rem', fontWeight: 'bold' }}>🛍️ Online Channels & Booking Options</h4>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                                <div className={styles.formGroup}>
+                                                    <label style={{ fontSize: '0.7rem', color: '#64748b' }}>Store Contact Phone</label>
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="e.g. 9876543210" 
+                                                        value={newLocation.phone || ''} 
+                                                        onChange={e => setNewLocation({ ...newLocation, phone: e.target.value.replace(/[^0-9+\s-]/g, '') })} 
+                                                        className={styles.input} 
+                                                        style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+                                                    />
+                                                </div>
+                                                <div className={styles.formGroup}>
+                                                    <label style={{ fontSize: '0.7rem', color: '#64748b' }}>WhatsApp Connection (Phone / URL)</label>
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="e.g. 919876543210" 
+                                                        value={newLocation.whatsapp || ''} 
+                                                        onChange={e => setNewLocation({ ...newLocation, whatsapp: e.target.value })} 
+                                                        className={styles.input} 
+                                                        style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+                                                    />
+                                                </div>
+                                                <div className={styles.formGroup}>
+                                                    <label style={{ fontSize: '0.7rem', color: '#64748b' }}>Zomato Link</label>
+                                                    <input 
+                                                        type="url" 
+                                                        placeholder="https://zomato.com/..." 
+                                                        value={newLocation.zomato || ''} 
+                                                        onChange={e => setNewLocation({ ...newLocation, zomato: e.target.value })} 
+                                                        className={styles.input} 
+                                                        style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+                                                    />
+                                                </div>
+                                                <div className={styles.formGroup}>
+                                                    <label style={{ fontSize: '0.7rem', color: '#64748b' }}>Swiggy Link</label>
+                                                    <input 
+                                                        type="url" 
+                                                        placeholder="https://swiggy.com/..." 
+                                                        value={newLocation.swiggy || ''} 
+                                                        onChange={e => setNewLocation({ ...newLocation, swiggy: e.target.value })} 
+                                                        className={styles.input} 
+                                                        style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+                                                    />
+                                                </div>
+                                                <div className={styles.formGroup}>
+                                                    <label style={{ fontSize: '0.7rem', color: '#64748b' }}>MagicPin Link</label>
+                                                    <input 
+                                                        type="url" 
+                                                        placeholder="https://magicpin.in/..." 
+                                                        value={newLocation.magicpin || ''} 
+                                                        onChange={e => setNewLocation({ ...newLocation, magicpin: e.target.value })} 
+                                                        className={styles.input} 
+                                                        style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+                                                    />
+                                                </div>
+                                                <div className={styles.formGroup} style={{ gridColumn: '1/-1' }}>
+                                                    <label style={{ fontSize: '0.7rem', color: '#64748b' }}>ONDC Link</label>
+                                                    <input 
+                                                        type="url" 
+                                                        placeholder="https://ondc.org/..." 
+                                                        value={newLocation.ondc || ''} 
+                                                        onChange={e => setNewLocation({ ...newLocation, ondc: e.target.value })} 
+                                                        className={styles.input} 
+                                                        style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '1rem' }}>
@@ -922,15 +2449,1929 @@ const AdminDashboard = () => {
                                         </div>
                                         <p style={{ color: '#64748b' }}>{loc.name}</p>
                                         <p style={{ fontSize: '0.9rem' }}>Status: <strong>{loc.status}</strong></p>
-                                        <a href={loc.mapUrl} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', fontSize: '0.9rem' }}>View Map</a>
+                                        
+                                        {loc.franchiseId && (() => {
+                                            const franchise = runningFranchises.find(f => f.id === loc.franchiseId);
+                                            if (franchise) {
+                                                return (
+                                                    <div style={{ marginTop: '0.5rem', padding: '8px', background: '#f0f9ff', borderRadius: '6px', fontSize: '0.8rem', border: '1px solid #bae6fd' }}>
+                                                        <div style={{ color: '#0369a1', fontWeight: 'bold' }}>🏪 Linked Franchise Outlet</div>
+                                                        <div style={{ color: '#0369a1', marginTop: '2px' }}>Owner: {franchise.ownerName} ({franchise.phone})</div>
+                                                        {franchise.email && <div style={{ color: '#0369a1' }}>Email: {franchise.email}</div>}
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
+                                        
+                                        <a href={loc.mapUrl} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', fontSize: '0.9rem', display: 'inline-block', marginTop: '0.5rem' }}>View Map</a>
                                     </div>
                                 ))}
                             </div>
                         </div>
+
+                        {/* Live Counter Stats Configuration Form */}
+                        <div style={{ marginTop: '3rem', borderTop: '2px solid #e2e8f0', paddingTop: '2rem' }}>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#1e293b', marginBottom: '0.5rem' }}>📊 Homepage Live Counter Stats</h3>
+                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+                                Edit the counter metrics shown on the homepage hero/stats section. Note: The <strong>"LOCATIONS"</strong> counter automatically syncs with the number of Open locations below.
+                            </p>
+
+                            <form onSubmit={handleSaveStats} className={styles.card} style={{ maxWidth: '600px', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: 'none' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                                    <div className={styles.formGroup}>
+                                        <label>Locations Count (Auto-calculated)</label>
+                                        <input 
+                                            type="text" 
+                                            value={`${locations.filter(l => l.status === 'Open').length} (Live Locations)`} 
+                                            disabled 
+                                            className={styles.input}
+                                            style={{ background: '#f1f5f9', cursor: 'not-allowed' }}
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Locations Suffix</label>
+                                        <input 
+                                            type="text" 
+                                            value="+" 
+                                            disabled 
+                                            className={styles.input}
+                                            style={{ background: '#f1f5f9', cursor: 'not-allowed' }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                                    <div className={styles.formGroup}>
+                                        <label>Happy Customers Target</label>
+                                        <input 
+                                            type="number" 
+                                            value={statsConfig.happyCustomersVal} 
+                                            onChange={e => setStatsConfig({ ...statsConfig, happyCustomersVal: e.target.value })} 
+                                            className={styles.input}
+                                            required 
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Happy Customers Suffix</label>
+                                        <input 
+                                            type="text" 
+                                            value={statsConfig.happyCustomersSuffix} 
+                                            onChange={e => setStatsConfig({ ...statsConfig, happyCustomersSuffix: e.target.value })} 
+                                            className={styles.input}
+                                            required 
+                                        />
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                                    <div className={styles.formGroup}>
+                                        <label>Varieties Target</label>
+                                        <input 
+                                            type="number" 
+                                            value={statsConfig.varietiesVal} 
+                                            onChange={e => setStatsConfig({ ...statsConfig, varietiesVal: e.target.value })} 
+                                            className={styles.input}
+                                            required 
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Varieties Suffix</label>
+                                        <input 
+                                            type="text" 
+                                            value={statsConfig.varietiesSuffix} 
+                                            onChange={e => setStatsConfig({ ...statsConfig, varietiesSuffix: e.target.value })} 
+                                            className={styles.input}
+                                            required 
+                                        />
+                                    </div>
+                                </div>
+
+                                <button type="submit" className={styles.addButton} disabled={isSavingStats}>
+                                    {isSavingStats ? 'Saving Changes...' : 'Save Counter Stats'}
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 )}
 
-            </main >
+                {/* Staff & HR Management Tab */}
+                {activeTab === 'staff' && (() => {
+                    const activeStaff = staffList.filter(s => s.status !== 'Terminated');
+                    const totalWorkers = staffList.length;
+                    const activeCount = activeStaff.length;
+                    const terminatedCount = staffList.filter(s => s.status === 'Terminated').length;
+                    const pendingBankCount = activeStaff.filter(s => !s.bankName || !s.accountNumber).length;
+
+                    // Compute total payroll (salaries + incentives)
+                    const totalPayroll = activeStaff.reduce((acc, s) => {
+                        const basic = parseFloat(s.salary) || 0;
+                        const inc = parseFloat(s.incentive) || 0;
+                        return acc + basic + inc;
+                    }, 0);
+
+                    const totalLeaves = activeStaff.reduce((acc, s) => acc + (parseInt(s.leavesTaken) || 0), 0);
+
+                    const totalDocsExpected = activeCount * 3;
+                    const totalDocsCollected = activeStaff.reduce((acc, s) => {
+                        let count = 0;
+                        if (s.aadhaarCollected) count++;
+                        if (s.panCollected) count++;
+                        if (s.medicalCollected) count++;
+                        return acc + count;
+                    }, 0);
+                    const docsPercent = totalDocsExpected > 0 ? Math.round((totalDocsCollected / totalDocsExpected) * 100) : 0;
+
+                    const filteredStaff = staffList.filter(s => {
+                        const nameStr = (s.fullName || '').toLowerCase();
+                        const nickStr = (s.nickname || '').toLowerCase();
+                        const emailStr = (s.email || '').toLowerCase();
+                        const phoneStr = (s.phone || '').toLowerCase();
+                        const query = staffSearchQuery.toLowerCase();
+                        
+                        const matchesSearch = nameStr.includes(query) || nickStr.includes(query) || emailStr.includes(query) || phoneStr.includes(query);
+                        const matchesRole = staffRoleFilter === 'All' || s.position === staffRoleFilter;
+                        const matchesStatus = staffStatusFilter === 'All' || s.status === staffStatusFilter;
+                        const matchesOutlet = staffOutletFilter === 'All' || 
+                            (staffOutletFilter === 'Head Office' ? (!s.assignedOutlet || s.assignedOutlet === '') : s.assignedOutlet === staffOutletFilter);
+                        
+                        return matchesSearch && matchesRole && matchesStatus && matchesOutlet;
+                    });
+
+                    // Helper to export CSV
+                    const exportToCsv = () => {
+                        const headers = ['Full Name', 'Nickname', 'Gender', 'DOB', 'Position', 'Status', 'Salary', 'Incentive', 'Phone', 'Email', 'Bank Name', 'Account No'];
+                        const rows = staffList.map(s => [
+                            s.fullName, s.nickname, s.gender, s.dob, s.position, s.status, s.salary, s.incentive, s.phone, s.email, s.bankName, s.accountNumber
+                        ]);
+                        const csvContent = "data:text/csv;charset=utf-8," 
+                            + [headers.join(','), ...rows.map(e => e.map(val => `"${val || ''}"`).join(","))].join("\n");
+                        const encodedUri = encodeURI(csvContent);
+                        const link = document.createElement("a");
+                        link.setAttribute("href", encodedUri);
+                        link.setAttribute("download", "HighLaban_Staff_Directory.csv");
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    };
+
+                    return (
+                        <div className={styles.tabContent}>
+                            {/* HR Catalog Header */}
+                            <div className={styles.catalogHeader}>
+                                <h2 className={styles.sectionTitle}>Restaurant Staff & HR Directory</h2>
+                                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                    <button className={styles.addButton} onClick={() => setShowAddStaffForm(true)}>
+                                        <span>+</span> ADD NEW STAFF
+                                    </button>
+                                    <button onClick={exportToCsv} className={styles.exportBtn} style={{ background: '#10b981', color: 'white', padding: '0.8rem 1.5rem', borderRadius: '50px', border: 'none', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        📥 Export to CSV
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* KPI Metrics Dashboard Cards */}
+                            {/* KPI Metrics — compact single row */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                                {[
+                                    { label: 'Total Workers', value: totalWorkers, color: '#1e293b', icon: '👥' },
+                                    { label: 'Active Staff', value: activeCount, color: '#10b981', icon: '🟢' },
+                                    { label: 'Terminated', value: terminatedCount, color: '#f59e0b', icon: '🔴' },
+                                    { label: 'Pending Bank', value: pendingBankCount, color: '#ef4444', icon: '🏦' },
+                                    { label: 'Docs Collected', value: `${docsPercent}%`, color: '#6366f1', icon: '📄' },
+                                    { label: 'Active Payout', value: `₹${totalPayroll.toLocaleString('en-IN')}`, color: '#0f172a', icon: '💸' },
+                                ].map(({ label, value, color, icon }) => (
+                                    <div key={label} style={{ background: 'white', padding: '0.85rem 1rem', borderRadius: '14px', boxShadow: '0 2px 4px rgba(0,0,0,0.04)', border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{ minWidth: 0 }}>
+                                            <div style={{ fontSize: '0.65rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
+                                            <div style={{ fontSize: '1.35rem', fontWeight: '800', color, marginTop: '2px', lineHeight: 1.1 }}>{value}</div>
+                                        </div>
+                                        <span style={{ fontSize: '1.4rem', flexShrink: 0 }}>{icon}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Search and Filters row */}
+                            <div className={styles.hrFiltersRow} style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center', background: 'white', padding: '1rem', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                                <div className={styles.searchBar} style={{ flex: 1, minWidth: '250px', display: 'flex', visibility: 'visible' }}>
+                                    <LoopIcon />
+                                    <input type="text" placeholder="Search staff by name, email, phone or nickname..." value={staffSearchQuery} onChange={e => setStaffSearchQuery(e.target.value)} className={styles.searchInput} />
+                                </div>
+                                <select value={staffStatusFilter} onChange={e => setStaffStatusFilter(e.target.value)} className={styles.statusSelect} style={{ minWidth: '150px' }}>
+                                    <option value="All">All Statuses</option>
+                                    <option value="Permanent">Permanent</option>
+                                    <option value="Temporary">Temporary</option>
+                                    <option value="Terminated">Terminated</option>
+                                </select>
+                                <select value={staffRoleFilter} onChange={e => setStaffRoleFilter(e.target.value)} className={styles.statusSelect} style={{ minWidth: '150px' }}>
+                                    <option value="All">All Roles</option>
+                                    <option value="Chef">Chef / Cook</option>
+                                    <option value="Cashier">Cashier</option>
+                                    <option value="Manager">Manager</option>
+                                    <option value="Waiter">Waiter</option>
+                                    <option value="Delivery">Delivery Boy</option>
+                                    <option value="Helper">Kitchen Helper</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <select value={staffOutletFilter} onChange={e => setStaffOutletFilter(e.target.value)} className={styles.statusSelect} style={{ minWidth: '160px' }}>
+                                    <option value="All">All Outlets</option>
+                                    <option value="Head Office">Head Office</option>
+                                    {runningFranchises.map(outlet => (
+                                        <option key={outlet.id} value={outlet.outletName}>{outlet.outletName}</option>
+                                    ))}
+                                </select>
+
+                                {/* Sub-Tabs Switchers */}
+                                <div className={styles.hrSubTabs} style={{ display: 'flex', gap: '5px', background: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
+                                    <button type="button" className={`${styles.hrSubTabBtn} ${selectedHrTab === 'personal' ? styles.hrSubTabBtnActive : ''}`} onClick={() => setSelectedHrTab('personal')} style={{ border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>Personal Info</button>
+                                    <button type="button" className={`${styles.hrSubTabBtn} ${selectedHrTab === 'contact' ? styles.hrSubTabBtnActive : ''}`} onClick={() => setSelectedHrTab('contact')} style={{ border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>Contact & Address</button>
+                                    <button type="button" className={`${styles.hrSubTabBtn} ${selectedHrTab === 'salary' ? styles.hrSubTabBtnActive : ''}`} onClick={() => setSelectedHrTab('salary')} style={{ border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>Bank & Salary</button>
+                                    <button type="button" className={`${styles.hrSubTabBtn} ${selectedHrTab === 'compliance' ? styles.hrSubTabBtnActive : ''}`} onClick={() => setSelectedHrTab('compliance')} style={{ border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>Compliance Checklist</button>
+                                    <button type="button" className={`${styles.hrSubTabBtn} ${selectedHrTab === 'exit' ? styles.hrSubTabBtnActive : ''}`} onClick={() => setSelectedHrTab('exit')} style={{ border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>Exit & Separation Logs</button>
+                                    <button type="button" className={`${styles.hrSubTabBtn} ${selectedHrTab === 'reports' ? styles.hrSubTabBtnActive : ''}`} onClick={() => setSelectedHrTab('reports')} style={{ border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>📈 Analytics & Reports</button>
+                                </div>
+                            </div>
+ 
+                            {/* Staff Table Card / Reports Analytics Dashboard */}
+                            {selectedHrTab === 'reports' ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+                                    {/* Analytics stats widgets */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                                        <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '15px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                            <span style={{ fontSize: '1.75rem' }}>⭐</span>
+                                            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', marginTop: '0.5rem' }}>Average KPI Rating</div>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b', marginTop: '0.25rem' }}>
+                                                {(() => {
+                                                    const withRating = allHistoricalPayroll.filter(r => r.kpiRating !== undefined);
+                                                    if (withRating.length === 0) return '5.0 / 5';
+                                                    const avg = withRating.reduce((acc, curr) => acc + parseInt(curr.kpiRating), 0) / withRating.length;
+                                                    return `${avg.toFixed(1)} / 5`;
+                                                })()}
+                                            </div>
+                                        </div>
+                                        <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '15px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                            <span style={{ fontSize: '1.75rem' }}>🏖️</span>
+                                            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', marginTop: '0.5rem' }}>Total Leaves Taken</div>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#ef4444', marginTop: '0.25rem' }}>
+                                                {allHistoricalPayroll.reduce((acc, curr) => acc + (parseInt(curr.leavesTaken) || 0), 0)} Days
+                                            </div>
+                                        </div>
+                                        <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '15px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                            <span style={{ fontSize: '1.75rem' }}>📈</span>
+                                            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', marginTop: '0.5rem' }}>Salary Hikes Logged</div>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#10b981', marginTop: '0.25rem' }}>
+                                                {staffList.reduce((acc, curr) => acc + (curr.salaryHistory ? curr.salaryHistory.length - 1 : 0), 0)} Processed
+                                            </div>
+                                        </div>
+                                        <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '15px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                            <span style={{ fontSize: '1.75rem' }}>💸</span>
+                                            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', marginTop: '0.5rem' }}>Total Disbursed</div>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#6366f1', marginTop: '0.25rem' }}>
+                                                ₹{allHistoricalPayroll.reduce((acc, curr) => acc + (parseFloat(curr.netSalaryPaid) || 0), 0).toLocaleString('en-IN')}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Reports Analytics Table */}
+                                    <div className={styles.card} style={{ padding: '0', overflowX: 'auto', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
+                                        <table className={styles.hrTable} style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                            <thead>
+                                                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                                    <th style={{ padding: '1rem 1.5rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Employee</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Current Salary</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Salary Growth</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', textAlign: 'center' }}>Hikes count</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', textAlign: 'center' }}>Total Leaves</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', textAlign: 'center' }}>Avg KPI Rating</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', textAlign: 'center' }}>Roster Compliance</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {filteredStaff.map(staff => {
+                                                    const history = allHistoricalPayroll.filter(r => r.staffId === staff.id);
+                                                    const leavesCount = history.reduce((acc, curr) => acc + (parseInt(curr.leavesTaken) || 0), 0);
+                                                    const ratedMonths = history.filter(r => r.kpiRating !== undefined);
+                                                    const avgRating = ratedMonths.length > 0 
+                                                        ? (ratedMonths.reduce((acc, curr) => acc + parseInt(curr.kpiRating), 0) / ratedMonths.length).toFixed(1)
+                                                        : '5.0';
+
+                                                    const initialSalary = staff.salaryHistory && staff.salaryHistory.length > 0
+                                                        ? parseFloat(staff.salaryHistory[0].amount) || 0
+                                                        : parseFloat(staff.salary) || 0;
+                                                    const currentSalary = parseFloat(staff.salary) || 0;
+                                                    const growthPct = initialSalary > 0 
+                                                        ? ((currentSalary - initialSalary) / initialSalary) * 100
+                                                        : 0;
+
+                                                    const complianceCount = (staff.aadhaarCollected ? 1 : 0) + (staff.panCollected ? 1 : 0) + (staff.medicalCollected ? 1 : 0);
+
+                                                    return (
+                                                        <tr key={staff.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                            <td 
+                                                                style={{ padding: '1rem 1.5rem', cursor: 'pointer' }}
+                                                                onClick={() => setSelectedDetailStaff(staff)}
+                                                                title="Click to view full profile report summary"
+                                                                onMouseOver={e => e.currentTarget.style.background = '#f8fafc'}
+                                                                onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                                                            >
+                                                                <div style={{ fontWeight: 'bold', color: '#009ceb', textDecoration: 'underline' }}>{staff.fullName} 🔎</div>
+                                                                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{staff.position} • {staff.assignedOutlet || 'Head Office'}</div>
+                                                            </td>
+                                                            <td style={{ padding: '1rem', fontWeight: 'bold', color: '#1e293b' }}>
+                                                                ₹{currentSalary.toLocaleString('en-IN')}
+                                                            </td>
+                                                            <td style={{ padding: '1rem' }}>
+                                                                {growthPct > 0 ? (
+                                                                    <span style={{ color: '#10b981', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                                                                        📈 +{growthPct.toFixed(0)}%
+                                                                    </span>
+                                                                ) : (
+                                                                    <span style={{ color: '#64748b', fontSize: '0.85rem' }}>0% (Base Setup)</span>
+                                                                )}
+                                                            </td>
+                                                            <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', color: '#475569' }}>
+                                                                {staff.salaryHistory ? staff.salaryHistory.length - 1 : 0}
+                                                            </td>
+                                                            <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', color: '#ef4444' }}>
+                                                                {leavesCount} Days
+                                                            </td>
+                                                            <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#fffbeb', color: '#b45309', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                                    ⭐ {avgRating}
+                                                                </span>
+                                                            </td>
+                                                            <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                                {complianceCount === 3 ? (
+                                                                    <span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 'bold' }}>100% OK</span>
+                                                                ) : (
+                                                                    <span style={{ background: '#fee2e2', color: '#ef4444', padding: '2px 8px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 'bold' }}>{((complianceCount/3)*100).toFixed(0)}% Complete</span>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className={styles.card} style={{ padding: '0', overflowX: 'auto', borderRadius: '20px' }}>
+                                    <table className={styles.hrTable} style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '900px' }}>
+                                    <thead>
+                                        <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                            <th style={{ padding: '1rem 1.5rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', minWidth: '180px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Full Name</th>
+                                            {selectedHrTab === 'personal' && (
+                                                <>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Nickname</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Assigned Outlet</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Gender</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Date of Birth</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Blood Group</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Status</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Salary (INR)</th>
+                                                </>
+                                            )}
+                                            {selectedHrTab === 'exit' && (
+                                                <>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Status</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Exit Date</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Separation Reason</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Exit Notes & Handover</th>
+                                                </>
+                                            )}
+                                            {selectedHrTab === 'contact' && (
+                                                <>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Mobile No.</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Email ID</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Current Address</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Permanent Address</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Emergency Contact</th>
+                                                </>
+                                            )}
+                                            {selectedHrTab === 'salary' && (
+                                                <>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Bank Name</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Account Number</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>IFSC Code</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Basic Salary</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>KPI Incentive</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Join Date</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Term. Date</th>
+                                                </>
+                                            )}
+                                            {selectedHrTab === 'compliance' && (
+                                                <>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', width: '55%' }}>Compliance & Roster Documents</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', textAlign: 'center', width: '25%' }}>Quick Upload</th>
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', textAlign: 'center', width: '20%' }}>Verification Status</th>
+                                                </>
+                                            )}
+                                            <th style={{ padding: '1rem 1.5rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', textAlign: 'center' }}>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredStaff.length > 0 ? (
+                                            filteredStaff.map((staff) => {
+                                                const totalDocCount = (staff.aadhaarCollected ? 1 : 0) + (staff.panCollected ? 1 : 0) + (staff.medicalCollected ? 1 : 0);
+                                                const hasBankDetails = staff.bankName && staff.accountNumber;
+                                                return (
+                                                    <tr key={staff.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                        {/* Common Column: Full Name */}
+                                                        <td 
+                                                            style={{ padding: '1rem 1.5rem', cursor: 'pointer', minWidth: '180px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                                                            onClick={() => setSelectedDetailStaff(staff)}
+                                                            title="Click to view full profile report summary"
+                                                            onMouseOver={e => e.currentTarget.style.background = '#f8fafc'}
+                                                            onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                                                        >
+                                                            <div style={{ fontWeight: 'bold', color: '#009ceb', textDecoration: 'underline' }}>{staff.fullName} 🔎</div>
+                                                            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
+                                                                {staff.dob ? `Born ${staff.dob}` : 'DOB not set'} • {staff.position}
+                                                            </div>
+                                                        </td>
+
+                                                        {/* View 1: Personal Info */}
+                                                        {selectedHrTab === 'personal' && (
+                                                            <>
+                                                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>{staff.nickname || '-'}</td>
+                                                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem', fontWeight: '500' }}>
+                                                                    {staff.assignedOutlet ? (
+                                                                        <span style={{ color: '#009ceb', fontWeight: 'bold' }}>📍 {staff.assignedOutlet}</span>
+                                                                    ) : (
+                                                                        <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Head Office / Unassigned</span>
+                                                                    )}
+                                                                </td>
+                                                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>{staff.gender}</td>
+                                                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>{staff.dob || '-'}</td>
+                                                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>
+                                                                    {staff.bloodGroup ? (
+                                                                        <span style={{ background: '#fee2e2', color: '#ef4444', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>{staff.bloodGroup}</span>
+                                                                    ) : '-'}
+                                                                </td>
+                                                                <td style={{ padding: '1rem' }}>
+                                                                    <select 
+                                                                        value={staff.status || 'Permanent'}
+                                                                        onChange={async (e) => {
+                                                                            const newStatus = e.target.value;
+                                                                            if (newStatus === 'Terminated') {
+                                                                                setTermModalDate(new Date().toISOString().split('T')[0]);
+                                                                                setTermModalReason('Resigned');
+                                                                                setTermModalNotes('');
+                                                                                setTermModal({ staff, newStatus });
+                                                                                return;
+                                                                            } else {
+                                                                                const updates = { status: newStatus, termDate: '', termReason: '', termNotes: '' };
+                                                                                await db.updateStaff(staff.id, updates);
+                                                                                setStaffList(prev => prev.map(s => s.id === staff.id ? { ...s, ...updates } : s));
+                                                                                showToast(`Employee status updated to ${newStatus}.`);
+                                                                            }
+                                                                        }}
+                                                                        style={{ 
+                                                                            padding: '4px 10px', 
+                                                                            borderRadius: '20px', 
+                                                                            fontSize: '0.75rem', 
+                                                                            fontWeight: 'bold', 
+                                                                            border: '1px solid #cbd5e1',
+                                                                            cursor: 'pointer',
+                                                                            outline: 'none',
+                                                                            background: staff.status === 'Terminated' ? '#fee2e2' : staff.status === 'Permanent' ? '#e0f2fe' : '#f1f5f9',
+                                                                            color: staff.status === 'Terminated' ? '#ef4444' : staff.status === 'Permanent' ? '#0369a1' : '#475569'
+                                                                        }}
+                                                                    >
+                                                                        <option value="Permanent">Permanent</option>
+                                                                        <option value="Temporary">Temporary</option>
+                                                                        <option value="Terminated">Terminated</option>
+                                                                    </select>
+                                                                </td>
+                                                                <td style={{ padding: '1rem', color: '#1e293b', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                                                                    ₹{(parseFloat(staff.salary) || 0).toLocaleString('en-IN')}
+                                                                </td>
+                                                            </>
+                                                        )}
+
+                                                        {/* View 2: Contact Info */}
+                                                        {selectedHrTab === 'contact' && (
+                                                            <>
+                                                                <td style={{ padding: '1rem', fontSize: '0.9rem', color: '#475569' }}>
+                                                                    <div>{staff.phone}</div>
+                                                                    {staff.alternatePhone && <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>Alt: {staff.alternatePhone}</div>}
+                                                                </td>
+                                                                <td style={{ padding: '1rem', fontSize: '0.9rem', color: '#475569' }}>{staff.email || '-'}</td>
+                                                                <td style={{ padding: '1rem', fontSize: '0.9rem', color: '#475569', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{staff.currentAddress || '-'}</td>
+                                                                <td style={{ padding: '1rem', fontSize: '0.9rem', color: '#475569', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{staff.permanentAddress || '-'}</td>
+                                                                <td style={{ padding: '1rem', fontSize: '0.9rem', color: '#475569' }}>
+                                                                    <div>{staff.emergencyContact || '-'}</div>
+                                                                    {staff.emergencyPhone && <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>{staff.emergencyPhone}</div>}
+                                                                </td>
+                                                            </>
+                                                        )}
+
+                                                        {/* View 3: Salary Info */}
+                                                        {selectedHrTab === 'salary' && (
+                                                            <>
+                                                                <td style={{ padding: '1rem', fontSize: '0.9rem' }}>
+                                                                    {hasBankDetails ? <span style={{ color: '#475569' }}>{staff.bankName}</span> : <span style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 'bold' }}>⚠️ Missing Bank Details</span>}
+                                                                </td>
+                                                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>{staff.accountNumber || '-'}</td>
+                                                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>{staff.ifscCode || '-'}</td>
+                                                                <td style={{ padding: '1rem', color: '#1e293b', fontSize: '0.9rem' }}>
+                                                                    <div style={{ fontWeight: 'bold' }}>₹{(parseFloat(staff.salary) || 0).toLocaleString('en-IN')}</div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setHikeStaff(staff);
+                                                                            setHikeAmount(staff.salary || '');
+                                                                        }}
+                                                                        style={{
+                                                                            background: '#e0f2fe',
+                                                                            color: '#0369a1',
+                                                                            border: 'none',
+                                                                            padding: '4px 8px',
+                                                                            borderRadius: '6px',
+                                                                            fontSize: '0.7rem',
+                                                                            fontWeight: 'bold',
+                                                                            cursor: 'pointer',
+                                                                            marginTop: '4px',
+                                                                            display: 'inline-flex',
+                                                                            alignItems: 'center',
+                                                                            gap: '3px'
+                                                                        }}
+                                                                    >
+                                                                        📈 Hike / Adjust
+                                                                    </button>
+                                                                </td>
+                                                                <td style={{ padding: '1rem', color: '#10b981', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                                                                    {staff.incentive ? `₹${parseFloat(staff.incentive).toLocaleString('en-IN')}` : '-'}
+                                                                </td>
+                                                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>{staff.joinDate || '-'}</td>
+                                                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>{staff.termDate || '-'}</td>
+                                                            </>
+                                                        )}
+
+                                                        {/* View 5: Exit & Separation Logs */}
+                                                        {selectedHrTab === 'exit' && (
+                                                            <>
+                                                                <td style={{ padding: '1rem' }}>
+                                                                    <select 
+                                                                        value={staff.status || 'Permanent'}
+                                                                        onChange={async (e) => {
+                                                                            const newStatus = e.target.value;
+                                                                            if (newStatus === 'Terminated') {
+                                                                                setTermModalDate(new Date().toISOString().split('T')[0]);
+                                                                                setTermModalReason('Resigned');
+                                                                                setTermModalNotes('');
+                                                                                setTermModal({ staff, newStatus });
+                                                                                return;
+                                                                            } else {
+                                                                                const updates = { status: newStatus, termDate: '', termReason: '', termNotes: '' };
+                                                                                await db.updateStaff(staff.id, updates);
+                                                                                setStaffList(prev => prev.map(s => s.id === staff.id ? { ...s, ...updates } : s));
+                                                                                showToast(`Employee status updated to ${newStatus}.`);
+                                                                            }
+                                                                        }}
+                                                                        style={{ 
+                                                                            padding: '4px 10px', 
+                                                                            borderRadius: '20px', 
+                                                                            fontSize: '0.75rem', 
+                                                                            fontWeight: 'bold', 
+                                                                            border: '1px solid #cbd5e1',
+                                                                            cursor: 'pointer',
+                                                                            outline: 'none',
+                                                                            background: staff.status === 'Terminated' ? '#fee2e2' : staff.status === 'Permanent' ? '#e0f2fe' : staff.status === 'Part-time' ? '#fef9c3' : staff.status === 'Daily Wage' ? '#fef3c7' : '#f1f5f9',
+                                                                            color: staff.status === 'Terminated' ? '#ef4444' : staff.status === 'Permanent' ? '#0369a1' : staff.status === 'Part-time' ? '#ca8a04' : staff.status === 'Daily Wage' ? '#d97706' : '#475569'
+                                                                        }}
+                                                                    >
+                                                                        <option value="Permanent">Permanent</option>
+                                                                        <option value="Temporary">Temporary</option>
+                                                                        <option value="Part-time">Part-time</option>
+                                                                        <option value="Daily Wage">Daily Wage</option>
+                                                                        <option value="Terminated">Terminated</option>
+                                                                    </select>
+                                                                </td>
+                                                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem', fontWeight: 'bold' }}>
+                                                                    {staff.status === 'Terminated' ? (staff.termDate || 'Not set') : '-'}
+                                                                </td>
+                                                                <td style={{ padding: '1rem', color: '#ef4444', fontSize: '0.9rem', fontWeight: 'bold' }}>
+                                                                    {staff.status === 'Terminated' ? (staff.termReason || 'Not specified') : '-'}
+                                                                </td>
+                                                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={staff.termNotes}>
+                                                                    {staff.status === 'Terminated' ? (staff.termNotes || 'No notes added') : '-'}
+                                                                </td>
+                                                            </>
+                                                        )}
+
+                                                        {/* View 4: Compliance Checklist */}
+                                                        {selectedHrTab === 'compliance' && (() => {
+                                                             const allDocs = [];
+                                                             if (staff.aadhaarDocUrl) allDocs.push({ name: 'Aadhaar Card', url: staff.aadhaarDocUrl });
+                                                             if (staff.resumeDocUrl) allDocs.push({ name: 'Resume', url: staff.resumeDocUrl });
+                                                             if (staff.medicalDocUrl) allDocs.push({ name: 'Medical Cert', url: staff.medicalDocUrl });
+                                                             
+                                                             if (staff.documents && staff.documents.length > 0) {
+                                                                 staff.documents.forEach(d => {
+                                                                     if (!allDocs.find(x => x.url === d.url)) {
+                                                                         allDocs.push(d);
+                                                                     }
+                                                                 });
+                                                             }
+
+                                                             const isFullyCompliant = allDocs.length >= 3;
+
+                                                             const handleInlineDocUpload = async (e) => {
+                                                                 const file = e.target.files[0];
+                                                                 if (!file) return;
+                                                                 const docLabel = prompt("Enter a label/title for this compliance document (e.g. Health License, Contract Agreement, Aadhaar Card):");
+                                                                 if (!docLabel) return;
+                                                                 setIsUploading(true);
+                                                                 try {
+                                                                     const url = await uploadMedia(file);
+                                                                     const updatedDocs = [...(staff.documents || []), { name: docLabel, url }];
+                                                                     const updates = { documents: updatedDocs };
+                                                                     const lowerLabel = docLabel.toLowerCase();
+                                                                     if (lowerLabel.includes('aadhaar')) {
+                                                                         updates.aadhaarDocUrl = url;
+                                                                         updates.aadhaarCollected = true;
+                                                                     } else if (lowerLabel.includes('medical')) {
+                                                                         updates.medicalDocUrl = url;
+                                                                         updates.medicalCollected = true;
+                                                                     } else if (lowerLabel.includes('pan')) {
+                                                                         updates.panCollected = true;
+                                                                     } else if (lowerLabel.includes('resume')) {
+                                                                         updates.resumeDocUrl = url;
+                                                                     }
+                                                                     await db.updateStaff(staff.id, updates);
+                                                                     setStaffList(prev => prev.map(s => s.id === staff.id ? { ...s, ...updates } : s));
+                                                                     showToast("Document uploaded and saved successfully!")
+                                                                 } catch (error) {
+                                                                     console.error(error);
+                                                                     showToast("Failed to upload: " + error.message, "error")
+                                                                 } finally {
+                                                                     setIsUploading(false);
+                                                                 }
+                                                             };
+
+                                                             return (
+                                                                 <>
+                                                                     {/* Column 1: Document List */}
+                                                                     <td style={{ padding: '1rem', fontSize: '0.9rem' }}>
+                                                                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                                             {allDocs.length > 0 ? (
+                                                                                 allDocs.map((doc, idx) => (
+                                                                                     <a
+                                                                                         key={idx}
+                                                                                         href={doc.url}
+                                                                                         target="_blank"
+                                                                                         rel="noreferrer"
+                                                                                         style={{
+                                                                                             background: '#e0f2fe',
+                                                                                             color: '#0369a1',
+                                                                                             textDecoration: 'none',
+                                                                                             padding: '4px 10px',
+                                                                                             borderRadius: '6px',
+                                                                                             fontSize: '0.75rem',
+                                                                                             fontWeight: 'bold',
+                                                                                             display: 'inline-flex',
+                                                                                             alignItems: 'center',
+                                                                                             gap: '4px',
+                                                                                             transition: 'all 0.2s'
+                                                                                         }}
+                                                                                         onMouseOver={e => e.target.style.background = '#bae6fd'}
+                                                                                         onMouseOut={e => e.target.style.background = '#e0f2fe'}
+                                                                                     >
+                                                                                         📄 {doc.name} 📥
+                                                                                     </a>
+                                                                                 ))
+                                                                             ) : (
+                                                                                 <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No documents uploaded</span>
+                                                                             )}
+                                                                         </div>
+                                                                     </td>
+                                                                     
+                                                                     {/* Column 2: Quick Upload Trigger */}
+                                                                     <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                                         <div style={{ display: 'inline-block', position: 'relative' }}>
+                                                                             <button
+                                                                                 type="button"
+                                                                                 disabled={isUploading}
+                                                                                 onClick={() => document.getElementById(`inline-upload-${staff.id}`).click()}
+                                                                                 style={{
+                                                                                     background: '#f1f5f9',
+                                                                                     border: '1px dashed #cbd5e1',
+                                                                                     padding: '4px 10px',
+                                                                                     borderRadius: '6px',
+                                                                                     fontSize: '0.75rem',
+                                                                                     fontWeight: 'bold',
+                                                                                     color: '#475569',
+                                                                                     cursor: 'pointer'
+                                                                                 }}
+                                                                             >
+                                                                                 {isUploading ? 'Uploading...' : '➕ Upload Doc'}
+                                                                             </button>
+                                                                             <input
+                                                                                 type="file"
+                                                                                 id={`inline-upload-${staff.id}`}
+                                                                                 style={{ display: 'none' }}
+                                                                                 onChange={handleInlineDocUpload}
+                                                                             />
+                                                                         </div>
+                                                                     </td>
+
+                                                                     {/* Column 3: Verification Status */}
+                                                                     <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                                         {isFullyCompliant ? (
+                                                                             <span style={{ background: '#dcfce7', color: '#15803d', padding: '4px 10px', borderRadius: '50px', fontSize: '0.75rem', fontWeight: 'bold' }}>Fully Compliant</span>
+                                                                         ) : (
+                                                                             <span style={{ background: '#fee2e2', color: '#ef4444', padding: '4px 10px', borderRadius: '50px', fontSize: '0.75rem', fontWeight: 'bold' }}>Pending Docs ({allDocs.length}/3)</span>
+                                                                         )}
+                                                                     </td>
+                                                                 </>
+                                                             );
+                                                         })()}
+
+                                                        {/* Actions Column */}
+                                                        <td style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>
+                                                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                                                <button onClick={() => setEditingStaff(staff)} className={styles.editBtn} style={{ width: '30px', height: '30px' }} title="Edit Profile">
+                                                                    <EditIcon />
+                                                                </button>
+                                                                <button onClick={() => handleDeleteStaff(staff.id)} className={styles.deleteButton} title="Delete Profile">
+                                                                    <TrashIcon />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={10} style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
+                                                    No staff members found matching your search or filters.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                            )}
+                        </div>
+                    );
+                })()}
+
+                {/* --- MONTHLY PAYROLL TAB --- */}
+                {
+                    activeTab === 'payroll' && (() => {
+                        const activeStaff = staffList.filter(s => s.status !== 'Terminated');
+                        
+                        const outletFilteredStaff = activeStaff.filter(s => {
+                            if (selectedPayrollOutlet === 'All') return true;
+                            if (selectedPayrollOutlet === 'Head Office') return !s.assignedOutlet || s.assignedOutlet === '';
+                            return s.assignedOutlet === selectedPayrollOutlet;
+                        });
+
+                        const getCalculatedNetForStaff = (s) => {
+                            const basic = parseFloat(s.salary) || 0;
+                            const maxIncentive = parseFloat(s.incentive) || 0;
+                            const leaves = parseInt(s.leavesTaken) || 0;
+                            const rating = parseInt(s.kpiRating) || 3;
+                            const attRate = Math.max(0, (26 - leaves) / 26);
+                            
+                            let kpiMultiplier = 0.5;
+                            if (rating === 5) kpiMultiplier = 1.0;
+                            else if (rating === 4) kpiMultiplier = 0.8;
+                            else if (rating === 3) kpiMultiplier = 0.5;
+                            else if (rating === 2) kpiMultiplier = 0.2;
+                            else if (rating === 1) kpiMultiplier = 0;
+                            
+                            const kpiBonus = maxIncentive * kpiMultiplier * attRate;
+                            return (basic * attRate) + kpiBonus;
+                        };
+
+                        const totalPaidAmount = payrollRecords
+                            .filter(r => outletFilteredStaff.find(s => s.id === r.staffId))
+                            .reduce((sum, r) => sum + (parseFloat(r.netSalaryPaid) || 0), 0);
+                        
+                        const totalPaidStaffIds = payrollRecords.map(r => r.staffId);
+                        
+                        const totalPendingAmount = outletFilteredStaff.reduce((sum, s) => {
+                            if (totalPaidStaffIds.includes(s.id)) return sum;
+                            return sum + getCalculatedNetForStaff(s);
+                        }, 0);
+
+                        const paidCount = payrollRecords.filter(r => outletFilteredStaff.find(s => s.id === r.staffId)).length;
+
+                        // ----------------------------------------------------
+                        // DRILL-DOWN STEP 3: Month Payroll Details View
+                        // ----------------------------------------------------
+                        if (payrollActiveStaffId && payrollActiveMonth) {
+                            const staff = staffList.find(s => s.id === payrollActiveStaffId);
+                            if (!staff) {
+                                setPayrollActiveStaffId(null);
+                                setPayrollActiveMonth(null);
+                                return null;
+                            }
+
+                            const basic = parseFloat(staff.salary) || 0;
+                            const maxIncentive = parseFloat(staff.incentive) || 0;
+                            const unpaid = parseFloat(payrollDraft.unpaidLeaves) || 0;
+                            const half = parseFloat(payrollDraft.halfDays) || 0;
+                            const workingDays = parseFloat(payrollDraft.workingDays) || 26;
+                            
+                            const presentDays = workingDays - unpaid - (half * 0.5);
+                            const attPercent = ((presentDays / workingDays) * 100).toFixed(1);
+                            
+                            const rating = parseInt(payrollDraft.kpiRating) || 5;
+                            let kpiMultiplier = 0.5;
+                            if (rating === 5) kpiMultiplier = 1.0;
+                            else if (rating === 4) kpiMultiplier = 0.8;
+                            else if (rating === 3) kpiMultiplier = 0.5;
+                            else if (rating === 2) kpiMultiplier = 0.2;
+                            else if (rating === 1) kpiMultiplier = 0;
+
+                            const attRate = Math.max(0, presentDays / workingDays);
+                            const overrideKpi = !!payrollDraft.overrideKpiBonus;
+                            const customKpi = parseFloat(payrollDraft.customKpiBonus) || 0;
+                            const kpiBonus = overrideKpi ? customKpi : (maxIncentive * kpiMultiplier * attRate);
+                            const attDeduction = (basic * (unpaid + half * 0.5)) / workingDays;
+                            
+                            const overtime = parseFloat(payrollDraft.overtime) || 0;
+                            const advance = parseFloat(payrollDraft.advanceRecovery) || 0;
+                            const other = parseFloat(payrollDraft.otherDeductions) || 0;
+                            
+                            const calculatedNet = (basic - attDeduction) + kpiBonus + overtime - advance - other;
+
+                            const monthNames = {
+                                '2026-08': 'August 2026',
+                                '2026-07': 'July 2026',
+                                '2026-06': 'June 2026',
+                                '2026-05': 'May 2026',
+                                '2026-04': 'April 2026',
+                                '2026-03': 'March 2026'
+                            };
+                            const friendlyMonth = monthNames[payrollActiveMonth] || payrollActiveMonth;
+
+                            return (
+                                <div className={styles.tabContent} style={{ width: '100%' }}>
+                                    
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
+                                        <div>
+                                            <button 
+                                                onClick={() => setPayrollActiveMonth(null)} 
+                                                style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '5px', color: '#475569' }}
+                                            >
+                                                ⬅ Back to Profile
+                                            </button>
+                                            <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#1e293b', margin: '0.75rem 0 0 0' }}>
+                                                {friendlyMonth} Payroll Details: {staff.fullName}
+                                            </h2>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button 
+                                                onClick={() => {
+                                                    const win = window.open("", "_blank");
+                                                    win.document.write(`
+                                                        <html>
+                                                        <head>
+                                                            <title>Salary Slip - ${staff.fullName}</title>
+                                                            <style>
+                                                                body { font-family: system-ui, sans-serif; padding: 2rem; color: #1e293b; }
+                                                                .header { border-bottom: 2px solid #009ceb; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+                                                                .title { font-size: 1.5rem; font-weight: bold; margin: 0; color: #009ceb; }
+                                                                .subtitle { color: #64748b; font-size: 0.9rem; margin-top: 4px; }
+                                                                .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+                                                                .label { font-weight: bold; color: #475569; }
+                                                                table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
+                                                                th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; }
+                                                                th { background: #f8fafc; }
+                                                                .net { font-size: 1.25rem; font-weight: bold; background: #e0f2fe; color: #0369a1; }
+                                                                .footer { margin-top: 3rem; display: flex; justify-content: space-between; font-size: 0.9rem; color: #64748b; }
+                                                                .sig { border-top: 1px dashed #cbd5e1; width: 200px; text-align: center; padding-top: 8px; margin-top: 2rem; }
+                                                                @media print { .no-print { display: none; } }
+                                                            </style>
+                                                        </head>
+                                                        <body>
+                                                            <div class="header">
+                                                                <h1 class="title">HIGH LABAN</h1>
+                                                                <div class="subtitle">EGYPTIAN DESSERTS CAFE & FOODS</div>
+                                                                <h2 style="margin: 10px 0 0 0; font-size: 1.2rem;">Salary Payslip - ${friendlyMonth}</h2>
+                                                            </div>
+                                                            <div class="grid">
+                                                                <div>
+                                                                    <div style="margin-bottom: 4px;"><span class="label">Employee Name:</span> ${staff.fullName}</div>
+                                                                    <div style="margin-bottom: 4px;"><span class="label">Designation:</span> ${staff.position}</div>
+                                                                    <div style="margin-bottom: 4px;"><span class="label">Assigned Outlet:</span> ${staff.assignedOutlet || 'Head Office'}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div style="margin-bottom: 4px;"><span class="label">Total Working Days:</span> ${workingDays}</div>
+                                                                    <div style="margin-bottom: 4px;"><span class="label">Present Days:</span> ${presentDays}</div>
+                                                                    <div style="margin-bottom: 4px;"><span class="label">Attendance rate:</span> ${attPercent}%</div>
+                                                                </div>
+                                                            </div>
+                                                            <table>
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>Earnings Description</th>
+                                                                        <th>Amount (₹)</th>
+                                                                        <th>Deductions Description</th>
+                                                                        <th>Amount (₹)</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <tr>
+                                                                        <td>Basic Salary (Fixed)</td>
+                                                                        <td>₹${basic.toLocaleString('en-IN')}</td>
+                                                                        <td>Attendance Deduction</td>
+                                                                        <td>₹${attDeduction.toFixed(0)}</td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td>KPI Bonus Incentive</td>
+                                                                        <td>₹${kpiBonus.toFixed(0)}</td>
+                                                                        <td>Advance Recovery</td>
+                                                                        <td>₹${advance.toLocaleString('en-IN')}</td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td>Overtime Allowance</td>
+                                                                        <td>₹${overtime.toLocaleString('en-IN')}</td>
+                                                                        <td>Other Deductions</td>
+                                                                        <td>₹${other.toLocaleString('en-IN')}</td>
+                                                                    </tr>
+                                                                    <tr class="net">
+                                                                        <td>Total Earnings</td>
+                                                                        <td>₹${(basic + kpiBonus + overtime).toFixed(0)}</td>
+                                                                        <td>Net Payable Salary</td>
+                                                                        <td>₹${calculatedNet.toFixed(0)}</td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                            <div style="margin-top: 1rem;">
+                                                                <strong>Payment Details:</strong> Status: ${payrollDraft.isPaid ? 'Paid ✅' : 'Pending Payment ⏳'}<br/>
+                                                                ${payrollDraft.isPaid ? `Payment Method: ${payrollDraft.paymentMethod || 'Bank Transfer'}<br/>Transaction ID: ${payrollDraft.transactionId || 'N/A'}` : ''}
+                                                            </div>
+                                                            <div class="footer">
+                                                                <div class="sig">Employee Signature</div>
+                                                                <div class="sig">Authorized Signatory</div>
+                                                            </div>
+                                                            <button onclick="window.print()" class="no-print" style="margin-top: 2rem; padding: 10px 20px; background: #009ceb; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Print payslip</button>
+                                                        </body>
+                                                        </html>
+                                                    `);
+                                                }}
+                                                className={styles.exportBtn}
+                                                style={{ background: '#009ceb', color: 'white', border: 'none', padding: '0.5rem 1.2rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem' }}
+                                            >
+                                                📄 Generate Salary Slip
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
+                                        
+                                        <div>
+                                            <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', padding: '1.25rem', marginBottom: '1.25rem' }}>
+                                                <h3 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1e293b', textTransform: 'uppercase', marginBottom: '1rem', letterSpacing: '0.5px' }}>
+                                                    📅 Roster & Attendance Setup
+                                                </h3>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem' }}>
+                                                    <div className={styles.formGroup}>
+                                                        <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Working Days</label>
+                                                        <input 
+                                                            type="number" 
+                                                            value={payrollDraft.workingDays} 
+                                                            disabled={payrollDraft.isPaid}
+                                                            onChange={e => setPayrollDraft({ ...payrollDraft, workingDays: e.target.value })} 
+                                                            className={styles.input} 
+                                                        />
+                                                    </div>
+                                                    <div className={styles.formGroup}>
+                                                        <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Weekly Offs</label>
+                                                        <input 
+                                                            type="number" 
+                                                            value={payrollDraft.weeklyOff} 
+                                                            disabled={payrollDraft.isPaid}
+                                                            onChange={e => setPayrollDraft({ ...payrollDraft, weeklyOff: e.target.value })} 
+                                                            className={styles.input} 
+                                                        />
+                                                    </div>
+                                                    <div className={styles.formGroup}>
+                                                        <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Paid Leave</label>
+                                                        <input 
+                                                            type="number" 
+                                                            value={payrollDraft.paidLeave} 
+                                                            disabled={payrollDraft.isPaid}
+                                                            onChange={e => setPayrollDraft({ ...payrollDraft, paidLeave: e.target.value })} 
+                                                            className={styles.input} 
+                                                        />
+                                                    </div>
+                                                    <div className={styles.formGroup}>
+                                                        <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Unpaid Leaves</label>
+                                                        <input 
+                                                            type="number" 
+                                                            value={payrollDraft.unpaidLeaves} 
+                                                            disabled={payrollDraft.isPaid}
+                                                            onChange={e => setPayrollDraft({ ...payrollDraft, unpaidLeaves: e.target.value })} 
+                                                            className={styles.input} 
+                                                        />
+                                                    </div>
+                                                    <div className={styles.formGroup}>
+                                                        <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Half Days</label>
+                                                        <input 
+                                                            type="number" 
+                                                            value={payrollDraft.halfDays} 
+                                                            disabled={payrollDraft.isPaid}
+                                                            onChange={e => setPayrollDraft({ ...payrollDraft, halfDays: e.target.value })} 
+                                                            className={styles.input} 
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                                                    <span>Present Ratio: <strong>{presentDays} / {workingDays} Days</strong></span>
+                                                    <span style={{ color: '#10b981', fontWeight: 'bold' }}>Attendance %: {attPercent}%</span>
+                                                </div>
+                                            </div>
+
+                                            <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', padding: '1.25rem', marginBottom: '1.25rem' }}>
+                                                <h3 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1e293b', textTransform: 'uppercase', marginBottom: '1rem', letterSpacing: '0.5px' }}>
+                                                    ⭐ KPI Bonus Rating
+                                                </h3>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div>
+                                                        <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block' }}>Max KPI Bonus potential</span>
+                                                        <strong style={{ fontSize: '1.1rem', color: '#1e293b' }}>₹{maxIncentive.toLocaleString('en-IN')}</strong>
+                                                    </div>
+                                                    <div>
+                                                        <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', textAlign: 'right' }}>KPI Rating</span>
+                                                        {payrollDraft.isPaid ? (
+                                                            <div style={{ color: '#eab308', fontSize: '1.2rem', marginTop: '4px' }}>
+                                                                {Array.from({ length: 5 }).map((_, i) => (
+                                                                    <span key={i}>{i < rating ? '★' : '☆'}</span>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <select 
+                                                                value={payrollDraft.kpiRating} 
+                                                                onChange={e => setPayrollDraft({ ...payrollDraft, kpiRating: e.target.value })}
+                                                                className={styles.statusSelect}
+                                                                style={{ margin: 0 }}
+                                                                disabled={!!payrollDraft.overrideKpiBonus}
+                                                            >
+                                                                <option value="5">⭐⭐⭐⭐⭐ (100%)</option>
+                                                                <option value="4">⭐⭐⭐⭐☆ (80%)</option>
+                                                                <option value="3">⭐⭐⭐☆☆ (50%)</option>
+                                                                <option value="2">⭐⭐☆☆☆ (20%)</option>
+                                                                <option value="1">⭐☆☆☆☆ (0%)</option>
+                                                            </select>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {!payrollDraft.isPaid && (
+                                                    <div style={{ marginTop: '1rem', borderTop: '1px dashed #cbd5e1', paddingTop: '0.8rem' }}>
+                                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#475569', cursor: 'pointer', fontWeight: 'bold' }}>
+                                                            <input 
+                                                                type="checkbox"
+                                                                checked={!!payrollDraft.overrideKpiBonus}
+                                                                onChange={e => setPayrollDraft({ ...payrollDraft, overrideKpiBonus: e.target.checked })}
+                                                            />
+                                                            Override with custom KPI Bonus amount
+                                                        </label>
+
+                                                        {!!payrollDraft.overrideKpiBonus && (
+                                                            <div className={styles.formGroup} style={{ marginTop: '0.5rem' }}>
+                                                                <label style={{ fontSize: '0.72rem', color: '#64748b' }}>Custom KPI Bonus (₹)</label>
+                                                                <input 
+                                                                    type="number"
+                                                                    value={payrollDraft.customKpiBonus}
+                                                                    onChange={e => setPayrollDraft({ ...payrollDraft, customKpiBonus: e.target.value })}
+                                                                    className={styles.input}
+                                                                    style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', background: '#fefbeb', border: '1px solid #fef3c7', padding: '10px', borderRadius: '8px', fontSize: '0.85rem', marginTop: '1rem' }}>
+                                                    <span style={{ color: '#d97706' }}>
+                                                        {overrideKpi ? 'Status: Custom Overridden' : `Multiplier: ${(kpiMultiplier * 100).toFixed(0)}%`}
+                                                    </span>
+                                                    <span style={{ color: '#b45309', fontWeight: 'bold' }}>Earned Bonus: ₹{kpiBonus.toFixed(0)}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', padding: '1.25rem' }}>
+                                                <h3 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1e293b', textTransform: 'uppercase', marginBottom: '1.2rem', letterSpacing: '0.5px' }}>
+                                                    🧾 Payout Ledger Details
+                                                </h3>
+
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', borderBottom: '1px dashed #cbd5e1', paddingBottom: '4px' }}>
+                                                        <span style={{ color: '#64748b' }}>Basic Fixed Salary</span>
+                                                        <strong style={{ color: '#1e293b' }}>₹{basic.toLocaleString('en-IN')}</strong>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', borderBottom: '1px dashed #cbd5e1', paddingBottom: '4px' }}>
+                                                        <span style={{ color: '#ef4444' }}>Attendance Deduction</span>
+                                                        <strong style={{ color: '#ef4444' }}>- ₹{attDeduction.toFixed(0)}</strong>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', borderBottom: '1px dashed #cbd5e1', paddingBottom: '4px' }}>
+                                                        <span style={{ color: '#10b981' }}>KPI Performance Bonus</span>
+                                                        <strong style={{ color: '#10b981' }}>+ ₹{kpiBonus.toFixed(0)}</strong>
+                                                    </div>
+                                                    
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', margin: '0.25rem 0' }}>
+                                                        <div className={styles.formGroup}>
+                                                            <label style={{ fontSize: '0.72rem', color: '#64748b' }}>Overtime</label>
+                                                            <input 
+                                                                type="number" 
+                                                                value={payrollDraft.overtime} 
+                                                                disabled={payrollDraft.isPaid}
+                                                                onChange={e => setPayrollDraft({ ...payrollDraft, overtime: e.target.value })} 
+                                                                className={styles.input} 
+                                                                style={{ padding: '4px 8px', fontSize: '0.8rem' }}
+                                                            />
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label style={{ fontSize: '0.72rem', color: '#64748b' }}>Advance Recovery</label>
+                                                            <input 
+                                                                type="number" 
+                                                                value={payrollDraft.advanceRecovery} 
+                                                                disabled={payrollDraft.isPaid}
+                                                                onChange={e => setPayrollDraft({ ...payrollDraft, advanceRecovery: e.target.value })} 
+                                                                className={styles.input} 
+                                                                style={{ padding: '4px 8px', fontSize: '0.8rem' }}
+                                                            />
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label style={{ fontSize: '0.72rem', color: '#64748b' }}>Other Deductions</label>
+                                                            <input 
+                                                                type="number" 
+                                                                value={payrollDraft.otherDeductions} 
+                                                                disabled={payrollDraft.isPaid}
+                                                                onChange={e => setPayrollDraft({ ...payrollDraft, otherDeductions: e.target.value })} 
+                                                                className={styles.input} 
+                                                                style={{ padding: '4px 8px', fontSize: '0.8rem' }}
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', background: '#0284c7', padding: '12px', borderRadius: '10px', color: 'white', marginTop: '0.5rem' }}>
+                                                        <span style={{ fontWeight: 'bold' }}>Net Salary Payable</span>
+                                                        <strong style={{ fontSize: '1.25rem' }}>₹{calculatedNet.toFixed(0)}</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                            
+                                            <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', padding: '1.25rem', background: payrollDraft.isPaid ? '#f0fdf4' : '#fffbeb' }}>
+                                                <h3 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1e293b', textTransform: 'uppercase', marginBottom: '1rem', letterSpacing: '0.5px' }}>
+                                                    🏦 Payment processing status
+                                                </h3>
+                                                {payrollDraft.isPaid ? (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
+                                                        <span style={{ background: '#dcfce7', color: '#15803d', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', width: 'fit-content' }}>✅ Paid</span>
+                                                        <div><strong>Method:</strong> {payrollDraft.paymentMethod}</div>
+                                                        <div><strong>Ref / TXN ID:</strong> {payrollDraft.transactionId || 'N/A'}</div>
+                                                        <div><strong>Processed By:</strong> {payrollDraft.processedBy || 'Admin'}</div>
+                                                        <div><strong>Remarks:</strong> {payrollDraft.remarks}</div>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                                        <span style={{ background: '#fef3c7', color: '#b45309', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', width: 'fit-content' }}>⏳ Pending</span>
+                                                        
+                                                        <div className={styles.formGroup} style={{ margin: 0 }}>
+                                                            <label>Payment Method</label>
+                                                            <select 
+                                                                value={payrollDraft.paymentMethod} 
+                                                                onChange={e => setPayrollDraft({ ...payrollDraft, paymentMethod: e.target.value })} 
+                                                                className={styles.input}
+                                                            >
+                                                                <option value="Bank Transfer">Bank Transfer</option>
+                                                                <option value="UPI Pay">UPI (GPay / PhonePe / Paytm)</option>
+                                                                <option value="Cash Payment">Cash Payment</option>
+                                                                <option value="Cheque">Cheque Pay</option>
+                                                            </select>
+                                                        </div>
+
+                                                        <div className={styles.formGroup} style={{ margin: 0 }}>
+                                                            <label>Transaction / Reference ID</label>
+                                                            <input 
+                                                                type="text" 
+                                                                value={payrollDraft.transactionId} 
+                                                                onChange={e => setPayrollDraft({ ...payrollDraft, transactionId: e.target.value })} 
+                                                                placeholder="e.g. TXN9832470" 
+                                                                className={styles.input} 
+                                                            />
+                                                        </div>
+
+                                                        <div className={styles.formGroup} style={{ margin: 0 }}>
+                                                            <label>Remarks</label>
+                                                            <input 
+                                                                type="text" 
+                                                                value={payrollDraft.remarks} 
+                                                                onChange={e => setPayrollDraft({ ...payrollDraft, remarks: e.target.value })} 
+                                                                placeholder="Salary credited successfully." 
+                                                                className={styles.input} 
+                                                            />
+                                                        </div>
+
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => handlePayPayrollDetails(payrollDraft.paymentMethod, payrollDraft.transactionId, payrollDraft.remarks)}
+                                                            className={styles.addButton}
+                                                            style={{ margin: 0, width: '100%', padding: '0.75rem' }}
+                                                        >
+                                                            🔒 Process Payment & Mark Paid
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', padding: '1.25rem' }}>
+                                                <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1e293b', textTransform: 'uppercase', marginBottom: '0.8rem', letterSpacing: '0.5px' }}>
+                                                    📁 Documents
+                                                </h3>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                        <a href="#" onClick={e => { e.preventDefault(); showToast("Generated leave logs sheet") }} style={{ padding: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', color: '#009ceb', textDecoration: 'none', display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                                                            <span>📄 Attendance Report & Leave Record</span>
+                                                            <span>📥 View</span>
+                                                        </a>
+                                                        <a href="#" onClick={e => { e.preventDefault(); showToast("Generated KPI details score sheet") }} style={{ padding: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', color: '#009ceb', textDecoration: 'none', display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                                                            <span>📊 KPI Evaluation Summary</span>
+                                                            <span>📥 View</span>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', padding: '1.25rem' }}>
+                                                <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1e293b', textTransform: 'uppercase', marginBottom: '1rem', letterSpacing: '0.5px' }}>
+                                                    📈 Employee Timeline
+                                                </h3>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative', paddingLeft: '20px' }}>
+                                                    <div style={{ position: 'absolute', top: '5px', bottom: '5px', left: '6px', width: '2px', background: '#e2e8f0' }}></div>
+                                                    
+                                                    <div style={{ position: 'relative' }}>
+                                                        <div style={{ position: 'absolute', left: '-19px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }}></div>
+                                                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Joined Company</span>
+                                                        <strong style={{ fontSize: '0.8rem', color: '#334155' }}>{staff.joinDate || 'N/A'}</strong>
+                                                    </div>
+
+                                                    <div style={{ position: 'relative' }}>
+                                                        <div style={{ position: 'absolute', left: '-19px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: '#6366f1' }}></div>
+                                                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Salary Structure Configured</span>
+                                                        <strong style={{ fontSize: '0.8rem', color: '#334155' }}>Fixed: ₹{basic.toLocaleString('en-IN')}</strong>
+                                                    </div>
+
+                                                    <div style={{ position: 'relative' }}>
+                                                        <div style={{ position: 'absolute', left: '-19px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: payrollDraft.isPaid ? '#10b981' : '#f59e0b' }}></div>
+                                                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>{friendlyMonth} Payroll</span>
+                                                        <strong style={{ fontSize: '0.8rem', color: '#334155' }}>{payrollDraft.isPaid ? 'Salary Disbursed' : 'Awaiting Processing'}</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        }
+
+                        // ----------------------------------------------------
+                        // DRILL-DOWN STEP 2: Employee Profile & Monthly History
+                        // ----------------------------------------------------
+                        if (payrollActiveStaffId) {
+                            const staff = staffList.find(s => s.id === payrollActiveStaffId);
+                            if (!staff) {
+                                setPayrollActiveStaffId(null);
+                                return null;
+                            }
+
+                            const complianceDocs = [];
+                            if (staff.aadhaarDocUrl) complianceDocs.push({ name: 'Aadhaar Card', url: staff.aadhaarDocUrl });
+                            if (staff.resumeDocUrl) complianceDocs.push({ name: 'Resume File', url: staff.resumeDocUrl });
+                            if (staff.medicalDocUrl) complianceDocs.push({ name: 'Medical Cert', url: staff.medicalDocUrl });
+                            if (staff.documents) {
+                                staff.documents.forEach(d => {
+                                    if (!complianceDocs.find(x => x.url === d.url)) {
+                                        complianceDocs.push(d);
+                                    }
+                                });
+                            }
+
+                            const targetMonths = ['2026-08', '2026-07', '2026-06', '2026-05', '2026-04', '2026-03'];
+
+                            return (
+                                <div className={styles.tabContent} style={{ width: '100%' }}>
+                                    
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
+                                        <div>
+                                            <button 
+                                                onClick={() => setPayrollActiveStaffId(null)} 
+                                                style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '5px', color: '#475569' }}
+                                            >
+                                                ⬅ Back to Staff list
+                                            </button>
+                                            <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#1e293b', margin: '0.75rem 0 0 0' }}>
+                                                Employee Profile: {staff.fullName}
+                                            </h2>
+                                        </div>
+                                        <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '5px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                                            {staff.position}
+                                        </span>
+                                    </div>
+
+                                    {/* Profile Sub-tabs Switcher */}
+                                    <div style={{ display: 'flex', gap: '8px', marginBottom: '1.5rem', borderBottom: '2px solid #f1f5f9', paddingBottom: '0.5rem', flexWrap: 'wrap' }}>
+                                        <button 
+                                            onClick={() => setProfileActiveSubTab('personal')} 
+                                            style={{ 
+                                                border: 'none', 
+                                                background: 'transparent', 
+                                                borderBottom: profileActiveSubTab === 'personal' ? '3px solid #009ceb' : 'none', 
+                                                color: profileActiveSubTab === 'personal' ? '#009ceb' : '#64748b', 
+                                                padding: '8px 16px', 
+                                                cursor: 'pointer', 
+                                                fontWeight: 'bold', 
+                                                fontSize: '0.85rem' 
+                                            }}
+                                        >
+                                            🧑 Personal Info
+                                        </button>
+                                        <button 
+                                            onClick={() => setProfileActiveSubTab('salary')} 
+                                            style={{ 
+                                                border: 'none', 
+                                                background: 'transparent', 
+                                                borderBottom: profileActiveSubTab === 'salary' ? '3px solid #009ceb' : 'none', 
+                                                color: profileActiveSubTab === 'salary' ? '#009ceb' : '#64748b', 
+                                                padding: '8px 16px', 
+                                                cursor: 'pointer', 
+                                                fontWeight: 'bold', 
+                                                fontSize: '0.85rem' 
+                                            }}
+                                        >
+                                            💵 Salary & Hikes
+                                        </button>
+                                        <button 
+                                            onClick={() => setProfileActiveSubTab('compliance')} 
+                                            style={{ 
+                                                border: 'none', 
+                                                background: 'transparent', 
+                                                borderBottom: profileActiveSubTab === 'compliance' ? '3px solid #009ceb' : 'none', 
+                                                color: profileActiveSubTab === 'compliance' ? '#009ceb' : '#64748b', 
+                                                padding: '8px 16px', 
+                                                cursor: 'pointer', 
+                                                fontWeight: 'bold', 
+                                                fontSize: '0.85rem' 
+                                            }}
+                                        >
+                                            📂 Compliance Vault
+                                        </button>
+                                        <button 
+                                            onClick={() => setProfileActiveSubTab('history')} 
+                                            style={{ 
+                                                border: 'none', 
+                                                background: 'transparent', 
+                                                borderBottom: profileActiveSubTab === 'history' ? '3px solid #009ceb' : 'none', 
+                                                color: profileActiveSubTab === 'history' ? '#009ceb' : '#64748b', 
+                                                padding: '8px 16px', 
+                                                cursor: 'pointer', 
+                                                fontWeight: 'bold', 
+                                                fontSize: '0.85rem' 
+                                            }}
+                                        >
+                                            📅 Payroll Ledger
+                                        </button>
+                                    </div>
+
+                                    <div style={{ maxWidth: '800px' }}>
+                                        
+                                        {profileActiveSubTab === 'personal' && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                                <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', padding: '1.25rem' }}>
+                                                    <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+                                                        🧑 Personal details
+                                                    </h3>
+
+                                                    <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                                                        <div style={{ width: '80px', height: '80px', borderRadius: '50px', background: '#3b82f6', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 'bold', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                                                            {staff.fullName.split(' ').map(n => n[0]).join('')}
+                                                        </div>
+
+                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 1.5rem', flex: 1, fontSize: '0.85rem', minWidth: '250px' }}>
+                                                            <div><span style={{ color: '#94a3b8' }}>Employee ID:</span> <strong style={{ color: '#334155' }}>{staff.id.substring(0, 8)}</strong></div>
+                                                            <div><span style={{ color: '#94a3b8' }}>Nickname:</span> <strong style={{ color: '#334155' }}>{staff.nickname || 'N/A'}</strong></div>
+                                                            <div><span style={{ color: '#94a3b8' }}>Mobile:</span> <a href={`tel:${staff.phone}`} style={{ color: '#009ceb', fontWeight: 'bold' }}>{staff.phone}</a></div>
+                                                            <div><span style={{ color: '#94a3b8' }}>Email:</span> <a href={`mailto:${staff.email}`} style={{ color: '#009ceb' }}>{staff.email || 'N/A'}</a></div>
+                                                            <div><span style={{ color: '#94a3b8' }}>Designation:</span> <strong style={{ color: '#334155' }}>{staff.position}</strong></div>
+                                                            <div><span style={{ color: '#94a3b8' }}>Assigned Outlet:</span> <strong style={{ color: '#334155' }}>{staff.assignedOutlet || 'Head Office'}</strong></div>
+                                                            <div><span style={{ color: '#94a3b8' }}>Joining Date:</span> <strong style={{ color: '#334155' }}>{staff.joinDate || 'N/A'}</strong></div>
+                                                            <div><span style={{ color: '#94a3b8' }}>Employment Type:</span> <strong style={{ color: '#334155' }}>{staff.status}</strong></div>
+                                                            <div style={{ gridColumn: '1/-1' }}><span style={{ color: '#94a3b8' }}>Current Address:</span> <strong style={{ color: '#334155' }}>{staff.currentAddress || 'N/A'}</strong></div>
+                                                            <div style={{ gridColumn: '1/-1' }}><span style={{ color: '#94a3b8' }}>Emergency Contact:</span> <strong style={{ color: '#334155' }}>{staff.emergencyContact ? `${staff.emergencyContact} (${staff.emergencyPhone || ''})` : 'N/A'}</strong></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {staff.status === 'Terminated' && (
+                                                    <div className={styles.card} style={{ border: '1px solid #fee2e2', background: '#fff5f5', boxShadow: 'none', padding: '1.25rem' }}>
+                                                        <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.8rem', borderBottom: '1px solid #fecaca', paddingBottom: '0.5rem' }}>
+                                                            🚫 Termination / Separation Record
+                                                        </h3>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem' }}>
+                                                            <div><span style={{ color: '#94a3b8' }}>Exit Date:</span> <strong style={{ color: '#ef4444' }}>{staff.termDate || 'N/A'}</strong></div>
+                                                            <div><span style={{ color: '#94a3b8' }}>Reason:</span> <strong style={{ color: '#ef4444' }}>{staff.termReason || 'N/A'}</strong></div>
+                                                            <div style={{ gridColumn: '1/-1' }}><span style={{ color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Exit Notes & Handover Remarks:</span> <div style={{ color: '#475569', background: 'white', padding: '8px', borderRadius: '6px', border: '1px solid #fecaca', whiteSpace: 'pre-wrap' }}>{staff.termNotes || 'No exit notes added.'}</div></div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {profileActiveSubTab === 'salary' && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                                <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', padding: '1.25rem' }}>
+                                                    <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+                                                        💵 Salary Details
+                                                    </h3>
+
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem 2rem', fontSize: '0.85rem' }}>
+                                                        <div><span style={{ color: '#94a3b8', display: 'block' }}>Fixed Monthly Salary</span><strong style={{ fontSize: '1.1rem', color: '#10b981' }}>₹{parseFloat(staff.salary || 0).toLocaleString('en-IN')}</strong></div>
+                                                        <div><span style={{ color: '#94a3b8', display: 'block' }}>Maximum KPI Bonus potential</span><strong style={{ fontSize: '1.1rem', color: '#0369a1' }}>₹{parseFloat(staff.incentive || 0).toLocaleString('en-IN')}</strong></div>
+                                                        <div><span style={{ color: '#94a3b8', display: 'block' }}>Bank Name</span><strong style={{ color: '#334155' }}>{staff.bankName || 'N/A'}</strong></div>
+                                                        <div><span style={{ color: '#94a3b8', display: 'block' }}>Account Number</span><strong style={{ color: '#334155' }}>{staff.accountNumber || 'N/A'}</strong></div>
+                                                        <div><span style={{ color: '#94a3b8', display: 'block' }}>IFSC Code</span><strong style={{ color: '#334155' }}>{staff.ifscCode || 'N/A'}</strong></div>
+                                                        <div><span style={{ color: '#94a3b8', display: 'block' }}>UPI ID</span><strong style={{ color: '#334155' }}>{staff.upiId || 'Not Configured'}</strong></div>
+                                                        <div><span style={{ color: '#94a3b8', display: 'block' }}>PF / ESI Status</span><strong style={{ color: '#334155' }}>{staff.pfEsi || 'Optional / Exempted'}</strong></div>
+                                                    </div>
+                                                </div>
+
+                                                <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', padding: '1.25rem' }}>
+                                                    <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+                                                        📈 Salary Hike & Adjustment History
+                                                    </h3>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem' }}>
+                                                        {staff.salaryHistory && staff.salaryHistory.length > 0 ? (
+                                                            staff.salaryHistory.map((h, idx) => (
+                                                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                                                    <div>
+                                                                        <strong style={{ color: '#0f172a', fontSize: '0.85rem' }}>₹{parseFloat(h.amount).toLocaleString('en-IN')}</strong>
+                                                                        <span style={{ color: '#64748b', marginLeft: '8px' }}>({h.reason})</span>
+                                                                    </div>
+                                                                    <span style={{ color: '#94a3b8', fontWeight: '500' }}>{h.date}</span>
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                                                <div>
+                                                                    <strong style={{ color: '#0f172a', fontSize: '0.85rem' }}>₹{parseFloat(staff.salary || 0).toLocaleString('en-IN')}</strong>
+                                                                    <span style={{ color: '#64748b', marginLeft: '8px' }}>(Initial Salary Setup)</span>
+                                                                </div>
+                                                                <span style={{ color: '#94a3b8', fontWeight: '500' }}>{staff.joinDate || 'N/A'}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {profileActiveSubTab === 'compliance' && (
+                                            <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', padding: '1.25rem' }}>
+                                                <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.8rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+                                                    📂 Compliance Documents
+                                                </h3>
+                                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                    {complianceDocs.length > 0 ? (
+                                                        complianceDocs.map((doc, index) => (
+                                                            <a 
+                                                                key={index} 
+                                                                href={doc.url} 
+                                                                target="_blank" 
+                                                                rel="noreferrer" 
+                                                                style={{ padding: '6px 12px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.78rem', color: '#475569', textDecoration: 'none', fontWeight: 'bold' }}
+                                                            >
+                                                                📄 {doc.name} 📥
+                                                            </a>
+                                                        ))
+                                                    ) : (
+                                                        <span style={{ fontStyle: 'italic', color: '#94a3b8', fontSize: '0.8rem' }}>No compliance documents collected yet.</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {profileActiveSubTab === 'history' && (
+                                            <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', padding: '1.25rem' }}>
+                                                <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+                                                    📅 Monthly Payroll History
+                                                </h3>
+
+                                                <div style={{ overflowX: 'auto' }}>
+                                                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                                                        <thead>
+                                                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1' }}>
+                                                                <th style={{ padding: '10px 12px', fontWeight: 'bold', color: '#475569' }}>Month</th>
+                                                                <th style={{ padding: '10px 12px', fontWeight: 'bold', color: '#475569' }}>Status</th>
+                                                                <th style={{ padding: '10px 12px', fontWeight: 'bold', color: '#475569', textAlign: 'right' }}>Net Salary</th>
+                                                                <th style={{ padding: '10px 12px', textAlign: 'center' }}>Action</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {targetMonths.map(monthStr => {
+                                                                const record = allHistoricalPayroll.find(r => r.staffId === staff.id && r.month === monthStr);
+                                                                const isPaid = !!record;
+                                                                const netSalaryVal = isPaid ? record.netSalaryPaid : getCalculatedNetForStaff(staff);
+                                                                
+                                                                const [y, m] = monthStr.split('-');
+                                                                const d = new Date(parseInt(y), parseInt(m) - 1, 1);
+                                                                const formattedMonthName = d.toLocaleDateString('default', { month: 'long', year: 'numeric' });
+
+                                                                return (
+                                                                    <tr 
+                                                                        key={monthStr} 
+                                                                        onClick={() => setPayrollActiveMonth(monthStr)}
+                                                                        style={{ borderBottom: '1px solid #e2e8f0', cursor: 'pointer', transition: 'background 0.2s' }}
+                                                                        onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                                                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                                                    >
+                                                                        <td style={{ padding: '12px 10px', fontWeight: 'bold', color: '#1e293b' }}>{formattedMonthName}</td>
+                                                                        <td style={{ padding: '12px 10px' }}>
+                                                                            {isPaid ? (
+                                                                                <span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 'bold' }}>Paid</span>
+                                                                            ) : (
+                                                                                <span style={{ background: '#fffbeb', color: '#b45309', padding: '2px 8px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 'bold' }}>Pending</span>
+                                                                            )}
+                                                                        </td>
+                                                                        <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 'bold', color: isPaid ? '#15803d' : '#475569' }}>
+                                                                            ₹{netSalaryVal.toFixed(0)}
+                                                                        </td>
+                                                                        <td style={{ padding: '12px 10px', textAlign: 'center', color: '#009ceb', fontWeight: 'bold' }}>View Details</td>
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                    </div>
+                                </div>
+                            );
+                        }
+
+                        // ----------------------------------------------------
+                        // DRILL-DOWN STEP 1: Staff Directory List View (Default)
+                        // ----------------------------------------------------
+                        return (
+                            <div className={styles.tabContent} style={{ width: '100%' }}>
+                                
+                                <div className={styles.catalogHeader}>
+                                    <div>
+                                        <h2 className={styles.sectionTitle}>HR Payroll Management</h2>
+                                        <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>
+                                            Select an employee from the list below to review their full profile, update parameters, inspect historical paychecks, and process monthly payouts.
+                                        </p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#475569' }}>Target Month:</span>
+                                        <select
+                                            value={payrollMonth}
+                                            onChange={e => setPayrollMonth(e.target.value)}
+                                            style={{
+                                                padding: '0.6rem 1rem',
+                                                border: '1px solid #cbd5e1',
+                                                borderRadius: '8px',
+                                                fontSize: '0.9rem',
+                                                fontWeight: 'bold',
+                                                color: '#1e293b',
+                                                background: 'white',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            <option value="2026-08">August 2026</option>
+                                            <option value="2026-07">July 2026</option>
+                                            <option value="2026-06">June 2026</option>
+                                            <option value="2026-05">May 2026</option>
+                                            <option value="2026-04">April 2026</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1.5rem', marginTop: '1.5rem', alignItems: 'start' }}>
+                                    
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'white', padding: '1.25rem', borderRadius: '20px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Filter by Outlet</span>
+                                        
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedPayrollOutlet('All')}
+                                            style={{
+                                                padding: '10px 14px',
+                                                borderRadius: '10px',
+                                                border: 'none',
+                                                background: selectedPayrollOutlet === 'All' ? '#e0f2fe' : 'transparent',
+                                                color: selectedPayrollOutlet === 'All' ? '#0369a1' : '#475569',
+                                                fontWeight: 'bold',
+                                                fontSize: '0.85rem',
+                                                textAlign: 'left',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s',
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center'
+                                            }}
+                                        >
+                                            <span>🏢 All Outlets</span>
+                                            <span style={{ background: selectedPayrollOutlet === 'All' ? '#cbd5e1' : '#f1f5f9', padding: '2px 8px', borderRadius: '20px', fontSize: '0.75rem', color: '#1e293b' }}>
+                                                {activeStaff.length}
+                                            </span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedPayrollOutlet('Head Office')}
+                                            style={{
+                                                padding: '10px 14px',
+                                                borderRadius: '10px',
+                                                border: 'none',
+                                                background: selectedPayrollOutlet === 'Head Office' ? '#e0f2fe' : 'transparent',
+                                                color: selectedPayrollOutlet === 'Head Office' ? '#0369a1' : '#475569',
+                                                fontWeight: 'bold',
+                                                fontSize: '0.85rem',
+                                                textAlign: 'left',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s',
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center'
+                                            }}
+                                        >
+                                            <span>💼 Head Office</span>
+                                            <span style={{ background: selectedPayrollOutlet === 'Head Office' ? '#cbd5e1' : '#f1f5f9', padding: '2px 8px', borderRadius: '20px', fontSize: '0.75rem', color: '#1e293b' }}>
+                                                {activeStaff.filter(s => !s.assignedOutlet || s.assignedOutlet === '').length}
+                                            </span>
+                                        </button>
+
+                                        <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '8px 0' }} />
+                                        <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Running Franchises</span>
+                                        
+                                        {runningFranchises.map(outlet => {
+                                            const count = activeStaff.filter(s => s.assignedOutlet === outlet.outletName).length;
+                                            return (
+                                                <button
+                                                    key={outlet.id}
+                                                    type="button"
+                                                    onClick={() => setSelectedPayrollOutlet(outlet.outletName)}
+                                                    style={{
+                                                        padding: '10px 14px',
+                                                        borderRadius: '10px',
+                                                        border: 'none',
+                                                        background: selectedPayrollOutlet === outlet.outletName ? '#e0f2fe' : 'transparent',
+                                                        color: selectedPayrollOutlet === outlet.outletName ? '#0369a1' : '#475569',
+                                                        fontWeight: 'bold',
+                                                        fontSize: '0.85rem',
+                                                        textAlign: 'left',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s',
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center'
+                                                    }}
+                                                >
+                                                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '8px' }}>🍕 {outlet.outletName.replace("High Laban - ", "")}</span>
+                                                    <span style={{ background: selectedPayrollOutlet === outlet.outletName ? '#cbd5e1' : '#f1f5f9', padding: '2px 8px', borderRadius: '20px', fontSize: '0.75rem', color: '#1e293b' }}>
+                                                        {count}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+                                        
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', width: '100%' }}>
+                                            <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.2rem' }}>
+                                                <div style={{ background: '#dcfce7', width: '48px', height: '48px', borderRadius: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>💰</div>
+                                                <div>
+                                                    <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Total Paid Out ({payrollMonth})</div>
+                                                    <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#15803d', marginTop: '2px' }}>₹{totalPaidAmount.toLocaleString('en-IN')}</div>
+                                                </div>
+                                            </div>
+                                            <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.2rem' }}>
+                                                <div style={{ background: '#fef3c7', width: '48px', height: '48px', borderRadius: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>⏳</div>
+                                                <div>
+                                                    <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Pending Payout</div>
+                                                    <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#d97706', marginTop: '2px' }}>₹{totalPendingAmount.toLocaleString('en-IN')}</div>
+                                                </div>
+                                            </div>
+                                            <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.2rem' }}>
+                                                <div style={{ background: '#e0f2fe', width: '48px', height: '48px', borderRadius: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>👥</div>
+                                                <div>
+                                                    <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Staff Count</div>
+                                                    <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#0369a1', marginTop: '2px' }}>{outletFilteredStaff.length} Employees</div>
+                                                </div>
+                                            </div>
+                                            <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.2rem' }}>
+                                                <div style={{ background: '#fae8ff', width: '48px', height: '48px', borderRadius: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>✅</div>
+                                                <div>
+                                                    <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Paid Count</div>
+                                                    <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#a21caf', marginTop: '2px' }}>{paidCount} / {outletFilteredStaff.length} Paid</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className={styles.card} style={{ padding: '0', overflowX: 'auto', borderRadius: '20px', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+                                            <table className={styles.hrTable} style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                                <thead>
+                                                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                                        <th style={{ padding: '1rem 1.25rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Employee</th>
+                                                        <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Fixed Salary</th>
+                                                        <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Leaves & Att.</th>
+                                                        <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', textAlign: 'center' }}>KPI Rating</th>
+                                                        <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>KPI Bonus</th>
+                                                        <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Net Payable</th>
+                                                        <th style={{ padding: '1rem 1.25rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', textAlign: 'center' }}>Status / Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {outletFilteredStaff.length > 0 ? (
+                                                        outletFilteredStaff.map(staff => {
+                                                            const record = payrollRecords.find(r => r.staffId === staff.id);
+                                                            const isPaid = !!record;
+                                                            const isDailyWage = staff.status === 'Daily Wage' || staff.payType === 'Daily';
+                                                            const dailyRate = parseFloat(staff.dailyRate) || 0;
+                                                            const prorationFactor = isDailyWage ? 1 : getProrationFactor(staff, payrollMonth);
+                                                            const basic = isDailyWage ? dailyRate : ((parseFloat(staff.salary) || 0) * prorationFactor);
+                                                            const maxIncentive = isDailyWage ? 0 : ((parseFloat(staff.incentive) || 0) * prorationFactor);
+                                                            const leaves = parseInt(staff.leavesTaken) || 0;
+                                                            const rating = parseInt(staff.kpiRating) || 3;
+                                                            const workDays = isDailyWage ? (parseInt(staff.workingDays) || 26) : Math.max(1, Math.round(26 * prorationFactor));
+                                                            const presentDays = Math.max(0, workDays - leaves);
+                                                            const attRate = Math.max(0, presentDays / workDays);
+                                                            
+                                                            let kpiMultiplier = 0.5;
+                                                            if (rating === 5) kpiMultiplier = 1.0;
+                                                            else if (rating === 4) kpiMultiplier = 0.8;
+                                                            else if (rating === 3) kpiMultiplier = 0.5;
+                                                            else if (rating === 2) kpiMultiplier = 0.2;
+                                                            else if (rating === 1) kpiMultiplier = 0;
+                                                            
+                                                            const kpiBonus = isDailyWage ? 0 : (maxIncentive * kpiMultiplier * attRate);
+                                                            const calculatedNet = isDailyWage ? (dailyRate * presentDays) : ((basic * attRate) + kpiBonus);
+
+                                                            const displayBasic = isPaid ? (record.basicSalary || basic) : basic;
+                                                            const displayLeaves = isPaid ? (record.leavesTaken || leaves) : leaves;
+                                                            const displayRating = isPaid ? (record.kpiRating || rating) : rating;
+                                                            const displayBonus = isPaid ? (record.kpiBonusPaid || kpiBonus) : kpiBonus;
+                                                            const displayNet = isPaid ? (record.netSalaryPaid || calculatedNet) : calculatedNet;
+                                                            const displayPresentDays = isPaid ? (record.presentDays || presentDays) : presentDays;
+
+                                                            return (
+                                                                <tr key={staff.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                                    <td
+                                                                        style={{ padding: '1rem 1.25rem', cursor: 'pointer' }}
+                                                                        onClick={() => setSelectedDetailStaff(staff)}
+                                                                        title="Click to view full Month-on-Month salary history & performance details"
+                                                                        onMouseOver={e => e.currentTarget.style.background = '#f1f5f9'}
+                                                                        onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                                                                    >
+                                                                        <div style={{ fontWeight: 'bold', color: '#009ceb', textDecoration: 'underline' }}>{staff.fullName} 🔎</div>
+                                                                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                            <span>{staff.position}</span>
+                                                                            {isDailyWage && <span style={{ background: '#fef3c7', color: '#d97706', padding: '1px 6px', borderRadius: '10px', fontWeight: '700', fontSize: '0.65rem' }}>DAILY WAGE</span>}
+                                                                            {staff.status === 'Part-time' && <span style={{ background: '#fef9c3', color: '#ca8a04', padding: '1px 6px', borderRadius: '10px', fontWeight: '700', fontSize: '0.65rem' }}>PART-TIME</span>}
+                                                                            {prorationFactor < 1 && <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: '10px', fontWeight: '700', fontSize: '0.65rem' }}>PRORATED ({(prorationFactor * 100).toFixed(0)}%)</span>}
+                                                                            {staff.assignedOutlet ? (
+                                                                                <span style={{ color: '#009ceb', fontWeight: '500' }}>📍 {staff.assignedOutlet.replace('High Laban - ', '')}</span>
+                                                                            ) : (
+                                                                                <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Head Office</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                    <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>
+                                                                        {isDailyWage ? (
+                                                                            <div>
+                                                                                <div style={{ fontWeight: '700', color: '#d97706' }}>₹{dailyRate.toLocaleString('en-IN')}<span style={{ fontWeight: '400', fontSize: '0.75rem', color: '#94a3b8' }}>/day</span></div>
+                                                                                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{displayPresentDays} days × ₹{dailyRate}</div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <span>₹{displayBasic.toLocaleString('en-IN')}</span>
+                                                                        )}
+                                                                    </td>
+                                                                    <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>
+                                                                        {isDailyWage ? (
+                                                                            <div>
+                                                                                <span style={{ fontWeight: 'bold', color: '#10b981' }}>{displayPresentDays} Days Present</span>
+                                                                                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{displayLeaves} absent</div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div>
+                                                                                <span style={{ fontWeight: 'bold', color: displayLeaves > 0 ? '#ef4444' : '#10b981' }}>{displayLeaves} Leaves</span>
+                                                                                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{(attRate * 100).toFixed(0)}% attendance</div>
+                                                                            </div>
+                                                                        )}
+                                                                    </td>
+                                                                    <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                                        {isDailyWage ? (
+                                                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>N/A</span>
+                                                                        ) : (
+                                                                            <div>
+                                                                                <div style={{ display: 'flex', justifyContent: 'center', color: '#eab308', fontSize: '1rem' }}>
+                                                                                    {Array.from({ length: 5 }).map((_, i) => (
+                                                                                        <span key={i}>{i < displayRating ? '★' : '☆'}</span>
+                                                                                    ))}
+                                                                                </div>
+                                                                                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Rating: {displayRating}/5</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </td>
+                                                                    <td style={{ padding: '1rem', color: '#10b981', fontWeight: '600', fontSize: '0.9rem' }}>
+                                                                        {isDailyWage ? <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>—</span> : `₹${displayBonus.toLocaleString('en-IN')}`}
+                                                                    </td>
+                                                                    <td style={{ padding: '1rem', color: '#1e293b', fontWeight: '800', fontSize: '0.95rem' }}>
+                                                                        ₹{displayNet.toLocaleString('en-IN')}
+                                                                    </td>
+                                                                    <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                                                                        {isPaid ? (
+                                                                            <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                                                <span style={{ background: '#dcfce7', color: '#15803d', padding: '4px 12px', borderRadius: '50px', fontSize: '0.75rem', fontWeight: 'bold', display: 'inline-block' }}>Paid ✅</span>
+                                                                                <span style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '3px' }}>{record.datePaid ? new Date(record.datePaid).toLocaleDateString() : ''}</span>
+                                                                            </div>
+                                                                        ) : isDailyWage ? (
+                                                                            <button type="button"
+                                                                                onClick={() => { setDailyWageDays(String(presentDays)); setDailyWagePayModal({ staff, payData: { fullName: staff.fullName, position: staff.position, assignedOutlet: staff.assignedOutlet || 'Head Office', dailyRate, leavesTaken: leaves, kpiRating: rating, kpiBonusPaid: 0, datePaid: new Date().toISOString() } }); }}
+                                                                                style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', padding: '5px 12px', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.8rem', cursor: 'pointer' }}>💰 Pay Daily</button>
+                                                                        ) : (
+                                                                            <button type="button"
+                                                                                onClick={() => handlePayPayroll(staff.id, { fullName: staff.fullName, position: staff.position, assignedOutlet: staff.assignedOutlet || 'Head Office', basicSalary: basic, leavesTaken: leaves, kpiRating: rating, kpiBonusPaid: kpiBonus, netSalaryPaid: calculatedNet, datePaid: new Date().toISOString() })}
+                                                                                style={{ background: '#009ceb', color: 'white', border: 'none', padding: '5px 12px', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.8rem', cursor: 'pointer', transition: 'background 0.2s' }}
+                                                                                onMouseOver={e => e.target.style.background = '#007bb8'}
+                                                                                onMouseOut={e => e.target.style.background = '#009ceb'}
+                                                                            >Mark Paid</button>
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })
+                                                    ) : (
+                                                        <tr>
+                                                            <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
+                                                                No active staff profiles for this outlet filter.
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        {/* KPI Logic & Calculation Info Box */}
+                                        <div style={{ display: 'grid', gap: '1.25rem' }}>
+                                            <div className={styles.card} style={{ padding: '1.25rem', border: '1px solid #e2e8f0', boxShadow: 'none', background: '#f8fafc' }}>
+                                                <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#1e293b', textTransform: 'uppercase', marginBottom: '0.8rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    ℹ️ KPI & Salary Formula
+                                                </h3>
+                                                <div style={{ fontSize: '0.82rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '8px', lineHeight: '1.45' }}>
+                                                    <div>
+                                                        <strong>1. Attendance Rate</strong>
+                                                        <div style={{ fontFamily: 'monospace', background: '#f1f5f9', padding: '4px', borderRadius: '4px', marginTop: '2px' }}>Att. % = (26 - Leaves Taken) / 26</div>
+                                                    </div>
+                                                    <div>
+                                                        <strong>2. Daily Wage Formula</strong>
+                                                        <div style={{ fontFamily: 'monospace', background: '#fef3c7', padding: '4px', borderRadius: '4px', marginTop: '2px', color: '#92400e' }}>Net = Daily Rate × Days Present</div>
+                                                    </div>
+                                                    <div>
+                                                        <strong>3. Monthly Staff Net</strong>
+                                                        <div style={{ fontFamily: 'monospace', background: '#f1f5f9', padding: '4px', borderRadius: '4px', marginTop: '2px', fontWeight: 'bold', color: '#1e293b' }}>Net = (Basic × Att. %) + KPI Bonus</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className={styles.card} style={{ padding: '1.25rem', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+                                                <h4 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '0.5rem' }}>Need to adjust values?</h4>
+                                                <p style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: '1.4' }}>
+                                                    Leaves, ratings, incentives, and basic salaries are tied directly to employee profile details. Head to <strong style={{ color: '#009ceb', cursor: 'pointer' }} onClick={() => setActiveTab('staff')}>🧑‍🍳 HR Staff</strong> and edit the employee profile.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {selectedDetailStaff && (
+                                            <div className={styles.modalOverlay} onClick={() => setSelectedDetailStaff(null)}>
+                                                <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+                                                    <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Payroll History: {selectedDetailStaff.fullName}</h2>
+                                                    <button onClick={() => setSelectedDetailStaff(null)} style={{ marginTop: '1rem' }}>Close</button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()
+                }
+            </main>
 
             {/* EDIT MODAL */}
             {
@@ -969,7 +4410,6 @@ const AdminDashboard = () => {
                                                 );
                                             })
                                         ) : (
-                                            // Fallback for legacy data without images array
                                             <div style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
                                                 <img src={editingProduct.img || 'https://placehold.co/200'} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                             </div>
@@ -1011,6 +4451,68 @@ const AdminDashboard = () => {
                                     </div>
                                 </div>
 
+                                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #cbd5e1', marginTop: '0.5rem' }}>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.5rem' }}>✨ Customize Toppings (Added Toppings count as extra varieties)</label>
+                                    <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                                        <input 
+                                            type="text" 
+                                            id="edit-topping-input"
+                                            placeholder="Type topping name (e.g. Nutella) and press Enter or click Add" 
+                                            className={styles.footerField} 
+                                            style={{ background: 'white', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', flex: 1, outline: 'none' }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    const val = e.target.value.trim();
+                                                    if (val && !(editingProduct.toppings || []).includes(val)) {
+                                                        setEditingProduct(prev => ({ ...prev, toppings: [...(prev.toppings || []), val] }));
+                                                        e.target.value = '';
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                        <button 
+                                            type="button"
+                                            onClick={() => {
+                                                const el = document.getElementById('edit-topping-input');
+                                                const val = el ? el.value.trim() : '';
+                                                if (val && !(editingProduct.toppings || []).includes(val)) {
+                                                    setEditingProduct(prev => ({ ...prev, toppings: [...(prev.toppings || []), val] }));
+                                                    el.value = '';
+                                                }
+                                            }}
+                                            style={{ background: '#009ceb', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+                                        >
+                                            Add Topping
+                                        </button>
+                                    </div>
+                                    
+                                    {/* Tag list */}
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                        {(editingProduct.toppings || []).map((topping, idx) => (
+                                            <span 
+                                                key={idx} 
+                                                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'white', border: '1px solid #cbd5e1', color: '#009ceb', padding: '4px 12px', borderRadius: '50px', fontSize: '0.8rem', fontWeight: 'bold' }}
+                                            >
+                                                {topping}
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => {
+                                                        const updated = (editingProduct.toppings || []).filter((_, i) => i !== idx);
+                                                        setEditingProduct(prev => ({ ...prev, toppings: updated }));
+                                                    }}
+                                                    style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem', padding: 0, display: 'flex', alignItems: 'center' }}
+                                                >
+                                                    ×
+                                                </button>
+                                            </span>
+                                        ))}
+                                        {(editingProduct.toppings || []).length === 0 && (
+                                            <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>No toppings configured. Type a topping name above and click "Add Topping".</span>
+                                        )}
+                                    </div>
+                                </div>
+
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.5rem' }}>Description</label>
                                     <textarea rows={4} value={editingProduct.description || ''} onChange={e => setEditingProduct({ ...editingProduct, description: e.target.value })} style={{ width: '100%', padding: '0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', fontFamily: 'inherit' }} />
@@ -1029,9 +4531,2078 @@ const AdminDashboard = () => {
                 )
             }
 
+            {/* EDIT STAFF MODAL */}
+            {
+                editingStaff && (
+                    <div className={styles.modalOverlay} onClick={() => setEditingStaff(null)}>
+                        <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '850px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.8rem' }}>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>Edit Profile: {editingStaff.fullName}</h2>
+                                <button type="button" onClick={() => setEditingStaff(null)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8', padding: '0 0.5rem' }}>&times;</button>
+                            </div>
 
+                            <form onSubmit={handleUpdateStaff} className={styles.staffForm}>
+                                
+                                {/* SECTION 1: Personal Details */}
+                                <div style={{ marginBottom: '1.2rem' }}>
+                                    <h4 style={{ color: '#009ceb', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.75rem', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.2rem', fontWeight: 'bold' }}>1. Personal & Core Details</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
+                                        <div className={styles.formGroup} style={{ gridColumn: 'span 2' }}>
+                                            <label>Full Name *</label>
+                                            <input type="text" value={editingStaff.fullName} onChange={e => setEditingStaff({ ...editingStaff, fullName: e.target.value })} className={styles.input} required />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Nickname / Call Name</label>
+                                            <input type="text" value={editingStaff.nickname || ''} onChange={e => setEditingStaff({ ...editingStaff, nickname: e.target.value })} className={styles.input} />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Gender</label>
+                                            <select value={editingStaff.gender} onChange={e => setEditingStaff({ ...editingStaff, gender: e.target.value })} className={styles.input}>
+                                                <option value="Male">Male</option>
+                                                <option value="Female">Female</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div className={styles.formGroup} style={{ gridColumn: 'span 2' }}>
+                                            <label>Date of Birth</label>
+                                            <input type="date" value={toInputDate(editingStaff.dob)} onChange={e => setEditingStaff({ ...editingStaff, dob: e.target.value })} className={styles.input} />
+                                        </div>
+                                        <div className={styles.formGroup} style={{ gridColumn: 'span 2' }}>
+                                            <label>Blood Group</label>
+                                            <input type="text" value={editingStaff.bloodGroup || ''} onChange={e => setEditingStaff({ ...editingStaff, bloodGroup: e.target.value })} className={styles.input} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* SECTION 2: Contact & Address Coordinates */}
+                                <div style={{ marginBottom: '1.2rem' }}>
+                                    <h4 style={{ color: '#009ceb', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.75rem', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.2rem', fontWeight: 'bold' }}>2. Contact & Address Coordinates</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                                        <div className={styles.formGroup}>
+                                            <label>Email ID</label>
+                                            <input type="email" value={editingStaff.email || ''} onChange={e => setEditingStaff({ ...editingStaff, email: e.target.value })} className={styles.input} />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Primary Mobile *</label>
+                                            <input type="tel" value={editingStaff.phone} onChange={e => setEditingStaff({ ...editingStaff, phone: e.target.value })} className={styles.input} required />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Alternate Contact</label>
+                                            <input type="tel" value={editingStaff.alternatePhone || ''} onChange={e => setEditingStaff({ ...editingStaff, alternatePhone: e.target.value })} className={styles.input} />
+                                        </div>
+                                        <div className={styles.formGroup} style={{ gridColumn: 'span 3' }}>
+                                            <label>Current Address (Bangalore Coordinates)</label>
+                                            <textarea rows={2} value={editingStaff.currentAddress || ''} onChange={e => setEditingStaff({ ...editingStaff, currentAddress: e.target.value })} className={styles.input} />
+                                        </div>
+                                        <div className={styles.formGroup} style={{ gridColumn: 'span 3' }}>
+                                            <label>Permanent Address (Home Base)</label>
+                                            <textarea rows={2} value={editingStaff.permanentAddress || ''} onChange={e => setEditingStaff({ ...editingStaff, permanentAddress: e.target.value })} className={styles.input} />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Emergency Contact Name</label>
+                                            <input type="text" value={editingStaff.emergencyContact || ''} onChange={e => setEditingStaff({ ...editingStaff, emergencyContact: e.target.value })} className={styles.input} />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Emergency Contact Phone</label>
+                                            <input type="tel" value={editingStaff.emergencyPhone || ''} onChange={e => setEditingStaff({ ...editingStaff, emergencyPhone: e.target.value })} className={styles.input} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* SECTION 3: Work Status & Financial Parameters */}
+                                <div style={{ marginBottom: '1.2rem' }}>
+                                    <h4 style={{ color: '#009ceb', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.75rem', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.2rem', fontWeight: 'bold' }}>3. Work Status & Financial Parameters</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                                        <div className={styles.formGroup}>
+                                            <label>Employment Status</label>
+                                            <select value={editingStaff.status} onChange={e => setEditingStaff({ ...editingStaff, status: e.target.value })} className={styles.input}>
+                                                <option value="Permanent">Permanent</option>
+                                                <option value="Temporary">Temporary</option>
+                                                <option value="Part-time">Part-time</option>
+                                                <option value="Daily Wage">Daily Wage</option>
+                                                <option value="Terminated">Terminated</option>
+                                            </select>
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Date of Joining</label>
+                                            <input type="date" value={toInputDate(editingStaff.doj)} onChange={e => setEditingStaff({ ...editingStaff, doj: e.target.value })} className={styles.input} />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Base Salary (Monthly)</label>
+                                            <input type="number" value={editingStaff.salary || ''} onChange={e => setEditingStaff({ ...editingStaff, salary: e.target.value })} className={styles.input} />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Daily Rate (If Daily Wage)</label>
+                                            <input type="number" value={editingStaff.dailyRate || ''} onChange={e => setEditingStaff({ ...editingStaff, dailyRate: e.target.value })} className={styles.input} />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Position / Role</label>
+                                            <select 
+                                                value={['Chef', 'Cashier', 'Manager', 'Waiter', 'Delivery', 'Helper'].includes(editingStaff.position) ? editingStaff.position : 'Other'} 
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    setEditingStaff({ ...editingStaff, position: val === 'Other' ? '' : val });
+                                                }}
+                                                className={styles.input}
+                                            >
+                                                <option value="Chef">Chef / Cook</option>
+                                                <option value="Cashier">Cashier</option>
+                                                <option value="Manager">Manager</option>
+                                                <option value="Waiter">Waiter</option>
+                                                <option value="Delivery">Delivery Boy</option>
+                                                <option value="Helper">Kitchen Helper</option>
+                                                <option value="Other">Other / Custom Role</option>
+                                            </select>
+                                            {!['Chef', 'Cashier', 'Manager', 'Waiter', 'Delivery', 'Helper'].includes(editingStaff.position) && (
+                                                <input 
+                                                    type="text" 
+                                                    value={editingStaff.position} 
+                                                    onChange={e => setEditingStaff({ ...editingStaff, position: e.target.value })} 
+                                                    placeholder="Enter Custom Role/Designation" 
+                                                    className={styles.input}
+                                                    style={{ marginTop: '5px' }}
+                                                />
+                                            )}
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Max Monthly KPI Bonus (INR)</label>
+                                            <input type="number" value={editingStaff.incentive || ''} onChange={e => setEditingStaff({ ...editingStaff, incentive: e.target.value })} className={styles.input} />
+                                        </div>
+                                        {editingStaff.status === 'Terminated' && (
+                                            <>
+                                                <div className={styles.formGroup}>
+                                                    <label>Termination Date</label>
+                                                    <input type="date" value={toInputDate(editingStaff.termDate)} onChange={e => setEditingStaff({ ...editingStaff, termDate: e.target.value })} className={styles.input} />
+                                                </div>
+                                                <div className={styles.formGroup}>
+                                                    <label>Separation Reason</label>
+                                                    <select value={editingStaff.termReason || ''} onChange={e => setEditingStaff({ ...editingStaff, termReason: e.target.value })} className={styles.input}>
+                                                        <option value="">Select Reason</option>
+                                                        <option value="Resigned">Resigned</option>
+                                                        <option value="Absconded">Absconded / Left without Notice</option>
+                                                        <option value="Performance">Terminated (Performance)</option>
+                                                        <option value="Misconduct">Terminated (Misconduct)</option>
+                                                        <option value="Relocated">Relocated</option>
+                                                        <option value="Other">Other Reason</option>
+                                                    </select>
+                                                </div>
+                                                <div className={styles.formGroup} style={{ gridColumn: 'span 3' }}>
+                                                    <label>Exit Notes & Handover Remarks</label>
+                                                    <textarea rows={2} value={editingStaff.termNotes || ''} onChange={e => setEditingStaff({ ...editingStaff, termNotes: e.target.value })} placeholder="Details about why they left, handover status, etc." className={styles.input} style={{ width: '100%', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '8px' }} />
+                                                </div>
+                                            </>
+                                        )}
+                                        <div className={styles.formGroup}>
+                                            <label>Assigned Franchise Outlet</label>
+                                            <select value={editingStaff.assignedOutlet || ''} onChange={e => setEditingStaff({ ...editingStaff, assignedOutlet: e.target.value })} className={styles.input}>
+                                                <option value="">Unassigned / Head Office</option>
+                                                {runningFranchises.map(outlet => (
+                                                    <option key={outlet.id} value={outlet.outletName}>{outlet.outletName}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* SECTION 4: Bank Setup & Compliance Documentation */}
+                                <div style={{ marginBottom: '1.2rem' }}>
+                                    <h4 style={{ color: '#009ceb', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.75rem', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.2rem', fontWeight: 'bold' }}>4. Bank Setup & Compliance Documentation</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                                        <div className={styles.formGroup}>
+                                            <label>Bank Name</label>
+                                            <input type="text" value={editingStaff.bankName || ''} onChange={e => setEditingStaff({ ...editingStaff, bankName: e.target.value })} className={styles.input} />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Account Number</label>
+                                            <input type="text" value={editingStaff.accountNumber || ''} onChange={e => setEditingStaff({ ...editingStaff, accountNumber: e.target.value })} className={styles.input} />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>IFSC Code</label>
+                                            <input type="text" value={editingStaff.ifscCode || ''} onChange={e => setEditingStaff({ ...editingStaff, ifscCode: e.target.value })} className={styles.input} />
+                                        </div>
+                                    </div>
+
+                                    {/* Compliance Box */}
+                                    <div className={styles.complianceBox} style={{ marginTop: '0.75rem' }}>
+                                        <div className={styles.complianceItem}>
+                                            <input type="checkbox" checked={editingStaff.aadhaarCollected || false} onChange={e => setEditingStaff({ ...editingStaff, aadhaarCollected: e.target.checked })} id="edit_aadhaarCollected" />
+                                            <div className={styles.complianceText}>
+                                                <label htmlFor="edit_aadhaarCollected" className={styles.complianceTitle}>Aadhaar Card Submitted</label>
+                                                <span className={styles.complianceSub}>Validated copy on file</span>
+                                            </div>
+                                        </div>
+                                        <div className={styles.complianceItem}>
+                                            <input type="checkbox" checked={editingStaff.panCollected || false} onChange={e => setEditingStaff({ ...editingStaff, panCollected: e.target.checked })} id="edit_panCollected" />
+                                            <div className={styles.complianceText}>
+                                                <label htmlFor="edit_panCollected" className={styles.complianceTitle}>PAN Card Submitted</label>
+                                                <span className={styles.complianceSub}>PAN setup for tax verification</span>
+                                            </div>
+                                        </div>
+                                        <div className={styles.complianceItem}>
+                                            <input type="checkbox" checked={editingStaff.medicalCollected || false} onChange={e => setEditingStaff({ ...editingStaff, medicalCollected: e.target.checked })} id="edit_medicalCollected" />
+                                            <div className={styles.complianceText}>
+                                                <label htmlFor="edit_medicalCollected" className={styles.complianceTitle}>Medical Certificate</label>
+                                                <span className={styles.complianceSub}>Required for restaurant license</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* SECTION 5: Document Attachments */}
+                                <div style={{ marginBottom: '1.2rem' }}>
+                                    <h4 style={{ color: '#009ceb', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.75rem', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.2rem', fontWeight: 'bold' }}>5. Document Attachments & Compliance Vault</h4>
+                                    
+                                    {/* Existing documents list */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '1rem', background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Current Uploaded Documents:</span>
+                                        {(() => {
+                                            const docList = [];
+                                            if (editingStaff.aadhaarDocUrl) docList.push({ key: 'aadhaarDocUrl', name: 'Aadhaar Card', url: editingStaff.aadhaarDocUrl });
+                                            if (editingStaff.resumeDocUrl) docList.push({ key: 'resumeDocUrl', name: 'Resume', url: editingStaff.resumeDocUrl });
+                                            if (editingStaff.medicalDocUrl) docList.push({ key: 'medicalDocUrl', name: 'Medical Certificate', url: editingStaff.medicalDocUrl });
+                                            
+                                            if (editingStaff.documents && editingStaff.documents.length > 0) {
+                                                editingStaff.documents.forEach((d, idx) => {
+                                                    if (!docList.find(x => x.url === d.url)) {
+                                                        docList.push({ key: `doc-${idx}`, index: idx, name: d.name, url: d.url });
+                                                    }
+                                                });
+                                            }
+
+                                            if (docList.length === 0) {
+                                                return <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>No documents attached yet.</span>;
+                                            }
+
+                                            return docList.map((doc, idx) => (
+                                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                                                    <a href={doc.url} target="_blank" rel="noreferrer" style={{ fontSize: '0.85rem', color: '#009ceb', fontWeight: 'bold', textDecoration: 'none' }}>📄 {doc.name}</a>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (window.confirm(`Remove ${doc.name}?`)) {
+                                                                if (doc.key.startsWith('doc-')) {
+                                                                    const updated = editingStaff.documents.filter((_, i) => i !== doc.index);
+                                                                    setEditingStaff({ ...editingStaff, documents: updated });
+                                                                } else {
+                                                                    const labelCollectedField = doc.key === 'aadhaarDocUrl' ? 'aadhaarCollected' : doc.key === 'medicalDocUrl' ? 'medicalCollected' : '';
+                                                                    const updates = { [doc.key]: '' };
+                                                                    if (labelCollectedField) updates[labelCollectedField] = false;
+                                                                    setEditingStaff({ ...editingStaff, ...updates });
+                                                                }
+                                                            }
+                                                        }}
+                                                        style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            ));
+                                        })()}
+                                    </div>
+
+                                    {/* Upload form */}
+                                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Add New Document:</span>
+                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                                            <div className={styles.formGroup} style={{ flex: 1, minWidth: '200px', margin: 0 }}>
+                                                <label style={{ fontSize: '0.75rem' }}>Document Name / Label</label>
+                                                <input
+                                                    type="text"
+                                                    id="edit-new-doc-label"
+                                                    placeholder="e.g. Health License, PAN, NDA"
+                                                    className={styles.input}
+                                                    style={{ padding: '6px' }}
+                                                />
+                                            </div>
+                                            <div className={styles.formGroup} style={{ flex: 1, minWidth: '200px', margin: 0 }}>
+                                                <label style={{ fontSize: '0.75rem' }}>Select File</label>
+                                                <input
+                                                    type="file"
+                                                    id="edit-new-doc-file"
+                                                    style={{ fontSize: '0.75rem', padding: '4px' }}
+                                                />
+                                            </div>
+                                            <button
+                                                type="button"
+                                                disabled={isUploading}
+                                                onClick={async () => {
+                                                    const labelInput = document.getElementById('edit-new-doc-label');
+                                                    const fileInput = document.getElementById('edit-new-doc-file');
+                                                    const label = labelInput.value.trim();
+                                                    const file = fileInput.files[0];
+                                                    if (!label || !file) {
+                                                        showToast("Please specify a document name and select a file.")
+                                                        return;
+                                                    }
+                                                    setIsUploading(true);
+                                                    try {
+                                                        const url = await uploadMedia(file);
+                                                        const updatedDocs = [...(editingStaff.documents || []), { name: label, url }];
+                                                        const updates = { documents: updatedDocs };
+                                                        const lower = label.toLowerCase();
+                                                        if (lower.includes('aadhaar')) {
+                                                            updates.aadhaarDocUrl = url;
+                                                            updates.aadhaarCollected = true;
+                                                        } else if (lower.includes('medical')) {
+                                                            updates.medicalDocUrl = url;
+                                                            updates.medicalCollected = true;
+                                                        } else if (lower.includes('pan')) {
+                                                            updates.panCollected = true;
+                                                        } else if (lower.includes('resume')) {
+                                                            updates.resumeDocUrl = url;
+                                                        }
+
+                                                        setEditingStaff({ ...editingStaff, ...updates });
+                                                        labelInput.value = '';
+                                                        fileInput.value = '';
+                                                        showToast("Document attached locally. Click 'Save Staff Changes' below to finalize.")
+                                                    } catch (e) {
+                                                        showToast("Upload failed: " + e.message, "error")
+                                                    } finally {
+                                                        setIsUploading(false);
+                                                    }
+                                                }}
+                                                className={styles.addButton}
+                                                style={{ padding: '0.4rem 1rem', margin: 0, height: '34px', fontSize: '0.8rem' }}
+                                            >
+                                                {isUploading ? 'Uploading...' : 'Attach File'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                                    <button type="button" onClick={() => setEditingStaff(null)} className={styles.cancelBtn}>Cancel</button>
+                                    <button type="submit" className={styles.saveChangesBtn} style={{ margin: 0 }}>Save Profile Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* ADD STAFF MODAL */}
+            {
+                showAddStaffForm && (
+                    <div className={styles.modalOverlay} onClick={() => setShowAddStaffForm(false)}>
+                        <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '850px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.8rem' }}>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>Add New Restaurant Staff Profile</h2>
+                                <button type="button" onClick={() => setShowAddStaffForm(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8', padding: '0 0.5rem' }}>&times;</button>
+                            </div>
+
+                            <form onSubmit={handleAddStaff} className={styles.staffForm}>
+                                
+                                {/* SECTION 1: Personal Details */}
+                                <div style={{ marginBottom: '1.2rem' }}>
+                                    <h4 style={{ color: '#009ceb', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.75rem', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.2rem', fontWeight: 'bold' }}>1. Personal & Core Details</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
+                                        <div className={styles.formGroup} style={{ gridColumn: 'span 2' }}>
+                                            <label>Full Name *</label>
+                                            <input type="text" value={newStaff.fullName} onChange={e => setNewStaff({ ...newStaff, fullName: e.target.value })} placeholder="Full Name" required />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Nickname / Call Name</label>
+                                            <input type="text" value={newStaff.nickname} onChange={e => setNewStaff({ ...newStaff, nickname: e.target.value })} placeholder="Nickname" />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Gender</label>
+                                            <select value={newStaff.gender} onChange={e => setNewStaff({ ...newStaff, gender: e.target.value })}>
+                                                <option value="Male">Male</option>
+                                                <option value="Female">Female</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div className={styles.formGroup} style={{ gridColumn: 'span 2' }}>
+                                            <label>Date of Birth</label>
+                                            <input type="date" value={toInputDate(newStaff.dob)} onChange={e => setNewStaff({ ...newStaff, dob: e.target.value })} />
+                                        </div>
+                                        <div className={styles.formGroup} style={{ gridColumn: 'span 2' }}>
+                                            <label>Blood Group</label>
+                                            <input type="text" value={newStaff.bloodGroup} onChange={e => setNewStaff({ ...newStaff, bloodGroup: e.target.value })} placeholder="e.g. O+" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* SECTION 2: Contact & Address Coordinates */}
+                                <div style={{ marginBottom: '1.2rem' }}>
+                                    <h4 style={{ color: '#009ceb', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.75rem', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.2rem', fontWeight: 'bold' }}>2. Contact & Address Coordinates</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                                        <div className={styles.formGroup}>
+                                            <label>Email ID</label>
+                                            <input type="email" value={newStaff.email} onChange={e => setNewStaff({ ...newStaff, email: e.target.value })} placeholder="Email ID" />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Primary Mobile *</label>
+                                            <input type="tel" value={newStaff.phone} onChange={e => setNewStaff({ ...newStaff, phone: e.target.value })} placeholder="Primary Mobile" required />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Alternate Contact</label>
+                                            <input type="tel" value={newStaff.alternatePhone} onChange={e => setNewStaff({ ...newStaff, alternatePhone: e.target.value })} placeholder="Alternate Contact" />
+                                        </div>
+                                        <div className={styles.formGroup} style={{ gridColumn: 'span 3' }}>
+                                            <label>Current Address (Bangalore Coordinates)</label>
+                                            <textarea rows={2} value={newStaff.currentAddress} onChange={e => setNewStaff({ ...newStaff, currentAddress: e.target.value })} placeholder="Current Address" />
+                                        </div>
+                                        <div className={styles.formGroup} style={{ gridColumn: 'span 3' }}>
+                                            <label>Permanent Address (Home Base)</label>
+                                            <textarea rows={2} value={newStaff.permanentAddress} onChange={e => setNewStaff({ ...newStaff, permanentAddress: e.target.value })} placeholder="Permanent Address" />
+                                        </div>
+                                        <div className={styles.formGroup} style={{ gridColumn: 'span 2' }}>
+                                            <label>Emergency Contact Person</label>
+                                            <input type="text" value={newStaff.emergencyContact} onChange={e => setNewStaff({ ...newStaff, emergencyContact: e.target.value })} placeholder="Name of Relative" />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Emergency Contact Number</label>
+                                            <input type="tel" value={newStaff.emergencyPhone} onChange={e => setNewStaff({ ...newStaff, emergencyPhone: e.target.value })} placeholder="Emergency Number" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* SECTION 3: Work Status & Financial Parameters */}
+                                <div style={{ marginBottom: '1.2rem' }}>
+                                    <h4 style={{ color: '#009ceb', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.75rem', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.2rem', fontWeight: 'bold' }}>3. Work Status & Financial Parameters</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                                        <div className={styles.formGroup}>
+                                            <label>Employment Status</label>
+                                            <select value={newStaff.status} onChange={e => setNewStaff({ ...newStaff, status: e.target.value })}>
+                                                <option value="Permanent">Permanent</option>
+                                                <option value="Temporary">Temporary</option>
+                                                <option value="Part-time">Part-time</option>
+                                                <option value="Daily Wage">Daily Wage</option>
+                                                <option value="Terminated">Terminated</option>
+                                            </select>
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Base Salary (Monthly)</label>
+                                            <input type="number" value={newStaff.salary} onChange={e => setNewStaff({ ...newStaff, salary: e.target.value })} placeholder="Base Salary (Monthly)" />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Daily Rate (If Daily Wage)</label>
+                                            <input type="number" value={newStaff.dailyRate} onChange={e => setNewStaff({ ...newStaff, dailyRate: e.target.value })} placeholder="Daily Wage Rate" />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Joining Date</label>
+                                            <input type="date" value={toInputDate(newStaff.joinDate)} onChange={e => setNewStaff({ ...newStaff, joinDate: e.target.value })} />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Position / Role</label>
+                                            <select 
+                                                value={['Chef', 'Cashier', 'Manager', 'Waiter', 'Delivery', 'Helper'].includes(newStaff.position) ? newStaff.position : 'Other'} 
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    setNewStaff({ ...newStaff, position: val === 'Other' ? '' : val });
+                                                }}
+                                            >
+                                                <option value="Chef">Chef / Cook</option>
+                                                <option value="Cashier">Cashier</option>
+                                                <option value="Manager">Manager</option>
+                                                <option value="Waiter">Waiter</option>
+                                                <option value="Delivery">Delivery Boy</option>
+                                                <option value="Helper">Kitchen Helper</option>
+                                                <option value="Other">Other / Custom Role</option>
+                                            </select>
+                                            {!['Chef', 'Cashier', 'Manager', 'Waiter', 'Delivery', 'Helper'].includes(newStaff.position) && (
+                                                <input 
+                                                    type="text" 
+                                                    value={newStaff.position} 
+                                                    onChange={e => setNewStaff({ ...newStaff, position: e.target.value })} 
+                                                    placeholder="Enter Custom Role/Designation" 
+                                                    style={{ marginTop: '5px' }}
+                                                />
+                                            )}
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Max Monthly KPI Bonus (INR)</label>
+                                            <input type="number" value={newStaff.incentive} onChange={e => setNewStaff({ ...newStaff, incentive: e.target.value })} placeholder="KPI Incentive" />
+                                        </div>
+                                        {newStaff.status === 'Terminated' && (
+                                            <>
+                                                <div className={styles.formGroup}>
+                                                    <label>Termination Date</label>
+                                                    <input type="date" value={toInputDate(newStaff.termDate)} onChange={e => setNewStaff({ ...newStaff, termDate: e.target.value })} />
+                                                </div>
+                                                <div className={styles.formGroup}>
+                                                    <label>Separation Reason</label>
+                                                    <select value={newStaff.termReason || ''} onChange={e => setNewStaff({ ...newStaff, termReason: e.target.value })}>
+                                                        <option value="">Select Reason</option>
+                                                        <option value="Resigned">Resigned</option>
+                                                        <option value="Absconded">Absconded / Left without Notice</option>
+                                                        <option value="Performance">Terminated (Performance)</option>
+                                                        <option value="Misconduct">Terminated (Misconduct)</option>
+                                                        <option value="Relocated">Relocated</option>
+                                                        <option value="Other">Other Reason</option>
+                                                    </select>
+                                                </div>
+                                                <div className={styles.formGroup} style={{ gridColumn: 'span 3' }}>
+                                                    <label>Exit Notes & Handover Remarks</label>
+                                                    <textarea rows={2} value={newStaff.termNotes || ''} onChange={e => setNewStaff({ ...newStaff, termNotes: e.target.value })} placeholder="Details about why they left, handover status, etc." style={{ width: '100%', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '8px' }} />
+                                                </div>
+                                            </>
+                                        )}
+                                        <div className={styles.formGroup}>
+                                            <label>Assigned Franchise Outlet</label>
+                                            <select value={newStaff.assignedOutlet || ''} onChange={e => setNewStaff({ ...newStaff, assignedOutlet: e.target.value })}>
+                                                <option value="">Unassigned / Head Office</option>
+                                                {runningFranchises.map(outlet => (
+                                                    <option key={outlet.id} value={outlet.outletName}>{outlet.outletName}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* SECTION 4: Bank Setup & Compliance Documentation */}
+                                <div style={{ marginBottom: '1.2rem' }}>
+                                    <h4 style={{ color: '#009ceb', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.75rem', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.2rem', fontWeight: 'bold' }}>4. Bank Setup & Compliance Documentation</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                                        <div className={styles.formGroup}>
+                                            <label>Bank Name</label>
+                                            <input type="text" value={newStaff.bankName} onChange={e => setNewStaff({ ...newStaff, bankName: e.target.value })} placeholder="e.g. HDFC Bank" />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Account Number</label>
+                                            <input type="text" value={newStaff.accountNumber} onChange={e => setNewStaff({ ...newStaff, accountNumber: e.target.value })} placeholder="Account Number" />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>IFSC Code</label>
+                                            <input type="text" value={newStaff.ifscCode} onChange={e => setNewStaff({ ...newStaff, ifscCode: e.target.value })} placeholder="IFSC Code" />
+                                        </div>
+                                    </div>
+
+                                    {/* Compliance Box */}
+                                    <div className={styles.complianceBox} style={{ marginTop: '0.75rem' }}>
+                                        <div className={styles.complianceItem}>
+                                            <input type="checkbox" checked={newStaff.aadhaarCollected} onChange={e => setNewStaff({ ...newStaff, aadhaarCollected: e.target.checked })} id="add_aadhaarCollected" />
+                                            <div className={styles.complianceText}>
+                                                <label htmlFor="add_aadhaarCollected" className={styles.complianceTitle}>Aadhaar Card Submitted</label>
+                                                <span className={styles.complianceSub}>Validated copy on file</span>
+                                            </div>
+                                        </div>
+                                        <div className={styles.complianceItem}>
+                                            <input type="checkbox" checked={newStaff.panCollected} onChange={e => setNewStaff({ ...newStaff, panCollected: e.target.checked })} id="add_panCollected" />
+                                            <div className={styles.complianceText}>
+                                                <label htmlFor="add_panCollected" className={styles.complianceTitle}>PAN Card Submitted</label>
+                                                <span className={styles.complianceSub}>PAN setup for tax verification</span>
+                                            </div>
+                                        </div>
+                                        <div className={styles.complianceItem}>
+                                            <input type="checkbox" checked={newStaff.medicalCollected} onChange={e => setNewStaff({ ...newStaff, medicalCollected: e.target.checked })} id="add_medicalCollected" />
+                                            <div className={styles.complianceText}>
+                                                <label htmlFor="add_medicalCollected" className={styles.complianceTitle}>Medical Certificate</label>
+                                                <span className={styles.complianceSub}>Required for restaurant license</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* SECTION 5: Document Attachments */}
+                                <div style={{ marginBottom: '1.2rem' }}>
+                                    <h4 style={{ color: '#009ceb', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.75rem', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.2rem', fontWeight: 'bold' }}>5. Document Attachments & Compliance Vault</h4>
+                                    
+                                    {/* Existing documents list */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '1rem', background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Documents Scheduled for Upload:</span>
+                                        {(() => {
+                                            const docList = [];
+                                            if (newStaff.aadhaarDocUrl) docList.push({ key: 'aadhaarDocUrl', name: 'Aadhaar Card', url: newStaff.aadhaarDocUrl });
+                                            if (newStaff.resumeDocUrl) docList.push({ key: 'resumeDocUrl', name: 'Resume', url: newStaff.resumeDocUrl });
+                                            if (newStaff.medicalDocUrl) docList.push({ key: 'medicalDocUrl', name: 'Medical Certificate', url: newStaff.medicalDocUrl });
+                                            
+                                            if (newStaff.documents && newStaff.documents.length > 0) {
+                                                newStaff.documents.forEach((d, idx) => {
+                                                    if (!docList.find(x => x.url === d.url)) {
+                                                        docList.push({ key: `doc-${idx}`, index: idx, name: d.name, url: d.url });
+                                                    }
+                                                });
+                                            }
+
+                                            if (docList.length === 0) {
+                                                return <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>No documents attached yet.</span>;
+                                            }
+
+                                            return docList.map((doc, idx) => (
+                                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                                                    <a href={doc.url} target="_blank" rel="noreferrer" style={{ fontSize: '0.85rem', color: '#009ceb', fontWeight: 'bold', textDecoration: 'none' }}>📄 {doc.name}</a>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (window.confirm(`Remove ${doc.name}?`)) {
+                                                                if (doc.key.startsWith('doc-')) {
+                                                                    const updated = newStaff.documents.filter((_, i) => i !== doc.index);
+                                                                    setNewStaff({ ...newStaff, documents: updated });
+                                                                } else {
+                                                                    const labelCollectedField = doc.key === 'aadhaarDocUrl' ? 'aadhaarCollected' : doc.key === 'medicalDocUrl' ? 'medicalCollected' : '';
+                                                                    const updates = { [doc.key]: '' };
+                                                                    if (labelCollectedField) updates[labelCollectedField] = false;
+                                                                    setNewStaff({ ...newStaff, ...updates });
+                                                                }
+                                                            }
+                                                        }}
+                                                        style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            ));
+                                        })()}
+                                    </div>
+
+                                    {/* Upload form */}
+                                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Attach New Document:</span>
+                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                                            <div className={styles.formGroup} style={{ flex: 1, minWidth: '200px', margin: 0 }}>
+                                                <label style={{ fontSize: '0.75rem' }}>Document Name / Label</label>
+                                                <input
+                                                    type="text"
+                                                    id="add-new-doc-label"
+                                                    placeholder="e.g. Health License, PAN, NDA"
+                                                    className={styles.input}
+                                                    style={{ padding: '6px' }}
+                                                />
+                                            </div>
+                                            <div className={styles.formGroup} style={{ flex: 1, minWidth: '200px', margin: 0 }}>
+                                                <label style={{ fontSize: '0.75rem' }}>Select File</label>
+                                                <input
+                                                    type="file"
+                                                    id="add-new-doc-file"
+                                                    style={{ fontSize: '0.75rem', padding: '4px' }}
+                                                />
+                                            </div>
+                                            <button
+                                                type="button"
+                                                disabled={isUploading}
+                                                onClick={async () => {
+                                                    const labelInput = document.getElementById('add-new-doc-label');
+                                                    const fileInput = document.getElementById('add-new-doc-file');
+                                                    const label = labelInput.value.trim();
+                                                    const file = fileInput.files[0];
+                                                    if (!label || !file) {
+                                                        showToast("Please specify a document name and select a file.")
+                                                        return;
+                                                    }
+                                                    setIsUploading(true);
+                                                    try {
+                                                        const url = await uploadMedia(file);
+                                                        const updatedDocs = [...(newStaff.documents || []), { name: label, url }];
+                                                        const updates = { documents: updatedDocs };
+                                                        const lower = label.toLowerCase();
+                                                        if (lower.includes('aadhaar')) {
+                                                            updates.aadhaarDocUrl = url;
+                                                            updates.aadhaarCollected = true;
+                                                        } else if (lower.includes('medical')) {
+                                                            updates.medicalDocUrl = url;
+                                                            updates.medicalCollected = true;
+                                                        } else if (lower.includes('pan')) {
+                                                            updates.panCollected = true;
+                                                        } else if (lower.includes('resume')) {
+                                                            updates.resumeDocUrl = url;
+                                                        }
+
+                                                        setNewStaff({ ...newStaff, ...updates });
+                                                        labelInput.value = '';
+                                                        fileInput.value = '';
+                                                        showToast("Document attached. Click 'Add Staff Member' below to save completely.")
+                                                    } catch (e) {
+                                                        showToast("Upload failed: " + e.message, "error")
+                                                    } finally {
+                                                        setIsUploading(false);
+                                                    }
+                                                }}
+                                                className={styles.addButton}
+                                                style={{ padding: '0.4rem 1rem', margin: 0, height: '34px', fontSize: '0.8rem' }}
+                                            >
+                                                {isUploading ? 'Uploading...' : 'Attach File'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                                    <button type="button" onClick={() => setShowAddStaffForm(false)} className={styles.cancelBtn}>Cancel</button>
+                                    <button type="submit" className={styles.addButton} style={{ margin: 0 }}>Add Staff Member</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* SALARY HIKE MODAL */}
+            {
+                hikeStaff && (
+                    <div className={styles.modalOverlay} onClick={() => setHikeStaff(null)}>
+                        <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '450px', width: '90%', borderRadius: '15px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.8rem' }}>
+                                <h2 style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>📈 Process Salary Hike</h2>
+                                <button type="button" onClick={() => setHikeStaff(null)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8', padding: '0 0.5rem' }}>&times;</button>
+                            </div>
+
+                            <form onSubmit={handleSaveHike}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.5rem' }}>Employee Name</label>
+                                        <input type="text" value={hikeStaff.fullName} disabled style={{ width: '100%', padding: '0.75rem', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: 'bold', color: '#475569' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.5rem' }}>Current Fixed Salary</label>
+                                        <input type="text" value={`₹${(parseFloat(hikeStaff.salary) || 0).toLocaleString('en-IN')}`} disabled style={{ width: '100%', padding: '0.75rem', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: 'bold', color: '#475569' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.5rem' }}>New Fixed Salary (INR) *</label>
+                                        <input 
+                                            type="number" 
+                                            value={hikeAmount} 
+                                            onChange={e => setHikeAmount(e.target.value)} 
+                                            placeholder="Enter New Fixed Salary Amount" 
+                                            required 
+                                            style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.9rem', outline: 'none' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.5rem' }}>Effective Date *</label>
+                                        <input 
+                                            type="date" 
+                                            value={hikeDate} 
+                                            onChange={e => setHikeDate(e.target.value)} 
+                                            required 
+                                            style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.9rem', outline: 'none' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.5rem' }}>Reason / Remarks *</label>
+                                        <input 
+                                            type="text" 
+                                            value={hikeReason} 
+                                            onChange={e => setHikeReason(e.target.value)} 
+                                            placeholder="e.g. Annual Hike, Promotion, Roster Change" 
+                                            required 
+                                            style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.9rem', outline: 'none' }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                                    <button type="button" onClick={() => setHikeStaff(null)} className={styles.cancelBtn}>Cancel</button>
+                                    <button type="submit" className={styles.saveChangesBtn} style={{ margin: 0 }}>Update Salary</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* EDIT FRANCHISE MODAL */}
+            {
+                editingFranchise && (
+                    <div className={styles.modalOverlay} onClick={() => setEditingFranchise(null)}>
+                        <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '750px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.8rem' }}>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>Edit Franchise Inquiry: {editingFranchise.name}</h2>
+                                <button type="button" onClick={() => setEditingFranchise(null)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8', padding: '0 0.5rem' }}>&times;</button>
+                            </div>
+
+                            <form onSubmit={handleUpdateFranchise} className={styles.staffForm}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                                    <div className={styles.formGroup}>
+                                        <label>Applicant Full Name *</label>
+                                        <input type="text" value={editingFranchise.name} onChange={e => setEditingFranchise({ ...editingFranchise, name: e.target.value })} className={styles.input} required />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Email ID *</label>
+                                        <input type="email" value={editingFranchise.email} onChange={e => setEditingFranchise({ ...editingFranchise, email: e.target.value })} className={styles.input} required />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Phone Number *</label>
+                                        <input type="tel" value={editingFranchise.phone} onChange={e => setEditingFranchise({ ...editingFranchise, phone: e.target.value })} className={styles.input} required />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Current Profession</label>
+                                        <input type="text" value={editingFranchise.currentJob || ''} onChange={e => setEditingFranchise({ ...editingFranchise, currentJob: e.target.value })} className={styles.input} />
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                                    <div className={styles.formGroup}>
+                                        <label>Street Address</label>
+                                        <input type="text" value={editingFranchise.street || ''} onChange={e => setEditingFranchise({ ...editingFranchise, street: e.target.value })} className={styles.input} />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>City *</label>
+                                        <input type="text" value={editingFranchise.city} onChange={e => setEditingFranchise({ ...editingFranchise, city: e.target.value })} className={styles.input} required />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>State *</label>
+                                        <select value={editingFranchise.state} onChange={e => setEditingFranchise({ ...editingFranchise, state: e.target.value })} className={styles.input}>
+                                            <option value="DL">Delhi (DL)</option>
+                                            <option value="MH">Maharashtra (MH)</option>
+                                            <option value="KA">Karnataka (KA)</option>
+                                            <option value="TN">Tamil Nadu (TN)</option>
+                                            <option value="KL">Kerala (KL)</option>
+                                        </select>
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Pincode</label>
+                                        <input type="text" value={editingFranchise.pincode || ''} onChange={e => setEditingFranchise({ ...editingFranchise, pincode: e.target.value })} className={styles.input} />
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                                    <div className={styles.formGroup}>
+                                        <label>Own Commercial Space?</label>
+                                        <select value={editingFranchise.ownSpace} onChange={e => setEditingFranchise({ ...editingFranchise, ownSpace: e.target.value })} className={styles.input}>
+                                            <option value="yes">Yes</option>
+                                            <option value="no">No</option>
+                                        </select>
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Space Area (sq. ft.)</label>
+                                        <input type="text" value={editingFranchise.spaceArea || ''} onChange={e => setEditingFranchise({ ...editingFranchise, spaceArea: e.target.value })} className={styles.input} />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Franchise Model Type</label>
+                                        <select value={editingFranchise.franchiseType} onChange={e => setEditingFranchise({ ...editingFranchise, franchiseType: e.target.value })} className={styles.input}>
+                                            <option value="Standard">Standard Model</option>
+                                            <option value="Express">Express Model</option>
+                                            <option value="Premium">Premium Cafe</option>
+                                        </select>
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Pipeline Stage</label>
+                                        <select value={editingFranchise.status} onChange={e => setEditingFranchise({ ...editingFranchise, status: e.target.value })} className={styles.input}>
+                                            <option value="New">New Lead</option>
+                                            <option value="Called">Called / Emailed</option>
+                                            <option value="Interested">Interested / Hot Lead</option>
+                                            <option value="Follow-up">In Follow-up</option>
+                                            <option value="Terminated">Terminated / Closed</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className={styles.formGroup} style={{ marginTop: '1rem' }}>
+                                    <label>Additional Notes / Shop Description</label>
+                                    <textarea rows={3} value={editingFranchise.shopDescription || ''} onChange={e => setEditingFranchise({ ...editingFranchise, shopDescription: e.target.value })} className={styles.input} />
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                                    <button type="button" onClick={() => setEditingFranchise(null)} className={styles.cancelBtn}>Cancel</button>
+                                    <button type="submit" className={styles.addButton} style={{ margin: 0 }}>Save Franchise Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* ADD RUNNING FRANCHISE OUTLET MODAL */}
+            {
+                showAddFranchiseOutletForm && (
+                    <div className={styles.modalOverlay} onClick={() => setShowAddFranchiseOutletForm(false)}>
+                        <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '750px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.8rem' }}>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>Register Approved Franchise Outlet</h2>
+                                <button type="button" onClick={() => setShowAddFranchiseOutletForm(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8', padding: '0 0.5rem' }}>&times;</button>
+                            </div>
+
+                            <form onSubmit={handleAddFranchiseOutlet} className={styles.staffForm}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', marginBottom: '1rem' }}>
+                                    <div className={styles.formGroup}>
+                                        <label>🔗 Link to Existing Store Location (Optional - Auto Fills Details)</label>
+                                        <select
+                                            value={newFranchiseOutlet.locationId || ''}
+                                            onChange={e => handleFranchiseLocationLink(e.target.value)}
+                                            className={styles.input}
+                                        >
+                                            <option value="">-- Select Store Location to Link --</option>
+                                            {locations.filter(l => !l.franchiseId).map(l => (
+                                                <option key={l.id} value={l.id}>{l.name} ({l.area})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                                    <div className={styles.formGroup}>
+                                        <label>Outlet Name *</label>
+                                        <input type="text" value={newFranchiseOutlet.outletName} onChange={e => setNewFranchiseOutlet({ ...newFranchiseOutlet, outletName: e.target.value })} className={styles.input} required placeholder="High Laban - Bangalore Cafe" />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Franchise Owner Name *</label>
+                                        <input type="text" value={newFranchiseOutlet.ownerName} onChange={e => setNewFranchiseOutlet({ ...newFranchiseOutlet, ownerName: e.target.value })} className={styles.input} required placeholder="Owner Full Name" />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Owner Phone *</label>
+                                        <input type="tel" value={newFranchiseOutlet.phone} onChange={e => setNewFranchiseOutlet({ ...newFranchiseOutlet, phone: e.target.value })} className={styles.input} required placeholder="Owner Contact Number" />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Owner Email</label>
+                                        <input type="email" value={newFranchiseOutlet.email} onChange={e => setNewFranchiseOutlet({ ...newFranchiseOutlet, email: e.target.value })} className={styles.input} placeholder="owner@gmail.com" />
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                                    <div className={styles.formGroup}>
+                                        <label>City *</label>
+                                        <input type="text" value={newFranchiseOutlet.city} onChange={e => setNewFranchiseOutlet({ ...newFranchiseOutlet, city: e.target.value })} className={styles.input} required placeholder="City Name" />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>State *</label>
+                                        <select value={newFranchiseOutlet.state} onChange={e => setNewFranchiseOutlet({ ...newFranchiseOutlet, state: e.target.value })} className={styles.input}>
+                                            <option value="KA">Karnataka (KA)</option>
+                                            <option value="DL">Delhi (DL)</option>
+                                            <option value="MH">Maharashtra (MH)</option>
+                                            <option value="TN">Tamil Nadu (TN)</option>
+                                            <option value="KL">Kerala (KL)</option>
+                                        </select>
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Franchise Model Type</label>
+                                        <select value={newFranchiseOutlet.modelType} onChange={newFranchiseOutlet.modelType === 'Standard' ? () => {} : e => setNewFranchiseOutlet({ ...newFranchiseOutlet, modelType: e.target.value })} className={styles.input}>
+                                            <option value="Standard">Standard Model</option>
+                                            <option value="Express">Express Model</option>
+                                            <option value="Premium Cafe">Premium Cafe</option>
+                                        </select>
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Outlet Status</label>
+                                        <select value={newFranchiseOutlet.status} onChange={e => setNewFranchiseOutlet({ ...newFranchiseOutlet, status: e.target.value })} className={styles.input}>
+                                            <option value="Running">Running</option>
+                                            <option value="Under Construction">Under Construction</option>
+                                            <option value="Closed">Closed</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                                    <div className={styles.formGroup} style={{ gridColumn: 'span 2' }}>
+                                        <label>Detailed Outlet Address *</label>
+                                        <input type="text" value={newFranchiseOutlet.address} onChange={e => setNewFranchiseOutlet({ ...newFranchiseOutlet, address: e.target.value })} className={styles.input} required placeholder="Full Outlet Address coordinates" />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Opening Date</label>
+                                        <input type="date" value={toInputDate(newFranchiseOutlet.openDate)} onChange={e => setNewFranchiseOutlet({ ...newFranchiseOutlet, openDate: e.target.value })} className={styles.input} />
+                                    </div>
+                                </div>
+
+                                {/* Documents Section */}
+                                <div style={{ marginTop: '1.2rem', padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                                    <h4 style={{ color: '#475569', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.75rem', fontWeight: 'bold' }}>📄 Store Documents & ID Copy Uploads</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1rem' }}>
+                                        <div className={styles.formGroup}>
+                                            <label>Franchise Agreement File</label>
+                                            <input type="file" onChange={e => handleFranchiseDocUpload(e, 'agreementUrl', false)} style={{ fontSize: '0.8rem' }} />
+                                            {newFranchiseOutlet.agreementUrl && <span style={{ fontSize: '0.75rem', color: '#10b981', display: 'block', marginTop: '4px' }}>🟢 Agreement Uploaded</span>}
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>GST Registration Certificate</label>
+                                            <input type="file" onChange={e => handleFranchiseDocUpload(e, 'gstUrl', false)} style={{ fontSize: '0.8rem' }} />
+                                            {newFranchiseOutlet.gstUrl && <span style={{ fontSize: '0.75rem', color: '#10b981', display: 'block', marginTop: '4px' }}>🟢 GST Cert Uploaded</span>}
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Owner ID Card Copy</label>
+                                            <input type="file" onChange={e => handleFranchiseDocUpload(e, 'ownerIdUrl', false)} style={{ fontSize: '0.8rem' }} />
+                                            {newFranchiseOutlet.ownerIdUrl && <span style={{ fontSize: '0.75rem', color: '#10b981', display: 'block', marginTop: '4px' }}>🟢 Owner ID Uploaded</span>}
+                                        </div>
+                                    </div>
+
+                                    {/* Custom Document Vault list */}
+                                    <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', marginTop: '10px' }}>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '8px' }}>Custom Document Vault</label>
+                                        
+                                        {newFranchiseOutlet.documents && newFranchiseOutlet.documents.length > 0 && (
+                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                                                {newFranchiseOutlet.documents.map((doc, idx) => (
+                                                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'white', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem' }}>
+                                                        <span>📄 {doc.name}</span>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => {
+                                                                setNewFranchiseOutlet(prev => ({
+                                                                    ...prev,
+                                                                    documents: prev.documents.filter((_, i) => i !== idx)
+                                                                }));
+                                                            }}
+                                                            style={{ border: 'none', background: 'none', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer', padding: 0 }}
+                                                        >
+                                                            &times;
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            <input 
+                                                type="text" 
+                                                placeholder="Enter Document Label (e.g. FSSAI License)" 
+                                                value={franchiseDocLabel} 
+                                                onChange={e => setFranchiseDocLabel(e.target.value)} 
+                                                className={styles.input}
+                                                style={{ flex: 1, padding: '6px 12px', fontSize: '0.8rem' }}
+                                            />
+                                            <input 
+                                                type="file" 
+                                                onChange={e => handleFranchiseCustomDocUpload(e, false)} 
+                                                style={{ fontSize: '0.8rem', width: '200px' }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                                    <button type="button" onClick={() => setShowAddFranchiseOutletForm(false)} className={styles.cancelBtn}>Cancel</button>
+                                    <button type="submit" className={styles.addButton} style={{ margin: 0 }}>Register Outlet</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* EDIT RUNNING FRANCHISE OUTLET MODAL */}
+            {
+                editingFranchiseOutlet && (
+                    <div className={styles.modalOverlay} onClick={() => setEditingFranchiseOutlet(null)}>
+                        <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '750px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.8rem' }}>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>Edit Franchise Outlet: {editingFranchiseOutlet.outletName}</h2>
+                                <button type="button" onClick={() => setEditingFranchiseOutlet(null)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8', padding: '0 0.5rem' }}>&times;</button>
+                            </div>
+
+                            <form onSubmit={handleUpdateFranchiseOutlet} className={styles.staffForm}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                                    <div className={styles.formGroup}>
+                                        <label>Outlet Name *</label>
+                                        <input type="text" value={editingFranchiseOutlet.outletName} onChange={e => setEditingFranchiseOutlet({ ...editingFranchiseOutlet, outletName: e.target.value })} className={styles.input} required />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Franchise Owner Name *</label>
+                                        <input type="text" value={editingFranchiseOutlet.ownerName} onChange={e => setEditingFranchiseOutlet({ ...editingFranchiseOutlet, ownerName: e.target.value })} className={styles.input} required />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Owner Phone *</label>
+                                        <input type="tel" value={editingFranchiseOutlet.phone} onChange={e => setEditingFranchiseOutlet({ ...editingFranchiseOutlet, phone: e.target.value })} className={styles.input} required />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Owner Email</label>
+                                        <input type="email" value={editingFranchiseOutlet.email || ''} onChange={e => setEditingFranchiseOutlet({ ...editingFranchiseOutlet, email: e.target.value })} className={styles.input} />
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                                    <div className={styles.formGroup}>
+                                        <label>City *</label>
+                                        <input type="text" value={editingFranchiseOutlet.city} onChange={e => setEditingFranchiseOutlet({ ...editingFranchiseOutlet, city: e.target.value })} className={styles.input} required />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>State *</label>
+                                        <select value={editingFranchiseOutlet.state} onChange={e => setEditingFranchiseOutlet({ ...editingFranchiseOutlet, state: e.target.value })} className={styles.input}>
+                                            <option value="KA">Karnataka (KA)</option>
+                                            <option value="DL">Delhi (DL)</option>
+                                            <option value="MH">Maharashtra (MH)</option>
+                                            <option value="TN">Tamil Nadu (TN)</option>
+                                            <option value="KL">Kerala (KL)</option>
+                                        </select>
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Franchise Model Type</label>
+                                        <select value={editingFranchiseOutlet.modelType} onChange={e => setEditingFranchiseOutlet({ ...editingFranchiseOutlet, modelType: e.target.value })} className={styles.input}>
+                                            <option value="Standard">Standard Model</option>
+                                            <option value="Express">Express Model</option>
+                                            <option value="Premium Cafe">Premium Cafe</option>
+                                        </select>
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Outlet Status</label>
+                                        <select value={editingFranchiseOutlet.status} onChange={e => setEditingFranchiseOutlet({ ...editingFranchiseOutlet, status: e.target.value })} className={styles.input}>
+                                            <option value="Running">Running</option>
+                                            <option value="Under Construction">Under Construction</option>
+                                            <option value="Closed">Closed</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                                    <div className={styles.formGroup} style={{ gridColumn: 'span 2' }}>
+                                        <label>Detailed Outlet Address *</label>
+                                        <input type="text" value={editingFranchiseOutlet.address} onChange={e => setEditingFranchiseOutlet({ ...editingFranchiseOutlet, address: e.target.value })} className={styles.input} required />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Opening Date</label>
+                                        <input type="date" value={toInputDate(editingFranchiseOutlet.openDate)} onChange={e => setEditingFranchiseOutlet({ ...editingFranchiseOutlet, openDate: e.target.value })} className={styles.input} />
+                                    </div>
+                                </div>
+
+                                {/* Documents Section */}
+                                <div style={{ marginTop: '1.2rem', padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                                    <h4 style={{ color: '#475569', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.75rem', fontWeight: 'bold' }}>📄 Store Documents & ID Copy Uploads</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1rem' }}>
+                                        <div className={styles.formGroup}>
+                                            <label>Franchise Agreement File</label>
+                                            <input type="file" onChange={e => handleFranchiseDocUpload(e, 'agreementUrl', true)} style={{ fontSize: '0.8rem' }} />
+                                            {editingFranchiseOutlet.agreementUrl && (
+                                                <a href={editingFranchiseOutlet.agreementUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#009ceb', fontWeight: 'bold', marginTop: '4px', display: 'inline-block' }}>📥 Download Agreement</a>
+                                            )}
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>GST Registration Certificate</label>
+                                            <input type="file" onChange={e => handleFranchiseDocUpload(e, 'gstUrl', true)} style={{ fontSize: '0.8rem' }} />
+                                            {editingFranchiseOutlet.gstUrl && (
+                                                <a href={editingFranchiseOutlet.gstUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#009ceb', fontWeight: 'bold', marginTop: '4px', display: 'inline-block' }}>📥 Download GST Cert</a>
+                                            )}
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Owner ID Card Copy</label>
+                                            <input type="file" onChange={e => handleFranchiseDocUpload(e, 'ownerIdUrl', true)} style={{ fontSize: '0.8rem' }} />
+                                            {editingFranchiseOutlet.ownerIdUrl && (
+                                                <a href={editingFranchiseOutlet.ownerIdUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#009ceb', fontWeight: 'bold', marginTop: '4px', display: 'inline-block' }}>📥 Download Owner ID</a>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Custom Document Vault list */}
+                                    <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', marginTop: '10px' }}>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '8px' }}>Custom Document Vault</label>
+                                        
+                                        {editingFranchiseOutlet.documents && editingFranchiseOutlet.documents.length > 0 && (
+                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                                                {editingFranchiseOutlet.documents.map((doc, idx) => (
+                                                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'white', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem' }}>
+                                                        <a href={doc.url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: '#0ea5e9', fontWeight: 'bold' }}>📄 {doc.name} 📥</a>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => {
+                                                                setEditingFranchiseOutlet(prev => ({
+                                                                    ...prev,
+                                                                    documents: prev.documents.filter((_, i) => i !== idx)
+                                                                }));
+                                                            }}
+                                                            style={{ border: 'none', background: 'none', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer', padding: 0, marginLeft: '4px' }}
+                                                        >
+                                                            &times;
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            <input 
+                                                type="text" 
+                                                placeholder="Enter Document Label (e.g. FSSAI License)" 
+                                                value={franchiseDocLabelEdit} 
+                                                onChange={e => setFranchiseDocLabelEdit(e.target.value)} 
+                                                className={styles.input}
+                                                style={{ flex: 1, padding: '6px 12px', fontSize: '0.8rem' }}
+                                            />
+                                            <input 
+                                                type="file" 
+                                                onChange={e => handleFranchiseCustomDocUpload(e, true)} 
+                                                style={{ fontSize: '0.8rem', width: '200px' }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                                    <button type="button" onClick={() => setEditingFranchiseOutlet(null)} className={styles.cancelBtn}>Cancel</button>
+                                    <button type="submit" className={styles.addButton} style={{ margin: 0 }}>Save Outlet Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* EMPLOYEE PAYROLL HISTORY & PERFORMANCE REPORT MODAL */}
+            {
+                selectedDetailStaff && (() => {
+                    const history = allHistoricalPayroll
+                        .filter(r => r.staffId === selectedDetailStaff.id)
+                        .sort((a, b) => b.month.localeCompare(a.month));
+
+                    const ratedMonths = history.filter(r => r.kpiRating !== undefined);
+                    const avgKpi = ratedMonths.length > 0
+                        ? (ratedMonths.reduce((acc, curr) => acc + parseInt(curr.kpiRating), 0) / ratedMonths.length).toFixed(1)
+                        : parseFloat(selectedDetailStaff.kpiRating || 5).toFixed(1);
+
+                    const totalLeavesHistory = history.reduce((acc, curr) => acc + (parseInt(curr.leavesTaken) || 0), 0);
+                    const totalEarnings = history.reduce((acc, curr) => acc + (parseFloat(curr.netSalaryPaid) || 0), 0);
+                    
+                    const avgAtt = history.length > 0 
+                        ? (history.reduce((acc, curr) => { 
+                            const l = parseInt(curr.leavesTaken) || 0; 
+                            return acc + Math.max(0, (26 - l)/26); 
+                          }, 0) / history.length * 100).toFixed(0) 
+                        : (Math.max(0, (26 - parseInt(selectedDetailStaff.leavesTaken || 0)) / 26) * 100).toFixed(0);
+
+                    const employeeDocs = [];
+                    if (selectedDetailStaff.aadhaarDocUrl) employeeDocs.push({ name: 'Aadhaar Card', url: selectedDetailStaff.aadhaarDocUrl });
+                    if (selectedDetailStaff.resumeDocUrl) employeeDocs.push({ name: 'Resume', url: selectedDetailStaff.resumeDocUrl });
+                    if (selectedDetailStaff.medicalDocUrl) employeeDocs.push({ name: 'Medical Cert', url: selectedDetailStaff.medicalDocUrl });
+                    if (selectedDetailStaff.documents && selectedDetailStaff.documents.length > 0) {
+                        selectedDetailStaff.documents.forEach(d => {
+                            if (!employeeDocs.find(x => x.url === d.url)) {
+                                employeeDocs.push(d);
+                            }
+                        });
+                    }
+
+                    const activeContext = activeTab === 'payroll' ? 'analytics' : selectedHrTab;
+                    const modalMaxWidth = 
+                        activeContext === 'exit' ? '600px' : 
+                        activeContext === 'salary' ? '650px' :
+                        activeContext === 'compliance' ? '600px' :
+                        (activeContext === 'personal' || activeContext === 'contact') ? '700px' : '950px';
+
+                    return (
+                        <div className={styles.modalOverlay} onClick={() => setSelectedDetailStaff(null)}>
+                            <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: modalMaxWidth, width: '95%', maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem' }}>
+                                
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+                                    <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>
+                                                {selectedDetailStaff.fullName}
+                                            </h2>
+                                            <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '3px 8px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                                                {selectedDetailStaff.position}
+                                            </span>
+                                        </div>
+                                        <p style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '4px', margin: 0 }}>
+                                            {selectedDetailStaff.assignedOutlet ? `📍 Outlet: ${selectedDetailStaff.assignedOutlet}` : '💼 Head Office / Unassigned'}
+                                            <span style={{ margin: '0 8px' }}>•</span>
+                                            Joined: {selectedDetailStaff.joinDate || 'N/A'}
+                                            <span style={{ margin: '0 8px' }}>•</span>
+                                            Status: <strong style={{ color: selectedDetailStaff.status === 'Terminated' ? '#ef4444' : '#10b981' }}>{selectedDetailStaff.status}</strong>
+                                        </p>
+                                    </div>
+                                    <button type="button" onClick={() => setSelectedDetailStaff(null)} style={{ background: 'none', border: 'none', fontSize: '1.75rem', cursor: 'pointer', color: '#94a3b8', padding: '0 0.5rem', lineHeight: 1 }}>&times;</button>
+                                </div>
+
+                                {/* CONDITION 1: EXIT & SEPARATION CONTEXT */}
+                                {activeContext === 'exit' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                        <div style={{ background: '#fff1f2', border: '1px solid #ffe4e6', padding: '1.5rem', borderRadius: '15px' }}>
+                                            <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#be123c', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 1rem 0' }}>
+                                                ⚠️ Exit & Separation Record
+                                            </h3>
+                                            
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.9rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #ffe4e6', paddingBottom: '8px' }}>
+                                                    <span style={{ color: '#be123c', fontWeight: 'bold' }}>Employment Status:</span>
+                                                    <span style={{ background: selectedDetailStaff.status === 'Terminated' ? '#ef4444' : '#10b981', color: 'white', padding: '2px 8px', borderRadius: '50px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                        {selectedDetailStaff.status}
+                                                    </span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #ffe4e6', paddingBottom: '8px' }}>
+                                                    <span style={{ color: '#475569' }}>Date of Joining:</span>
+                                                    <strong style={{ color: '#1e293b' }}>{selectedDetailStaff.joinDate || 'N/A'}</strong>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #ffe4e6', paddingBottom: '8px' }}>
+                                                    <span style={{ color: '#be123c', fontWeight: 'bold' }}>Exit/Termination Date:</span>
+                                                    <strong style={{ color: '#ef4444' }}>{selectedDetailStaff.termDate || 'N/A'}</strong>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #ffe4e6', paddingBottom: '8px' }}>
+                                                    <span style={{ color: '#475569' }}>Separation Reason:</span>
+                                                    <strong style={{ color: '#334155' }}>{selectedDetailStaff.separationReason || 'N/A'}</strong>
+                                                </div>
+                                                
+                                                <div style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #fecdd3', marginTop: '4px' }}>
+                                                    <span style={{ fontSize: '0.78rem', color: '#be123c', display: 'block', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase' }}>Handover Notes & Exit Remarks:</span>
+                                                    <p style={{ margin: 0, color: '#9f1239', fontSize: '0.85rem', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+                                                        {selectedDetailStaff.separationNotes || 'No exit notes recorded for this termination.'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* CONDITION 2: COMPENSATION & APPRAISAL CONTEXT */}
+                                {activeContext === 'salary' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                                            <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                                                <h4 style={{ color: '#475569', margin: '0 0 10px 0', fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 'bold' }}>💳 Base Pay & Bonus Setup</h4>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.9rem' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span style={{ color: '#64748b' }}>Basic Salary (Base):</span>
+                                                        <strong style={{ color: '#1e293b' }}>₹{parseFloat(selectedDetailStaff.salary || 0).toLocaleString('en-IN')}</strong>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span style={{ color: '#64748b' }}>Max Monthly KPI Bonus:</span>
+                                                        <strong style={{ color: '#0ea5e9' }}>₹{parseFloat(selectedDetailStaff.incentive || 0).toLocaleString('en-IN')}</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                                                <h4 style={{ color: '#475569', margin: '0 0 10px 0', fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 'bold' }}>🏦 Bank Account Details</h4>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.9rem' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span style={{ color: '#64748b' }}>Bank Name:</span>
+                                                        <strong style={{ color: '#1e293b' }}>{selectedDetailStaff.bankName || 'N/A'}</strong>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span style={{ color: '#64748b' }}>Account Number:</span>
+                                                        <strong style={{ color: '#1e293b' }}>{selectedDetailStaff.accountNumber || 'N/A'}</strong>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span style={{ color: '#64748b' }}>IFSC Code:</span>
+                                                        <strong style={{ color: '#1e293b' }}>{selectedDetailStaff.ifscCode || 'N/A'}</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                                            <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+                                                📈 Chronological Appraisal & Hike History
+                                            </h3>
+                                            {selectedDetailStaff.salaryHistory && selectedDetailStaff.salaryHistory.length > 0 ? (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '250px', overflowY: 'auto' }}>
+                                                    {selectedDetailStaff.salaryHistory.map((hike, idx) => (
+                                                        <div key={idx} style={{ background: '#fff', border: '1px solid #e2e8f0', padding: '12px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                <span style={{ color: '#64748b', fontWeight: '500' }}>{hike.date}</span>
+                                                                <strong style={{ color: idx === 0 ? '#64748b' : '#10b981', fontSize: '0.95rem' }}>
+                                                                    ₹{parseFloat(hike.amount).toLocaleString('en-IN')}
+                                                                </strong>
+                                                            </div>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginTop: '2px' }}>
+                                                                <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>
+                                                                    {idx === 0 ? 'Base Joined Salary' : 'Appraisal Salary Bump'}
+                                                                </span>
+                                                                <span style={{ color: '#475569', fontWeight: 'bold' }}>{hike.reason}</span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div style={{ fontStyle: 'italic', color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '15px' }}>
+                                                    No salary hikes or appraisals logged for this profile yet.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* CONDITION 3: COMPLIANCE & DOCUMENTS CONTEXT */}
+                                {activeContext === 'compliance' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                        <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                                            <h4 style={{ color: '#475569', margin: '0 0 1rem 0', fontSize: '0.85rem', textTransform: 'uppercase', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>✅ Compliance Verification Status</h4>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', textAlign: 'center' }}>
+                                                <div style={{ padding: '10px', borderRadius: '8px', background: selectedDetailStaff.aadhaarCollected ? '#dcfce7' : '#fee2e2', border: '1px solid #cbd5e1' }}>
+                                                    <span style={{ fontSize: '1.5rem', display: 'block' }}>🪪</span>
+                                                    <strong style={{ fontSize: '0.8rem', color: selectedDetailStaff.aadhaarCollected ? '#15803d' : '#ef4444' }}>
+                                                        Aadhaar Card: {selectedDetailStaff.aadhaarCollected ? 'OK ✅' : 'MISSING ❌'}
+                                                    </strong>
+                                                </div>
+                                                <div style={{ padding: '10px', borderRadius: '8px', background: selectedDetailStaff.panCollected ? '#dcfce7' : '#fee2e2', border: '1px solid #cbd5e1' }}>
+                                                    <span style={{ fontSize: '1.5rem', display: 'block' }}>💳</span>
+                                                    <strong style={{ fontSize: '0.8rem', color: selectedDetailStaff.panCollected ? '#15803d' : '#ef4444' }}>
+                                                        PAN Card: {selectedDetailStaff.panCollected ? 'OK ✅' : 'MISSING ❌'}
+                                                    </strong>
+                                                </div>
+                                                <div style={{ padding: '10px', borderRadius: '8px', background: selectedDetailStaff.medicalCollected ? '#dcfce7' : '#fee2e2', border: '1px solid #cbd5e1' }}>
+                                                    <span style={{ fontSize: '1.5rem', display: 'block' }}>🩺</span>
+                                                    <strong style={{ fontSize: '0.8rem', color: selectedDetailStaff.medicalCollected ? '#15803d' : '#ef4444' }}>
+                                                        Medical Certificate: {selectedDetailStaff.medicalCollected ? 'OK ✅' : 'MISSING ❌'}
+                                                    </strong>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                                            <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.75rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+                                                📁 Compliance Documents Download
+                                            </h3>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                {employeeDocs.length > 0 ? (
+                                                    employeeDocs.map((doc, idx) => (
+                                                        <a
+                                                            key={idx}
+                                                            href={doc.url}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            style={{
+                                                                background: 'white',
+                                                                color: '#009ceb',
+                                                                textDecoration: 'none',
+                                                                padding: '10px 14px',
+                                                                borderRadius: '8px',
+                                                                fontSize: '0.85rem',
+                                                                fontWeight: 'bold',
+                                                                border: '1px solid #cbd5e1',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'space-between'
+                                                            }}
+                                                        >
+                                                            <span>📄 {doc.name}</span>
+                                                            <span style={{ fontSize: '0.8rem' }}>Download File 📥</span>
+                                                        </a>
+                                                    ))
+                                                ) : (
+                                                    <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic', textAlign: 'center', padding: '15px' }}>
+                                                        No compliance documents uploaded yet.
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* CONDITION 4: PERSONAL & CONTACT PROFILE SHEET */}
+                                {(activeContext === 'personal' || activeContext === 'contact') && (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '1.25rem' }}>
+                                        <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                                            <h4 style={{ color: '#475569', margin: '0 0 1rem 0', fontSize: '0.85rem', textTransform: 'uppercase', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>👤 Personal Information</h4>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.88rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: '#64748b' }}>Call Name / Nickname:</span>
+                                                    <strong style={{ color: '#1e293b' }}>{selectedDetailStaff.nickname || 'N/A'}</strong>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: '#64748b' }}>Gender:</span>
+                                                    <strong style={{ color: '#1e293b' }}>{selectedDetailStaff.gender || 'N/A'}</strong>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: '#64748b' }}>Date of Birth:</span>
+                                                    <strong style={{ color: '#1e293b' }}>{selectedDetailStaff.dob || 'N/A'}</strong>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: '#64748b' }}>Blood Group:</span>
+                                                    {selectedDetailStaff.bloodGroup ? (
+                                                        <span style={{ background: '#fee2e2', color: '#ef4444', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>{selectedDetailStaff.bloodGroup}</span>
+                                                    ) : <strong>N/A</strong>}
+                                                </div>
+                                            </div>
+                                            
+                                            <h4 style={{ color: '#475569', margin: '1.5rem 0 1rem 0', fontSize: '0.85rem', textTransform: 'uppercase', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>📞 Contact Details</h4>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.88rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: '#64748b' }}>Mobile Number:</span>
+                                                    <strong style={{ color: '#1e293b' }}>{selectedDetailStaff.phone || 'N/A'}</strong>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: '#64748b' }}>Alternate Phone:</span>
+                                                    <strong style={{ color: '#1e293b' }}>{selectedDetailStaff.alternatePhone || 'N/A'}</strong>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: '#64748b' }}>Email Address:</span>
+                                                    <strong style={{ color: '#1e293b' }}>{selectedDetailStaff.email || 'N/A'}</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                            <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                                                <h4 style={{ color: '#475569', margin: '0 0 1rem 0', fontSize: '0.85rem', textTransform: 'uppercase', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>🏡 Address Coordinates</h4>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.82rem' }}>
+                                                    <div>
+                                                        <span style={{ color: '#64748b', display: 'block', marginBottom: '2px', fontWeight: 'bold' }}>Current Address:</span>
+                                                        <p style={{ margin: 0, color: '#334155', lineHeight: '1.4' }}>{selectedDetailStaff.currentAddress || 'No current address recorded.'}</p>
+                                                    </div>
+                                                    <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '10px' }}>
+                                                        <span style={{ color: '#64748b', display: 'block', marginBottom: '2px', fontWeight: 'bold' }}>Permanent Address:</span>
+                                                        <p style={{ margin: 0, color: '#334155', lineHeight: '1.4' }}>{selectedDetailStaff.permanentAddress || 'No permanent address recorded.'}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                                                <h4 style={{ color: '#475569', margin: '0 0 1rem 0', fontSize: '0.85rem', textTransform: 'uppercase', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>🚨 Emergency Reference</h4>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.88rem' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span style={{ color: '#64748b' }}>Emergency Name:</span>
+                                                        <strong style={{ color: '#1e293b' }}>{selectedDetailStaff.emergencyContact || 'N/A'}</strong>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span style={{ color: '#64748b' }}>Emergency Phone:</span>
+                                                        <strong style={{ color: '#be123c' }}>{selectedDetailStaff.emergencyPhone || 'N/A'}</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* CONDITION 5: MONTH-ON-MONTH PAYOUTS & ANALYTICS LEDGER */}
+                                {(activeContext === 'analytics' || activeContext === 'general' || !activeContext) && (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '1.75rem' }}>
+                                        <div>
+                                            <h3 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', marginBottom: '1rem', letterSpacing: '0.5px' }}>
+                                                📅 Month-on-Month Payment History
+                                            </h3>
+
+                                            <div style={{ overflowX: 'auto', background: '#f8fafc', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                                                    <thead>
+                                                        <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
+                                                            <th style={{ padding: '10px 12px', fontWeight: 'bold', color: '#475569' }}>Month</th>
+                                                            <th style={{ padding: '10px 12px', fontWeight: 'bold', color: '#475569' }}>Leaves</th>
+                                                            <th style={{ padding: '10px 12px', fontWeight: 'bold', color: '#475569', textAlign: 'center' }}>KPI Rating</th>
+                                                            <th style={{ padding: '10px 12px', fontWeight: 'bold', color: '#475569' }}>KPI Bonus</th>
+                                                            <th style={{ padding: '10px 12px', fontWeight: 'bold', color: '#475569' }}>Net Paid</th>
+                                                            <th style={{ padding: '10px 12px', fontWeight: 'bold', color: '#475569' }}>Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {history.length > 0 ? (
+                                                            history.map((record) => (
+                                                                <tr key={record.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                                                                    <td style={{ padding: '10px 12px', fontWeight: 'bold', color: '#1e293b' }}>
+                                                                        {(() => {
+                                                                            const [y, m] = record.month.split('-');
+                                                                            const d = new Date(parseInt(y), parseInt(m) - 1, 1);
+                                                                            return d.toLocaleDateString('default', { month: 'short', year: 'numeric' });
+                                                                        })()}
+                                                                    </td>
+                                                                    <td style={{ padding: '10px 12px', color: '#475569' }}>
+                                                                        {record.leavesTaken || 0} Leaves
+                                                                    </td>
+                                                                    <td style={{ padding: '10px 12px', textAlign: 'center', color: '#eab308' }}>
+                                                                        {Array.from({ length: 5 }).map((_, i) => (
+                                                                            <span key={i}>{i < (record.kpiRating || 0) ? '★' : '☆'}</span>
+                                                                        ))}
+                                                                    </td>
+                                                                    <td style={{ padding: '10px 12px', color: '#10b981', fontWeight: '500' }}>
+                                                                        ₹{(record.kpiBonusPaid || 0).toLocaleString('en-IN')}
+                                                                    </td>
+                                                                    <td style={{ padding: '10px 12px', color: '#1e293b', fontWeight: 'bold' }}>
+                                                                        ₹{(record.netSalaryPaid || 0).toLocaleString('en-IN')}
+                                                                    </td>
+                                                                    <td style={{ padding: '10px 12px' }}>
+                                                                        <div style={{ display: 'inline-flex', flexDirection: 'column' }}>
+                                                                            <span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 'bold' }}>Paid ✅</span>
+                                                                            <span style={{ fontSize: '0.6rem', color: '#94a3b8', marginTop: '2px' }}>
+                                                                                {record.datePaid ? new Date(record.datePaid).toLocaleDateString() : ''}
+                                                                            </span>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            ))
+                                                        ) : (
+                                                            <tr>
+                                                                <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', fontStyle: 'italic' }}>
+                                                                    No payroll logs recorded for this employee yet.
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                            
+                                            <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
+                                                <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+                                                    📈 Performance Scorecard
+                                                </h3>
+
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                                    <div style={{ background: 'white', padding: '10px', borderRadius: '12px', border: '1px solid #f1f5f9', textAlign: 'center' }}>
+                                                        <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' }}>Avg KPI Rating</span>
+                                                        <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#eab308', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                                                            ⭐ {avgKpi}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ background: 'white', padding: '10px', borderRadius: '12px', border: '1px solid #f1f5f9', textAlign: 'center' }}>
+                                                        <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' }}>Attendance Consistency</span>
+                                                        <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#10b981', marginTop: '4px' }}>
+                                                            {avgAtt}%
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ background: 'white', padding: '10px', borderRadius: '12px', border: '1px solid #f1f5f9', textAlign: 'center' }}>
+                                                        <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' }}>Total Leaves Taken</span>
+                                                        <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#ef4444', marginTop: '4px' }}>
+                                                            {totalLeavesHistory} Days
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ background: 'white', padding: '10px', borderRadius: '12px', border: '1px solid #f1f5f9', textAlign: 'center' }}>
+                                                        <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' }}>Total Payout (To Date)</span>
+                                                        <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', marginTop: '4px' }}>
+                                                            ₹{totalEarnings.toLocaleString('en-IN')}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {history.length > 0 && (
+                                                    <div style={{ marginTop: '1.25rem', borderTop: '1px solid #cbd5e1', paddingTop: '1rem' }}>
+                                                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>KPI Rating Trend (Last 5 Months)</span>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', height: '100px', background: 'white', borderRadius: '10px', border: '1px solid #cbd5e1', padding: '10px' }}>
+                                                            {history.slice(0, 5).reverse().map((rec, index) => {
+                                                                const rating = rec.kpiRating || 3;
+                                                                const pct = (rating / 5) * 100;
+                                                                return (
+                                                                    <div key={index} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                                                                        <div style={{ fontSize: '0.7rem', color: '#eab308', fontWeight: 'bold', marginBottom: '2px' }}>{rating}★</div>
+                                                                        <div style={{ width: '16px', height: `${pct * 0.6}px`, background: '#f59e0b', borderRadius: '4px 4px 0 0', transition: 'all 0.3s' }}></div>
+                                                                        <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '4px' }}>
+                                                                            {(() => {
+                                                                                const [_, m] = rec.month.split('-');
+                                                                                return `${m}/${rec.month.substring(2,4)}`;
+                                                                            })()}
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                            </div>
+                        </div>
+                    );
+                })()
+            }
+
+            {/* ══════════════════════════════════════════════════════════
+                VENDORS TAB
+            ══════════════════════════════════════════════════════════ */}
+            {activeTab === 'vendors' && (() => {
+                const VENDOR_CATEGORIES = [
+                    'Dairy & Milk', 'Eggs', 'Fruits & Vegetables', 'Dry Fruits & Nuts',
+                    'Sweeteners & Flavours', 'Packaging', 'Cleaning & Supplies',
+                    'Gas & Fuel', 'Equipment & Tools', 'Other'
+                ];
+
+                const filteredVendors = vendors.filter(v => {
+                    if (vendorCategoryFilter !== 'All' && v.category !== vendorCategoryFilter) return false;
+                    if (vendorSearchQuery && !v.name.toLowerCase().includes(vendorSearchQuery.toLowerCase()) &&
+                        !(v.phone || '').includes(vendorSearchQuery)) return false;
+                    return true;
+                });
+
+                // Price comparison: find all vendors supplying a searched item
+                const itemComparisonList = vendorItemSearch ? vendors.flatMap(v =>
+                    (v.items || [])
+                        .filter(it => it.itemName.toLowerCase().includes(vendorItemSearch.toLowerCase()))
+                        .map(it => ({ vendorId: v.id, vendorName: v.name, phone: v.phone, category: v.category, ...it }))
+                ).sort((a, b) => parseFloat(a.price) - parseFloat(b.price)) : [];
+
+                const VendorForm = ({ data, setData, onSave, onCancel, title }) => {
+                    const addItem = () => setData(d => ({ ...d, items: [...(d.items || []), { itemName: '', unit: 'kg', price: '' }] }));
+                    const updateItem = (i, field, val) => setData(d => { const items = [...(d.items || [])]; items[i] = { ...items[i], [field]: val }; return { ...d, items }; });
+                    const removeItem = (i) => setData(d => ({ ...d, items: (d.items || []).filter((_, idx) => idx !== i) }));
+
+                    return (
+                        <div style={{ background: 'white', borderRadius: '20px', padding: '2rem', border: '1px solid #e2e8f0', marginBottom: '1.5rem', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h3 style={{ margin: 0, fontWeight: '800', color: '#0f172a' }}>{title}</h3>
+                                <button onClick={onCancel} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#94a3b8' }}>×</button>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                                {[['Vendor Name *', 'name', 'text', 'e.g. Suresh Dairy'],
+                                  ['Phone *', 'phone', 'tel', '+91 98765 43210'],
+                                  ['WhatsApp', 'whatsapp', 'tel', 'WhatsApp number'],
+                                  ['Address', 'address', 'text', 'Area / City']].map(([label, key, type, ph]) => (
+                                    <div key={key}>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>{label}</label>
+                                        <input type={type} placeholder={ph} value={data[key] || ''} onChange={e => setData(d => ({ ...d, [key]: e.target.value }))}
+                                            style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+                                    </div>
+                                ))}
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Category</label>
+                                    <select value={data.category} onChange={e => setData(d => ({ ...d, category: e.target.value }))}
+                                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.9rem', boxSizing: 'border-box' }}>
+                                        {VENDOR_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Notes</label>
+                                    <input type="text" placeholder="Extra info..." value={data.notes || ''} onChange={e => setData(d => ({ ...d, notes: e.target.value }))}
+                                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+                                </div>
+                            </div>
+
+                            {/* Items / Pricing */}
+                            <div style={{ background: '#f8fafc', borderRadius: '14px', padding: '1.25rem', marginBottom: '1rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                    <label style={{ fontSize: '0.78rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px' }}>📦 Items & Prices</label>
+                                    <button type="button" onClick={addItem}
+                                        style={{ background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', padding: '6px 14px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
+                                        + Add Item
+                                    </button>
+                                </div>
+                                {(data.items || []).length === 0 ? (
+                                    <div style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '1rem' }}>No items added yet. Click "Add Item" to start.</div>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        {(data.items || []).map((item, i) => (
+                                            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto 100px auto', gap: '8px', alignItems: 'center' }}>
+                                                <input type="text" placeholder="Item name (e.g. Full Cream Milk)" value={item.itemName} onChange={e => updateItem(i, 'itemName', e.target.value)}
+                                                    style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }} />
+                                                <select value={item.unit} onChange={e => updateItem(i, 'unit', e.target.value)}
+                                                    style={{ padding: '8px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }}>
+                                                    {['kg', 'g', 'litre', 'ml', 'piece', 'dozen', 'box', 'bag', 'packet'].map(u => <option key={u} value={u}>{u}</option>)}
+                                                </select>
+                                                <input type="number" placeholder="₹ Price" value={item.price} onChange={e => updateItem(i, 'price', e.target.value)}
+                                                    style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }} />
+                                                <button onClick={() => removeItem(i)}
+                                                    style={{ background: '#fee2e2', border: 'none', borderRadius: '8px', padding: '8px 10px', cursor: 'pointer', color: '#ef4444', fontWeight: '900', fontSize: '1rem' }}>×</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button onClick={onCancel}
+                                    style={{ flex: 1, padding: '12px', border: '1.5px solid #e2e8f0', background: 'white', borderRadius: '12px', cursor: 'pointer', fontWeight: '700', color: '#64748b' }}>
+                                    Cancel
+                                </button>
+                                <button onClick={onSave}
+                                    style={{ flex: 2, padding: '12px', border: 'none', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', borderRadius: '12px', cursor: 'pointer', fontWeight: '800', color: 'white' }}>
+                                    💾 Save Vendor
+                                </button>
+                            </div>
+                        </div>
+                    );
+                };
+
+                const handleSaveVendor = async () => {
+                    if (!newVendor.name.trim() || !newVendor.phone.trim()) { showToast('Vendor name and phone are required', 'error'); return; }
+                    try {
+                        const saved = await db.addVendor(newVendor);
+                        setVendors(prev => [saved, ...prev]);
+                        setNewVendor({ name: '', category: 'Dairy & Milk', phone: '', whatsapp: '', address: '', notes: '', items: [] });
+                        setShowAddVendorForm(false);
+                        showToast('Vendor added!');
+                    } catch { showToast('Failed to save vendor', 'error'); }
+                };
+
+                const handleUpdateVendor = async () => {
+                    if (!editingVendor.name.trim()) { showToast('Vendor name is required', 'error'); return; }
+                    try {
+                        await db.updateVendor(editingVendor.id, editingVendor);
+                        setVendors(prev => prev.map(v => v.id === editingVendor.id ? editingVendor : v));
+                        setEditingVendor(null);
+                        showToast('Vendor updated!');
+                    } catch { showToast('Failed to update vendor', 'error'); }
+                };
+
+                const handleDeleteVendor = async (id) => {
+                    if (!window.confirm('Delete this vendor?')) return;
+                    try {
+                        await db.deleteVendor(id);
+                        setVendors(prev => prev.filter(v => v.id !== id));
+                        showToast('Vendor deleted');
+                    } catch { showToast('Failed to delete', 'error'); }
+                };
+
+                return (
+                    <div className={styles.content}>
+                        {/* Header row */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
+                            <div>
+                                <h2 style={{ margin: 0, fontWeight: '900', color: '#0f172a', fontSize: '1.5rem' }}>🏪 Vendor Management</h2>
+                                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.85rem' }}>{vendors.length} vendors · Compare prices · Track suppliers</p>
+                            </div>
+                            <button onClick={() => { setShowAddVendorForm(true); setEditingVendor(null); }}
+                                style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', border: 'none', borderRadius: '12px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                + Add Vendor
+                            </button>
+                        </div>
+
+                        {/* Price Comparison Tool */}
+                        <div style={{ background: 'linear-gradient(135deg, #0f172a, #1e293b)', borderRadius: '20px', padding: '1.5rem', marginBottom: '1.5rem', border: '1px solid rgba(255,255,255,0.08)' }}>
+                            <h3 style={{ color: 'white', fontWeight: '800', margin: '0 0 1rem 0', fontSize: '1rem' }}>🔍 Price Comparison — Who gives the best price?</h3>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <input type="text" placeholder="Search item (e.g. Milk, Egg, Pistachio)..." value={vendorItemSearch}
+                                    onChange={e => setVendorItemSearch(e.target.value)}
+                                    style={{ flex: 1, padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.08)', color: 'white', fontSize: '0.9rem', outline: 'none' }} />
+                            </div>
+                            {vendorItemSearch && (
+                                <div style={{ marginTop: '1rem' }}>
+                                    {itemComparisonList.length === 0 ? (
+                                        <div style={{ color: '#64748b', fontSize: '0.85rem' }}>No vendors found supplying "{vendorItemSearch}"</div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            {itemComparisonList.map((it, i) => (
+                                                <div key={i} style={{
+                                                    display: 'flex', alignItems: 'center', gap: '1rem',
+                                                    background: i === 0 ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)',
+                                                    border: i === 0 ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(255,255,255,0.06)',
+                                                    borderRadius: '12px', padding: '10px 16px'
+                                                }}>
+                                                    <span style={{ fontSize: '1.2rem' }}>{i === 0 ? '🏆' : `#${i + 1}`}</span>
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ color: 'white', fontWeight: '700', fontSize: '0.9rem' }}>{it.vendorName}</div>
+                                                        <div style={{ color: '#64748b', fontSize: '0.75rem' }}>{it.itemName} · {it.unit} · {it.category}</div>
+                                                    </div>
+                                                    <div style={{ color: i === 0 ? '#10b981' : '#f59e0b', fontWeight: '900', fontSize: '1.1rem' }}>₹{parseFloat(it.price).toLocaleString('en-IN')}/{it.unit}</div>
+                                                    {i === 0 && <span style={{ background: '#10b981', color: 'white', fontSize: '0.65rem', fontWeight: '800', padding: '2px 8px', borderRadius: '50px' }}>BEST</span>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Add Vendor Form */}
+                        {showAddVendorForm && (
+                            <VendorForm data={newVendor} setData={setNewVendor}
+                                onSave={handleSaveVendor} onCancel={() => setShowAddVendorForm(false)}
+                                title="➕ Add New Vendor" />
+                        )}
+
+                        {/* Edit Vendor Form */}
+                        {editingVendor && (
+                            <VendorForm data={editingVendor} setData={setEditingVendor}
+                                onSave={handleUpdateVendor} onCancel={() => setEditingVendor(null)}
+                                title="✏️ Edit Vendor" />
+                        )}
+
+                        {/* Filters */}
+                        <div style={{ display: 'flex', gap: '10px', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <input type="text" placeholder="🔍 Search vendors..." value={vendorSearchQuery} onChange={e => setVendorSearchQuery(e.target.value)}
+                                style={{ flex: '1 1 200px', padding: '9px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.88rem' }} />
+                            <select value={vendorCategoryFilter} onChange={e => setVendorCategoryFilter(e.target.value)}
+                                style={{ padding: '9px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.88rem' }}>
+                                <option value="All">All Categories</option>
+                                {VENDOR_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                            <span style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: '600' }}>{filteredVendors.length} results</span>
+                        </div>
+
+                        {/* Vendor Cards */}
+                        {filteredVendors.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '4rem 2rem', color: '#94a3b8' }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏪</div>
+                                <div style={{ fontWeight: '700', fontSize: '1.1rem', color: '#475569' }}>No vendors yet</div>
+                                <div style={{ fontSize: '0.85rem', marginTop: '4px' }}>Click "Add Vendor" to add your first supplier.</div>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.25rem' }}>
+                                {filteredVendors.map(v => (
+                                    <div key={v.id} style={{ background: 'white', borderRadius: '20px', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                            <div>
+                                                <div style={{ fontWeight: '800', fontSize: '1rem', color: '#0f172a' }}>{v.name}</div>
+                                                <span style={{ display: 'inline-block', background: '#f0f9ff', color: '#0ea5e9', border: '1px solid #bae6fd', borderRadius: '50px', padding: '2px 10px', fontSize: '0.72rem', fontWeight: '700', marginTop: '4px' }}>{v.category}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                                <button onClick={() => { setEditingVendor(v); setShowAddVendorForm(false); }}
+                                                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', color: '#0ea5e9' }}>Edit</button>
+                                                <button onClick={() => handleDeleteVendor(v.id)}
+                                                    style={{ background: '#fee2e2', border: 'none', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', color: '#ef4444' }}>Del</button>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '12px', fontSize: '0.8rem', color: '#64748b', flexWrap: 'wrap' }}>
+                                            {v.phone && <span>📞 <a href={`tel:${v.phone}`} style={{ color: '#0ea5e9', textDecoration: 'none', fontWeight: '600' }}>{v.phone}</a></span>}
+                                            {v.whatsapp && <span>💬 <a href={`https://wa.me/${v.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ color: '#22c55e', textDecoration: 'none', fontWeight: '600' }}>{v.whatsapp}</a></span>}
+                                            {v.address && <span>📍 {v.address}</span>}
+                                        </div>
+
+                                        {/* Items */}
+                                        {(v.items || []).length > 0 && (
+                                            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '12px' }}>
+                                                <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Items & Pricing</div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                    {(v.items || []).map((it, i) => (
+                                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                                                            <span style={{ color: '#334155', fontWeight: '600' }}>{it.itemName}</span>
+                                                            <span style={{ color: '#0ea5e9', fontWeight: '800' }}>₹{parseFloat(it.price || 0).toLocaleString('en-IN')}/{it.unit}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {v.notes && <div style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>"{v.notes}"</div>}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
+
+            {/* ══════════════════════════════════════════════════════════
+                PURCHASES TAB (Admin read-all view)
+            ══════════════════════════════════════════════════════════ */}
+            {activeTab === 'purchases' && (() => {
+                const CATEGORIES = [
+                    'Dairy & Milk', 'Eggs', 'Fruits & Vegetables', 'Dry Fruits & Nuts',
+                    'Sweeteners & Flavours', 'Packaging', 'Cleaning & Supplies',
+                    'Gas & Fuel', 'Equipment & Tools', 'Other'
+                ];
+
+                const filteredPurchases = purchases.filter(p => {
+                    if (purchaseFilterDate && p.date !== purchaseFilterDate) return false;
+                    if (purchaseFilterPurchaser !== 'All' && p.purchaserName !== purchaseFilterPurchaser) return false;
+                    if (purchaseFilterCategory !== 'All' && p.category !== purchaseFilterCategory) return false;
+                    if (purchaseFilterPayment !== 'All' && p.paymentMode !== purchaseFilterPayment) return false;
+                    if (purchaseSearchQuery && !p.item.toLowerCase().includes(purchaseSearchQuery.toLowerCase()) &&
+                        !(p.vendorName || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase())) return false;
+                    return true;
+                });
+
+                const today = new Date().toISOString().split('T')[0];
+                const todayTotal = filteredPurchases.filter(p => p.date === today).reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+                const allTotal = filteredPurchases.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+                const cashTotal = filteredPurchases.filter(p => p.paymentMode === 'Cash').reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+                const gpayTotal = filteredPurchases.filter(p => p.paymentMode === 'GPay').reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+                const uniquePurchasers = [...new Set(purchases.map(p => p.purchaserName).filter(Boolean))];
+
+                const handleExportCSV = () => {
+                    if (!filteredPurchases.length) { showToast('No data to export', 'error'); return; }
+                    const headers = ['Date', 'Purchaser', 'Item', 'Category', 'Vendor', 'Amount (₹)', 'Payment Mode', 'Notes'];
+                    const rows = filteredPurchases.map(p =>
+                        [p.date, p.purchaserName, `"${p.item}"`, `"${p.category}"`, `"${p.vendorName || ''}"`, p.amount, p.paymentMode, `"${p.notes || ''}"`].join(',')
+                    );
+                    const blob = new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = `purchases_${today}.csv`; a.click();
+                    URL.revokeObjectURL(url);
+                    showToast('Report exported!');
+                };
+
+                const handleDeletePurchase = async (id) => {
+                    if (!window.confirm('Delete this purchase entry?')) return;
+                    try {
+                        await db.deletePurchase(id);
+                        setPurchases(prev => prev.filter(p => p.id !== id));
+                        showToast('Purchase deleted');
+                    } catch { showToast('Failed to delete', 'error'); }
+                };
+
+                const catIcon = (cat) => ({
+                    'Dairy & Milk': '🥛', 'Eggs': '🥚', 'Fruits & Vegetables': '🍎',
+                    'Dry Fruits & Nuts': '🥜', 'Sweeteners & Flavours': '🍯',
+                    'Packaging': '📦', 'Gas & Fuel': '🔥', 'Equipment & Tools': '🔧',
+                    'Cleaning & Supplies': '🧹'
+                }[cat] || '🛒');
+
+                return (
+                    <div className={styles.content}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
+                            <div>
+                                <h2 style={{ margin: 0, fontWeight: '900', color: '#0f172a', fontSize: '1.5rem' }}>🛒 Daily Purchases</h2>
+                                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.85rem' }}>All team purchase entries · {filteredPurchases.length} entries</p>
+                            </div>
+                            <button onClick={handleExportCSV}
+                                style={{ background: '#059669', color: 'white', border: 'none', borderRadius: '12px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                📊 Export CSV
+                            </button>
+                        </div>
+
+                        {/* Summary Cards */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                            {[
+                                { label: "Today's Total", value: `₹${todayTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#0ea5e9', icon: '📅' },
+                                { label: 'Filtered Total', value: `₹${allTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#10b981', icon: '💰' },
+                                { label: 'Cash Payments', value: `₹${cashTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#f59e0b', icon: '💵' },
+                                { label: 'GPay / Digital', value: `₹${gpayTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#8b5cf6', icon: '📱' },
+                            ].map((s, i) => (
+                                <div key={i} style={{ background: 'white', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '1.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                    <div style={{ fontSize: '1.4rem', marginBottom: '6px' }}>{s.icon}</div>
+                                    <div style={{ color: s.color, fontSize: '1.3rem', fontWeight: '900', lineHeight: 1 }}>{s.value}</div>
+                                    <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '4px' }}>{s.label}</div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Filters */}
+                        <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1rem', marginBottom: '1.25rem', display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                            <input type="text" placeholder="🔍 Search item / vendor..." value={purchaseSearchQuery} onChange={e => setPurchaseSearchQuery(e.target.value)}
+                                style={{ flex: '1 1 180px', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }} />
+                            <input type="date" value={purchaseFilterDate} onChange={e => setPurchaseFilterDate(e.target.value)}
+                                style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }} />
+                            <select value={purchaseFilterPurchaser} onChange={e => setPurchaseFilterPurchaser(e.target.value)}
+                                style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }}>
+                                <option value="All">All Purchasers</option>
+                                {uniquePurchasers.map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                            <select value={purchaseFilterCategory} onChange={e => setPurchaseFilterCategory(e.target.value)}
+                                style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }}>
+                                <option value="All">All Categories</option>
+                                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                            <select value={purchaseFilterPayment} onChange={e => setPurchaseFilterPayment(e.target.value)}
+                                style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }}>
+                                <option value="All">All Payments</option>
+                                <option value="Cash">Cash</option>
+                                <option value="GPay">GPay</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                            </select>
+                            {(purchaseFilterDate || purchaseFilterPurchaser !== 'All' || purchaseFilterCategory !== 'All' || purchaseFilterPayment !== 'All' || purchaseSearchQuery) && (
+                                <button onClick={() => { setPurchaseFilterDate(''); setPurchaseFilterPurchaser('All'); setPurchaseFilterCategory('All'); setPurchaseFilterPayment('All'); setPurchaseSearchQuery(''); }}
+                                    style={{ padding: '8px 12px', background: '#ef4444', border: 'none', borderRadius: '8px', color: 'white', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>
+                                    Clear
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Purchase Entries */}
+                        {filteredPurchases.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '4rem 2rem', color: '#94a3b8', background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
+                                <div style={{ fontWeight: '700', fontSize: '1.1rem', color: '#475569' }}>No purchase entries found</div>
+                                <div style={{ fontSize: '0.85rem', marginTop: '4px' }}>Entries logged by Marchad, Nufoor, and other team members will appear here.</div>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {filteredPurchases.map(p => (
+                                    <div key={p.id} style={{
+                                        background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0',
+                                        padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                                    }}>
+                                        <div style={{ fontSize: '2rem', flexShrink: 0 }}>{catIcon(p.category)}</div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                <span style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.95rem' }}>{p.item}</span>
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 8px', borderRadius: '50px', fontSize: '0.7rem', fontWeight: '700', background: p.paymentMode === 'Cash' ? '#fef9c3' : '#ede9fe', color: p.paymentMode === 'Cash' ? '#92400e' : '#5b21b6', border: p.paymentMode === 'Cash' ? '1px solid #fde68a' : '1px solid #c4b5fd' }}>
+                                                    {p.paymentMode === 'Cash' ? '💵' : '📱'} {p.paymentMode}
+                                                </span>
+                                            </div>
+                                            <div style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '3px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                                                <span>📅 {p.date}</span>
+                                                <span style={{ fontWeight: '700', color: '#64748b' }}>👤 {p.purchaserName}</span>
+                                                <span>🏷️ {p.category}</span>
+                                                {p.vendorName && <span>🏪 {p.vendorName}</span>}
+                                            </div>
+                                            {p.notes && <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: '4px', fontStyle: 'italic' }}>"{p.notes}"</div>}
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
+                                            <span style={{ color: '#10b981', fontWeight: '900', fontSize: '1.1rem' }}>₹{parseFloat(p.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                                {p.billUrl && (
+                                                    <a href={p.billUrl} target="_blank" rel="noopener noreferrer"
+                                                        style={{ background: '#f0f9ff', color: '#0ea5e9', border: '1px solid #bae6fd', borderRadius: '6px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: '700', textDecoration: 'none' }}>
+                                                        📷 Bill
+                                                    </a>
+                                                )}
+                                                <button onClick={() => handleDeletePurchase(p.id)}
+                                                    style={{ background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer' }}>
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
 
             {/* Image Cropper Modal */}
+
             {
                 croppingImage && (
                     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1048,6 +6619,232 @@ const AdminDashboard = () => {
                     </div>
                 )
             }
+
+
+            {/* ── TOAST NOTIFICATION ── */}
+            {toast && (
+                <div style={{
+                    position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 9999,
+                    display: 'flex', alignItems: 'center', gap: '12px',
+                    background: toast.type === 'error' ? '#fef2f2' : '#f0fdf4',
+                    border: `1px solid ${toast.type === 'error' ? '#fca5a5' : '#86efac'}`,
+                    color: toast.type === 'error' ? '#dc2626' : '#16a34a',
+                    padding: '0.85rem 1.25rem', borderRadius: '14px',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                    fontWeight: '600', fontSize: '0.9rem',
+                    animation: 'slideInRight 0.3s ease'
+                }}>
+                    <span style={{ fontSize: '1.2rem' }}>{toast.type === 'error' ? '❌' : '✅'}</span>
+                    {toast.msg}
+                </div>
+            )}
+
+            {/* ── TERMINATION MODAL ── */}
+            {termModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(4px)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+                    onClick={() => setTermModal(null)}>
+                    <div style={{ background: 'white', borderRadius: '20px', padding: '2rem', width: '100%', maxWidth: '480px', boxShadow: '0 25px 60px rgba(0,0,0,0.2)' }}
+                        onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
+                            <div style={{ width: 44, height: 44, borderRadius: '12px', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>🔴</div>
+                            <div>
+                                <div style={{ fontWeight: '800', fontSize: '1.1rem', color: '#0f172a' }}>Exit & Separation</div>
+                                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>{termModal.staff?.fullName}</div>
+                            </div>
+                            <button onClick={() => setTermModal(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#94a3b8', lineHeight: 1 }}>×</button>
+                        </div>
+
+                        {/* Fields */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '6px' }}>
+                                    Exit / Termination Date
+                                </label>
+                                <input type="date" value={termModalDate} onChange={e => setTermModalDate(e.target.value)}
+                                    style={{ width: '100%', padding: '0.65rem 0.9rem', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '0.95rem', color: '#0f172a', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '6px' }}>
+                                    Separation Reason
+                                </label>
+                                <select value={termModalReason} onChange={e => setTermModalReason(e.target.value)}
+                                    style={{ width: '100%', padding: '0.65rem 0.9rem', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '0.95rem', color: '#0f172a', outline: 'none', background: 'white', boxSizing: 'border-box', fontFamily: 'inherit', cursor: 'pointer' }}>
+                                    {['Resigned', 'Absconded', 'Performance', 'End of Contract', 'Relocated', 'Misconduct', 'Medical', 'Other'].map(r => (
+                                        <option key={r} value={r}>{r}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '6px' }}>
+                                    Handover / Exit Notes <span style={{ fontWeight: 400, textTransform: 'none', fontSize: '0.72rem' }}>(optional)</span>
+                                </label>
+                                <textarea value={termModalNotes} onChange={e => setTermModalNotes(e.target.value)}
+                                    rows={3} placeholder="e.g. Keys returned, training handover complete..."
+                                    style={{ width: '100%', padding: '0.65rem 0.9rem', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '0.88rem', color: '#0f172a', outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                            </div>
+                        </div>
+
+                        {/* Buttons */}
+                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+                            <button onClick={() => setTermModal(null)}
+                                style={{ flex: 1, padding: '0.75rem', border: '1.5px solid #e2e8f0', background: 'white', borderRadius: '12px', cursor: 'pointer', fontWeight: '700', color: '#64748b', fontSize: '0.9rem' }}>
+                                Cancel
+                            </button>
+                            <button onClick={async () => {
+                                if (!termModalDate) { showToast('Please enter the exit date.', 'error'); return; }
+                                const updates = { status: 'Terminated', termDate: termModalDate, termReason: termModalReason, termNotes: termModalNotes };
+                                await db.updateStaff(termModal.staff.id, updates);
+                                setStaffList(prev => prev.map(s => s.id === termModal.staff.id ? { ...s, ...updates } : s));
+                                setTermModal(null);
+                                showToast(`${termModal.staff.fullName} marked as Terminated.`);
+                            }}
+                                style={{ flex: 2, padding: '0.75rem', border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', borderRadius: '12px', cursor: 'pointer', fontWeight: '800', color: 'white', fontSize: '0.9rem', boxShadow: '0 4px 12px rgba(239,68,68,0.35)' }}>
+                                🔴 Confirm Termination
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── DOC LABEL MODAL ── */}
+            {docLabelModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(4px)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+                    onClick={() => setDocLabelModal(null)}>
+                    <div style={{ background: 'white', borderRadius: '20px', padding: '2rem', width: '100%', maxWidth: '420px', boxShadow: '0 25px 60px rgba(0,0,0,0.2)' }}
+                        onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
+                            <div style={{ width: 44, height: 44, borderRadius: '12px', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>📎</div>
+                            <div>
+                                <div style={{ fontWeight: '800', fontSize: '1.1rem', color: '#0f172a' }}>Name This Document</div>
+                                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>{docLabelModal.staff?.fullName}</div>
+                            </div>
+                            <button onClick={() => setDocLabelModal(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#94a3b8', lineHeight: 1 }}>×</button>
+                        </div>
+
+                        <div>
+                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '6px' }}>
+                                Document Label / Title
+                            </label>
+                            <input type="text" value={docLabelInput} onChange={e => setDocLabelInput(e.target.value)}
+                                autoFocus
+                                placeholder="e.g. Aadhaar Card, Medical Certificate, Contract..."
+                                style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '0.95rem', color: '#0f172a', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                                onKeyDown={async e => { if (e.key === 'Enter') e.target.blur(); }} />
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px' }}>
+                                {['Aadhaar Card', 'PAN Card', 'Resume', 'Medical Certificate', 'Health License', 'Contract Agreement', 'Police Verification'].map(tag => (
+                                    <button key={tag} onClick={() => setDocLabelInput(tag)}
+                                        style={{ padding: '4px 10px', border: '1px solid #e2e8f0', borderRadius: '20px', background: docLabelInput === tag ? '#0ea5e9' : '#f8fafc', color: docLabelInput === tag ? 'white' : '#64748b', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '600', transition: 'all 0.15s' }}>
+                                        {tag}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+                            <button onClick={() => setDocLabelModal(null)}
+                                style={{ flex: 1, padding: '0.75rem', border: '1.5px solid #e2e8f0', background: 'white', borderRadius: '12px', cursor: 'pointer', fontWeight: '700', color: '#64748b', fontSize: '0.9rem' }}>
+                                Cancel
+                            </button>
+                            <button onClick={async () => {
+                                if (!docLabelInput.trim()) { showToast('Please enter a document label.', 'error'); return; }
+                                const { staff, file } = docLabelModal;
+                                setIsUploading(true);
+                                setDocLabelModal(null);
+                                try {
+                                    const url = await uploadMedia(file);
+                                    const updatedDocs = [...(staff.documents || []), { name: docLabelInput.trim(), url }];
+                                    const updates = { documents: updatedDocs };
+                                    const lowerLabel = docLabelInput.toLowerCase();
+                                    if (lowerLabel.includes('aadhaar')) { updates.aadhaarDocUrl = url; updates.aadhaarCollected = true; }
+                                    else if (lowerLabel.includes('medical')) { updates.medicalDocUrl = url; updates.medicalCollected = true; }
+                                    else if (lowerLabel.includes('pan')) { updates.panCollected = true; }
+                                    else if (lowerLabel.includes('resume')) { updates.resumeDocUrl = url; }
+                                    await db.updateStaff(staff.id, updates);
+                                    setStaffList(prev => prev.map(s => s.id === staff.id ? { ...s, ...updates } : s));
+                                    showToast('Document uploaded and saved!');
+                                } catch (error) {
+                                    showToast('Upload failed: ' + error.message, 'error');
+                                } finally {
+                                    setIsUploading(false);
+                                }
+                            }}
+                                style={{ flex: 2, padding: '0.75rem', border: 'none', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', borderRadius: '12px', cursor: 'pointer', fontWeight: '800', color: 'white', fontSize: '0.9rem', boxShadow: '0 4px 12px rgba(14,165,233,0.35)' }}>
+                                📎 Upload Document
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── DAILY WAGE PAYMENT MODAL ── */}
+            {dailyWagePayModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(4px)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+                    onClick={() => setDailyWagePayModal(null)}>
+                    <div style={{ background: 'white', borderRadius: '20px', padding: '2rem', width: '100%', maxWidth: '420px', boxShadow: '0 25px 60px rgba(0,0,0,0.2)' }}
+                        onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
+                            <div style={{ width: 44, height: 44, borderRadius: '12px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>💰</div>
+                            <div>
+                                <div style={{ fontWeight: '800', fontSize: '1.1rem', color: '#0f172a' }}>Daily Wage Payment</div>
+                                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>{dailyWagePayModal.staff?.fullName} · ₹{dailyWagePayModal.payData?.dailyRate}/day</div>
+                            </div>
+                            <button onClick={() => setDailyWagePayModal(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#94a3b8', lineHeight: 1 }}>×</button>
+                        </div>
+
+                        <div style={{ marginBottom: '1.25rem' }}>
+                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '6px' }}>
+                                Days Worked This Month
+                            </label>
+                            <input
+                                type="number" min="1" max="31"
+                                value={dailyWageDays}
+                                onChange={e => setDailyWageDays(e.target.value)}
+                                autoFocus
+                                placeholder="e.g. 24"
+                                style={{ width: '100%', padding: '0.75rem 0.9rem', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '1.1rem', fontWeight: '700', color: '#0f172a', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', textAlign: 'center' }}
+                            />
+                            {dailyWageDays && dailyWagePayModal.payData?.dailyRate && (
+                                <div style={{ marginTop: '12px', background: '#fef3c7', borderRadius: '10px', padding: '12px', textAlign: 'center', border: '1px solid #fde68a' }}>
+                                    <div style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: '600', marginBottom: '4px' }}>Net Payable Amount</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#d97706' }}>
+                                        ₹{(parseFloat(dailyWagePayModal.payData.dailyRate) * parseInt(dailyWageDays || 0)).toLocaleString('en-IN')}
+                                    </div>
+                                    <div style={{ fontSize: '0.72rem', color: '#78350f', marginTop: '2px' }}>
+                                        {dailyWageDays} days × ₹{dailyWagePayModal.payData.dailyRate}/day
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <button onClick={() => setDailyWagePayModal(null)}
+                                style={{ flex: 1, padding: '0.75rem', border: '1.5px solid #e2e8f0', background: 'white', borderRadius: '12px', cursor: 'pointer', fontWeight: '700', color: '#64748b', fontSize: '0.9rem' }}>
+                                Cancel
+                            </button>
+                            <button onClick={async () => {
+                                const days = parseInt(dailyWageDays);
+                                if (!days || days < 1) { showToast('Please enter valid days worked.', 'error'); return; }
+                                const { staff, payData } = dailyWagePayModal;
+                                const net = (parseFloat(payData.dailyRate) || 0) * days;
+                                await handlePayPayroll(staff.id, {
+                                    ...payData,
+                                    basicSalary: payData.dailyRate,
+                                    presentDays: days,
+                                    netSalaryPaid: net,
+                                    payType: 'Daily',
+                                    datePaid: new Date().toISOString()
+                                });
+                                setDailyWagePayModal(null);
+                                showToast(`${staff.fullName} — ₹${net.toLocaleString('en-IN')} paid for ${days} days.`);
+                            }}
+                                style={{ flex: 2, padding: '0.75rem', border: 'none', background: 'linear-gradient(135deg, #f59e0b, #d97706)', borderRadius: '12px', cursor: 'pointer', fontWeight: '800', color: 'white', fontSize: '0.9rem', boxShadow: '0 4px 12px rgba(245,158,11,0.35)' }}>
+                                💰 Confirm Payment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
         </div >
     );

@@ -51,7 +51,7 @@ export default function FranchiseSection() {
                                 We provide full support, training, and a proven business model.
                             </p>
                             <button
-                                onClick={() => setShowForm(true)}
+                                onClick={() => window.location.href = '/franchise-inquiry'}
                                 style={{
                                     background: 'white',
                                     color: 'black',
