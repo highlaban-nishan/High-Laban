@@ -147,8 +147,11 @@ const AdminDashboard = () => {
     const [editingPurchase, setEditingPurchase] = useState(null);
     const [newPurchase, setNewPurchase] = useState({
         date: new Date().toISOString().split('T')[0], item: '', category: 'Dairy & Milk',
-        vendorId: '', amount: '', paymentMode: 'Cash', notes: '', billUrl: '', location: 'Main Kitchen'
+        vendorId: '', amount: '', paymentMode: 'Cash', notes: '', billUrl: '', location: 'Main Kitchen',
+        purchaserName: ''
     });
+    const [purchaserType, setPurchaserType] = useState('select');
+    const [editPurchaserType, setEditPurchaserType] = useState('select');
 
     // Users & Logins State
     const [systemUsers, setSystemUsers] = useState([]);
@@ -5019,7 +5022,7 @@ const AdminDashboard = () => {
                             ...newPurchase,
                             amount: parseFloat(newPurchase.amount),
                             location: currentFilterLoc,
-                            purchaserName: user.name,
+                            purchaserName: newPurchase.purchaserName || user.name,
                             purchaserEmail: user.email,
                             vendorName: selectedVendor?.name || '',
                         };
@@ -5049,7 +5052,8 @@ const AdminDashboard = () => {
                             setVendors(prev => prev.map(v => v.id === selectedVendor.id ? updatedVendor : v));
                         }
 
-                        setNewPurchase({ date: new Date().toISOString().split('T')[0], item: '', category: 'Dairy & Milk', vendorId: '', amount: '', paymentMode: 'Cash', notes: '', billUrl: '', transactionUrl: '', location: currentFilterLoc });
+                        setNewPurchase({ date: new Date().toISOString().split('T')[0], item: '', category: 'Dairy & Milk', vendorId: '', amount: '', paymentMode: 'Cash', notes: '', billUrl: '', transactionUrl: '', location: currentFilterLoc, purchaserName: user.name });
+                        setPurchaserType('select');
                         setShowAddPurchaseForm(false);
                         showToast('Purchase logged successfully and vendor catalog updated!');
                     } catch (error) {
@@ -5068,6 +5072,7 @@ const AdminDashboard = () => {
                         const data = {
                             ...editingPurchase,
                             amount: parseFloat(editingPurchase.amount),
+                            purchaserName: editingPurchase.purchaserName || user.name,
                             vendorName: selectedVendor?.name || '',
                         };
                         await db.updatePurchase(editingPurchase.id, data);
@@ -5286,6 +5291,34 @@ const AdminDashboard = () => {
                                         </select>
                                     </div>
                                     <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>
+                                            Purchaser (Staff) 
+                                            {purchaserType === 'select' ? (
+                                                <span onClick={() => { setPurchaserType('manual'); setNewPurchase({ ...newPurchase, purchaserName: '' }); }} style={{ marginLeft: '8px', color: '#0ea5e9', cursor: 'pointer', textTransform: 'none', fontWeight: 'bold' }}>[✏️ Enter Manual]</span>
+                                            ) : (
+                                                <span onClick={() => { setPurchaserType('select'); setNewPurchase({ ...newPurchase, purchaserName: user.name }); }} style={{ marginLeft: '8px', color: '#0ea5e9', cursor: 'pointer', textTransform: 'none', fontWeight: 'bold' }}>[📋 Choose Staff]</span>
+                                            )}
+                                        </label>
+                                        {purchaserType === 'select' ? (
+                                            <select value={newPurchase.purchaserName || user.name} onChange={e => {
+                                                if (e.target.value === '__manual__') {
+                                                    setPurchaserType('manual');
+                                                    setNewPurchase({ ...newPurchase, purchaserName: '' });
+                                                } else {
+                                                    setNewPurchase({ ...newPurchase, purchaserName: e.target.value });
+                                                }
+                                            }} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', background: 'white' }}>
+                                                <option value={user.name}>{user.name} (You / Current User)</option>
+                                                {staffList.filter(s => s.status !== 'Terminated').map(s => (
+                                                    <option key={s.id} value={s.fullName}>{s.fullName} ({s.position})</option>
+                                                ))}
+                                                <option value="__manual__">-- Enter Name Manually --</option>
+                                            </select>
+                                        ) : (
+                                            <input type="text" value={newPurchase.purchaserName || ''} onChange={e => setNewPurchase({ ...newPurchase, purchaserName: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px' }} placeholder="Type purchaser name..." required />
+                                        )}
+                                    </div>
+                                    <div>
                                         <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Vendor (Optional)</label>
                                         <select value={newPurchase.vendorId} onChange={e => setNewPurchase({ ...newPurchase, vendorId: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', background: 'white' }}>
                                             <option value="">-- Select Vendor --</option>
@@ -5341,6 +5374,34 @@ const AdminDashboard = () => {
                                         <select value={editingPurchase.category} onChange={e => setEditingPurchase({ ...editingPurchase, category: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', background: 'white' }}>
                                             {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                                         </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>
+                                            Purchaser (Staff) 
+                                            {editPurchaserType === 'select' ? (
+                                                <span onClick={() => { setEditPurchaserType('manual'); setEditingPurchase({ ...editingPurchase, purchaserName: '' }); }} style={{ marginLeft: '8px', color: '#b45309', cursor: 'pointer', textTransform: 'none', fontWeight: 'bold' }}>[✏️ Enter Manual]</span>
+                                            ) : (
+                                                <span onClick={() => { setEditPurchaserType('select'); setEditingPurchase({ ...editingPurchase, purchaserName: user.name }); }} style={{ marginLeft: '8px', color: '#b45309', cursor: 'pointer', textTransform: 'none', fontWeight: 'bold' }}>[📋 Choose Staff]</span>
+                                            )}
+                                        </label>
+                                        {editPurchaserType === 'select' ? (
+                                            <select value={editingPurchase.purchaserName || user.name} onChange={e => {
+                                                if (e.target.value === '__manual__') {
+                                                    setEditPurchaserType('manual');
+                                                    setEditingPurchase({ ...editingPurchase, purchaserName: '' });
+                                                } else {
+                                                    setEditingPurchase({ ...editingPurchase, purchaserName: e.target.value });
+                                                }
+                                            }} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', background: 'white' }}>
+                                                <option value={user.name}>{user.name} (You / Current User)</option>
+                                                {staffList.filter(s => s.status !== 'Terminated').map(s => (
+                                                    <option key={s.id} value={s.fullName}>{s.fullName} ({s.position})</option>
+                                                ))}
+                                                <option value="__manual__">-- Enter Name Manually --</option>
+                                            </select>
+                                        ) : (
+                                            <input type="text" value={editingPurchase.purchaserName || ''} onChange={e => setEditingPurchase({ ...editingPurchase, purchaserName: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px' }} placeholder="Type purchaser name..." required />
+                                        )}
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Vendor</label>
