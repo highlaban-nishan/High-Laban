@@ -6094,9 +6094,23 @@ const AdminDashboard = () => {
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Category</label>
-                                                <select value={newRaw.category} onChange={e => setNewRaw({ ...newRaw, category: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }}>
-                                                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                                </select>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <select value={newRaw.category} onChange={e => {
+                                                        if (e.target.value === '__custom__') {
+                                                            setNewRaw(prev => ({ ...prev, category: '' }));
+                                                        } else {
+                                                            setNewRaw(prev => ({ ...prev, category: e.target.value }));
+                                                        }
+                                                    }} style={{ flex: 1, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }}>
+                                                        <option value="">-- Choose Category --</option>
+                                                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                                        <option value="__custom__">+ Type Custom Category...</option>
+                                                    </select>
+                                                    {(!CATEGORIES.includes(newRaw.category) || newRaw.category === '') && (
+                                                        <input type="text" placeholder="Type Custom Category..." value={newRaw.category || ''} onChange={e => setNewRaw(prev => ({ ...prev, category: e.target.value }))}
+                                                            style={{ flex: 1, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px' }} required />
+                                                    )}
+                                                </div>
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Purchase Cost (₹)</label>
