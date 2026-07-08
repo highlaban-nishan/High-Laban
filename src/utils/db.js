@@ -784,7 +784,8 @@ const db = {
                     { name: 'Admin', email: 'highlaban@gmail.com', password: 'Laban@2025', role: 'admin' },
                     { name: 'Marchad', email: 'marchad@highlaban.com', password: 'Marchad@2026', role: 'purchaser' },
                     { name: 'Nufoor', email: 'nufoor@highlaban.com', password: 'Nufoor@2026', role: 'purchaser' },
-                    { name: 'Accounts Team', email: 'accounts@highlaban.com', password: 'Accounts@2026', role: 'accounts' }
+                    { name: 'Accounts Team', email: 'accounts@highlaban.com', password: 'Accounts@2026', role: 'accounts' },
+                    { name: 'Chef', email: 'chef@highlaban.com', password: 'Chef@2026', role: 'chef' }
                 ];
                 for (const u of defaults) {
                     const docRef = await addDoc(collection(firestore, 'users'), u);
@@ -868,8 +869,114 @@ const db = {
             const user = { email: cleanEmail, name: 'Accounts Team', role: 'accounts' };
             localStorage.setItem('highlaban_user', JSON.stringify(user));
             return user;
+        } else if (cleanEmail === 'chef@highlaban.com' && password === 'Chef@2026') {
+            const user = { email: cleanEmail, name: 'Chef', role: 'chef' };
+            localStorage.setItem('highlaban_user', JSON.stringify(user));
+            return user;
         } else {
             throw new Error('Invalid email or password');
+        }
+    },
+    // --- Food Costing ERP CRUD ---
+    getRawMaterials: async () => {
+        try {
+            const querySnapshot = await getDocs(collection(firestore, 'rawMaterials'));
+            const list = [];
+            querySnapshot.forEach((doc) => list.push({ id: doc.id, ...doc.data() }));
+            return list;
+        } catch (error) {
+            console.error('Error getting raw materials:', error);
+            return [];
+        }
+    },
+    addRawMaterial: async (data) => {
+        try {
+            const docRef = await addDoc(collection(firestore, 'rawMaterials'), data);
+            return { id: docRef.id, ...data };
+        } catch (error) {
+            console.error('Error adding raw material:', error);
+            throw error;
+        }
+    },
+    updateRawMaterial: async (id, data) => {
+        try {
+            const docRef = doc(firestore, 'rawMaterials', id);
+            await updateDoc(docRef, data);
+            return { id, ...data };
+        } catch (error) {
+            console.error('Error updating raw material:', error);
+            throw error;
+        }
+    },
+    deleteRawMaterial: async (id) => {
+        try {
+            await deleteDoc(doc(firestore, 'rawMaterials', id));
+            return id;
+        } catch (error) {
+            console.error('Error deleting raw material:', error);
+            throw error;
+        }
+    },
+
+    getBundleItems: async () => {
+        try {
+            const querySnapshot = await getDocs(collection(firestore, 'bundleItems'));
+            const list = [];
+            querySnapshot.forEach((doc) => list.push({ id: doc.id, ...doc.data() }));
+            return list;
+        } catch (error) {
+            console.error('Error getting bundle items:', error);
+            return [];
+        }
+    },
+    addBundleItem: async (data) => {
+        try {
+            const docRef = await addDoc(collection(firestore, 'bundleItems'), data);
+            return { id: docRef.id, ...data };
+        } catch (error) {
+            console.error('Error adding bundle item:', error);
+            throw error;
+        }
+    },
+    updateBundleItem: async (id, data) => {
+        try {
+            const docRef = doc(firestore, 'bundleItems', id);
+            await updateDoc(docRef, data);
+            return { id, ...data };
+        } catch (error) {
+            console.error('Error updating bundle item:', error);
+            throw error;
+        }
+    },
+    deleteBundleItem: async (id) => {
+        try {
+            await deleteDoc(doc(firestore, 'bundleItems', id));
+            return id;
+        } catch (error) {
+            console.error('Error deleting bundle item:', error);
+            throw error;
+        }
+    },
+
+    getRecipes: async () => {
+        try {
+            const querySnapshot = await getDocs(collection(firestore, 'recipes'));
+            const list = [];
+            querySnapshot.forEach((doc) => list.push({ id: doc.id, ...doc.data() }));
+            return list;
+        } catch (error) {
+            console.error('Error getting recipes:', error);
+            return [];
+        }
+    },
+    saveRecipe: async (productId, data) => {
+        try {
+            const docRef = doc(firestore, 'recipes', productId);
+            await setDoc(docRef, data, { merge: true });
+            return { id: productId, ...data };
+        } catch (error) {
+            console.error('Error saving recipe:', error);
+            throw error;
         }
     },
     logout: () => localStorage.removeItem('highlaban_user'),

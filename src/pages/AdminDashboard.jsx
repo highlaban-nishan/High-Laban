@@ -84,12 +84,33 @@ const AdminDashboard = () => {
     const navigate = useNavigate();
     const user = db.getUser(); // Check auth immediately
     const isReadOnly = user?.role === 'accounts';
-    const [activeTab, setActiveTab] = useState('products');
+    const isChef = user?.role === 'chef';
+    const [activeTab, setActiveTab] = useState(user?.role === 'chef' ? 'costing' : 'products');
     const [products, setProducts] = useState([]);
     const [orders, setOrders] = useState([]);
     const [customers, setCustomers] = useState([]);
     const [subscribers, setSubscribers] = useState([]);
     const [franchiseInquiries, setFranchiseInquiries] = useState([]);
+
+    // Food Costing ERP states
+    const [rawMaterials, setRawMaterials] = useState([]);
+    const [bundleItems, setBundleItems] = useState([]);
+    const [recipesList, setRecipesList] = useState([]);
+    const [costingSubTab, setCostingSubTab] = useState('raw'); // 'raw' | 'bundle' | 'final'
+    
+    // Add raw material form state
+    const [showAddRawForm, setShowAddRawForm] = useState(false);
+    const [editingRaw, setEditingRaw] = useState(null);
+    const [newRaw, setNewRaw] = useState({ name: '', category: 'Dairy & Milk', price: '', quantity: '', unit: 'g' });
+    
+    // Add bundle item form state
+    const [showAddBundleForm, setShowAddBundleForm] = useState(false);
+    const [editingBundle, setEditingBundle] = useState(null);
+    const [newBundle, setNewBundle] = useState({ name: '', yieldQuantity: '1000', yieldUnit: 'g', ingredients: [] }); // ingredients: [{ materialId: '', quantity: '' }]
+
+    // Product recipe form state
+    const [selectedRecipeProduct, setSelectedRecipeProduct] = useState(null); // product ID for editing recipe
+    const [editingRecipe, setEditingRecipe] = useState({ ingredients: [], packagingCost: '0', batchSize: '1', overheadAllocation: '0' }); // ingredients: [{ type: 'raw'/'bundle', id: '', quantity: '' }]
 
     // Vendors State
     const [vendors, setVendors] = useState([]);
@@ -360,6 +381,17 @@ const AdminDashboard = () => {
             setPurchases(p);
             setVendors(v);
             setRunningFranchises(f);
+        } else if (activeTab === 'costing') {
+            const [raws, bunds, recs, prods] = await Promise.all([
+                db.getRawMaterials(),
+                db.getBundleItems(),
+                db.getRecipes(),
+                db.getProducts()
+            ]);
+            setRawMaterials(raws);
+            setBundleItems(bunds);
+            setRecipesList(recs);
+            setProducts(prods);
         }
     };
 
@@ -1228,49 +1260,56 @@ const AdminDashboard = () => {
                 </div>
 
                 <nav className={styles.nav}>
+                    {!isChef ? (
+                        <>
+                            <div className={`${styles.navItem} ${activeTab === 'products' ? styles.active : ''}`} onClick={() => { setActiveTab('products'); setIsMobileOpen(false); }}>
+                                <span style={{ fontSize: '1.2rem' }}>🛍️</span> Products
+                                {activeTab === 'products' && <div className={styles.activeDot}></div>}
+                            </div>
 
 
-                    <div className={`${styles.navItem} ${activeTab === 'products' ? styles.active : ''}`} onClick={() => { setActiveTab('products'); setIsMobileOpen(false); }}>
-                        <span style={{ fontSize: '1.2rem' }}>🛍️</span> Products
-                        {activeTab === 'products' && <div className={styles.activeDot}></div>}
-                    </div>
+                            <div className={`${styles.navItem} ${activeTab === 'content' ? styles.active : ''}`} onClick={() => { setActiveTab('content'); setIsMobileOpen(false); }}>
+                                <span style={{ fontSize: '1.2rem' }}>📝</span> Content
+                                {activeTab === 'content' && <div className={styles.activeDot}></div>}
+                            </div>
 
-
-                    <div className={`${styles.navItem} ${activeTab === 'content' ? styles.active : ''}`} onClick={() => { setActiveTab('content'); setIsMobileOpen(false); }}>
-                        <span style={{ fontSize: '1.2rem' }}>📝</span> Content
-                        {activeTab === 'content' && <div className={styles.activeDot}></div>}
-                    </div>
-
-                    <div className={`${styles.navItem} ${activeTab === 'locations' ? styles.active : ''}`} onClick={() => { setActiveTab('locations'); setIsMobileOpen(false); }}>
-                        <span style={{ fontSize: '1.2rem' }}>📍</span> Locations
-                        {activeTab === 'locations' && <div className={styles.activeDot}></div>}
-                    </div>
+                            <div className={`${styles.navItem} ${activeTab === 'locations' ? styles.active : ''}`} onClick={() => { setActiveTab('locations'); setIsMobileOpen(false); }}>
+                                <span style={{ fontSize: '1.2rem' }}>📍</span> Locations
+                                {activeTab === 'locations' && <div className={styles.activeDot}></div>}
+                            </div>
 
 
 
-                    <div className={`${styles.navItem} ${activeTab === 'customers' ? styles.active : ''}`} onClick={() => { setActiveTab('customers'); setIsMobileOpen(false); }}>
-                        <span style={{ fontSize: '1.2rem' }}>👥</span> Users
-                        {activeTab === 'customers' && <div className={styles.activeDot}></div>}
-                    </div>
-                    <div className={`${styles.navItem} ${activeTab === 'franchise' ? styles.active : ''}`} onClick={() => { setActiveTab('franchise'); setIsMobileOpen(false); }}>
-                        <span style={{ fontSize: '1.2rem' }}>🤝</span> Franchise
-                        {activeTab === 'franchise' && <div className={styles.activeDot}></div>}
-                    </div>
-                    <div className={`${styles.navItem} ${activeTab === 'staff' ? styles.active : ''}`} onClick={() => { setActiveTab('staff'); setIsMobileOpen(false); }}>
-                        <span style={{ fontSize: '1.2rem' }}>🧑‍🍳</span> HR Staff
-                        {activeTab === 'staff' && <div className={styles.activeDot}></div>}
-                    </div>
-                    <div className={`${styles.navItem} ${activeTab === 'payroll' ? styles.active : ''}`} onClick={() => { setActiveTab('payroll'); setIsMobileOpen(false); }}>
-                        <span style={{ fontSize: '1.2rem' }}>💵</span> Payroll
-                        {activeTab === 'payroll' && <div className={styles.activeDot}></div>}
-                    </div>
-                    <div className={`${styles.navItem} ${activeTab === 'vendors' ? styles.active : ''}`} onClick={() => { setActiveTab('vendors'); setIsMobileOpen(false); }}>
-                        <span style={{ fontSize: '1.2rem' }}>🏪</span> Vendors
-                        {activeTab === 'vendors' && <div className={styles.activeDot}></div>}
-                    </div>
-                    <div className={`${styles.navItem} ${activeTab === 'purchases' ? styles.active : ''}`} onClick={() => { setActiveTab('purchases'); setIsMobileOpen(false); }}>
-                        <span style={{ fontSize: '1.2rem' }}>🛒</span> Purchases
-                        {activeTab === 'purchases' && <div className={styles.activeDot}></div>}
+                            <div className={`${styles.navItem} ${activeTab === 'customers' ? styles.active : ''}`} onClick={() => { setActiveTab('customers'); setIsMobileOpen(false); }}>
+                                <span style={{ fontSize: '1.2rem' }}>👥</span> Users
+                                {activeTab === 'customers' && <div className={styles.activeDot}></div>}
+                            </div>
+                            <div className={`${styles.navItem} ${activeTab === 'franchise' ? styles.active : ''}`} onClick={() => { setActiveTab('franchise'); setIsMobileOpen(false); }}>
+                                <span style={{ fontSize: '1.2rem' }}>🤝</span> Franchise
+                                {activeTab === 'franchise' && <div className={styles.activeDot}></div>}
+                            </div>
+                            <div className={`${styles.navItem} ${activeTab === 'staff' ? styles.active : ''}`} onClick={() => { setActiveTab('staff'); setIsMobileOpen(false); }}>
+                                <span style={{ fontSize: '1.2rem' }}>🧑‍🍳</span> HR Staff
+                                {activeTab === 'staff' && <div className={styles.activeDot}></div>}
+                            </div>
+                            <div className={`${styles.navItem} ${activeTab === 'payroll' ? styles.active : ''}`} onClick={() => { setActiveTab('payroll'); setIsMobileOpen(false); }}>
+                                <span style={{ fontSize: '1.2rem' }}>💵</span> Payroll
+                                {activeTab === 'payroll' && <div className={styles.activeDot}></div>}
+                            </div>
+                            <div className={`${styles.navItem} ${activeTab === 'vendors' ? styles.active : ''}`} onClick={() => { setActiveTab('vendors'); setIsMobileOpen(false); }}>
+                                <span style={{ fontSize: '1.2rem' }}>🏪</span> Vendors
+                                {activeTab === 'vendors' && <div className={styles.activeDot}></div>}
+                            </div>
+                            <div className={`${styles.navItem} ${activeTab === 'purchases' ? styles.active : ''}`} onClick={() => { setActiveTab('purchases'); setIsMobileOpen(false); }}>
+                                <span style={{ fontSize: '1.2rem' }}>🛒</span> Purchases
+                                {activeTab === 'purchases' && <div className={styles.activeDot}></div>}
+                            </div>
+                        </>
+                    ) : null}
+
+                    <div className={`${styles.navItem} ${activeTab === 'costing' ? styles.active : ''}`} onClick={() => { setActiveTab('costing'); setIsMobileOpen(false); }}>
+                        <span style={{ fontSize: '1.2rem' }}>🧮</span> Food Costing
+                        {activeTab === 'costing' && <div className={styles.activeDot}></div>}
                     </div>
                 </nav>
 
@@ -5419,6 +5458,561 @@ const AdminDashboard = () => {
                         <datalist id="prev-items">
                             {uniquePreviousItems.map(item => <option key={item} value={item} />)}
                         </datalist>
+                    </div>
+                );
+            })()}
+
+            {/* ══════════════════════════════════════════════════════════
+                FOOD COSTING ERP TAB (raw materials, bundle items, final recipe costings)
+            ══════════════════════════════════════════════════════════ */}
+            {activeTab === 'costing' && (() => {
+                const CATEGORIES = [
+                    'Dairy & Milk', 'Eggs', 'Fruits & Vegetables', 'Dry Fruits & Nuts',
+                    'Sweeteners & Flavours', 'Packaging', 'Cleaning & Supplies',
+                    'Gas & Fuel', 'Equipment & Tools', 'Other'
+                ];
+
+                const getRawMaterialUnitPrice = (raw) => {
+                    const price = parseFloat(raw.price) || 0;
+                    const qty = parseFloat(raw.quantity) || 1;
+                    return price / qty;
+                };
+
+                const getBundleItemTotalCost = (bundle) => {
+                    let cost = 0;
+                    (bundle.ingredients || []).forEach(ing => {
+                        const raw = rawMaterials.find(r => r.id === ing.materialId);
+                        if (raw) {
+                            cost += getRawMaterialUnitPrice(raw) * (parseFloat(ing.quantity) || 0);
+                        }
+                    });
+                    return cost;
+                };
+
+                const getBundleItemUnitCost = (bundle) => {
+                    const totalCost = getBundleItemTotalCost(bundle);
+                    const yieldQty = parseFloat(bundle.yieldQuantity) || 1;
+                    return totalCost / yieldQty;
+                };
+
+                const getProductRecipeCost = (productId) => {
+                    const recipe = recipesList.find(r => r.id === productId);
+                    if (!recipe) return { ingredientsCost: 0, packagingCost: 0, overheadCost: 0, totalUnitCost: 0 };
+
+                    let ingCost = 0;
+                    (recipe.ingredients || []).forEach(ing => {
+                        if (ing.type === 'raw') {
+                            const raw = rawMaterials.find(r => r.id === ing.id);
+                            if (raw) ingCost += getRawMaterialUnitPrice(raw) * (parseFloat(ing.quantity) || 0);
+                        } else if (ing.type === 'bundle') {
+                            const bundle = bundleItems.find(b => b.id === ing.id);
+                            if (bundle) ingCost += getBundleItemUnitCost(bundle) * (parseFloat(ing.quantity) || 0);
+                        }
+                    });
+
+                    const pkg = parseFloat(recipe.packagingCost) || 0;
+                    const batch = parseFloat(recipe.batchSize) || 1;
+                    const overhead = parseFloat(recipe.overheadAllocation) || 0;
+
+                    const unitIngCost = ingCost;
+                    const unitPkgCost = pkg;
+                    const unitOverheadCost = batch > 0 ? (overhead / batch) : 0;
+                    const totalUnitCost = unitIngCost + unitPkgCost + unitOverheadCost;
+
+                    return {
+                        ingredientsCost: unitIngCost,
+                        packagingCost: unitPkgCost,
+                        overheadCost: unitOverheadCost,
+                        totalUnitCost: totalUnitCost
+                    };
+                };
+
+                const handleSaveRawMaterial = async (e) => {
+                    e.preventDefault();
+                    if (isReadOnly || isChef) return;
+                    if (!newRaw.name.trim() || !newRaw.price || !newRaw.quantity) {
+                        showToast('Please fill all fields', 'error');
+                        return;
+                    }
+                    try {
+                        const payload = {
+                            name: newRaw.name.trim(),
+                            category: newRaw.category,
+                            price: parseFloat(newRaw.price),
+                            quantity: parseFloat(newRaw.quantity),
+                            unit: newRaw.unit,
+                            updatedAt: new Date().toISOString()
+                        };
+                        if (editingRaw) {
+                            await db.updateRawMaterial(editingRaw.id, payload);
+                            setRawMaterials(prev => prev.map(r => r.id === editingRaw.id ? { id: editingRaw.id, ...payload } : r));
+                            setEditingRaw(null);
+                            showToast('Raw material updated successfully!');
+                        } else {
+                            const added = await db.addRawMaterial(payload);
+                            setRawMaterials(prev => [added, ...prev]);
+                            showToast('Raw material added successfully!');
+                        }
+                        setNewRaw({ name: '', category: 'Dairy & Milk', price: '', quantity: '', unit: 'g' });
+                        setShowAddRawForm(false);
+                    } catch (error) {
+                        showToast('Failed to save raw material', 'error');
+                    }
+                };
+
+                const handleDeleteRawMaterial = async (id) => {
+                    if (isReadOnly || isChef) return;
+                    if (!window.confirm('Delete this raw material?')) return;
+                    try {
+                        await db.deleteRawMaterial(id);
+                        setRawMaterials(prev => prev.filter(r => r.id !== id));
+                        showToast('Raw material deleted successfully');
+                    } catch {
+                        showToast('Failed to delete', 'error');
+                    }
+                };
+
+                const handleSaveBundleItem = async (e) => {
+                    e.preventDefault();
+                    if (isReadOnly || isChef) return;
+                    if (!newBundle.name.trim() || !newBundle.yieldQuantity) {
+                        showToast('Please enter name and yield quantity', 'error');
+                        return;
+                    }
+                    try {
+                        const payload = {
+                            name: newBundle.name.trim(),
+                            yieldQuantity: parseFloat(newBundle.yieldQuantity),
+                            yieldUnit: newBundle.yieldUnit,
+                            ingredients: newBundle.ingredients,
+                            updatedAt: new Date().toISOString()
+                        };
+                        if (editingBundle) {
+                            await db.updateBundleItem(editingBundle.id, payload);
+                            setBundleItems(prev => prev.map(b => b.id === editingBundle.id ? { id: editingBundle.id, ...payload } : b));
+                            setEditingBundle(null);
+                            showToast('Bundle sub-recipe updated successfully!');
+                        } else {
+                            const added = await db.addBundleItem(payload);
+                            setBundleItems(prev => [added, ...prev]);
+                            showToast('Bundle sub-recipe added successfully!');
+                        }
+                        setNewBundle({ name: '', yieldQuantity: '1000', yieldUnit: 'g', ingredients: [] });
+                        setShowAddBundleForm(false);
+                    } catch (error) {
+                        showToast('Failed to save bundle sub-recipe', 'error');
+                    }
+                };
+
+                const handleDeleteBundleItem = async (id) => {
+                    if (isReadOnly || isChef) return;
+                    if (!window.confirm('Delete this bundle sub-recipe?')) return;
+                    try {
+                        await db.deleteBundleItem(id);
+                        setBundleItems(prev => prev.filter(b => b.id !== id));
+                        showToast('Bundle item deleted');
+                    } catch {
+                        showToast('Failed to delete', 'error');
+                    }
+                };
+
+                const handleSaveProductRecipe = async (e) => {
+                    e.preventDefault();
+                    if (isReadOnly || isChef) return;
+                    if (!selectedRecipeProduct) return;
+                    try {
+                        const payload = {
+                            ingredients: editingRecipe.ingredients,
+                            packagingCost: parseFloat(editingRecipe.packagingCost) || 0,
+                            batchSize: parseFloat(editingRecipe.batchSize) || 1,
+                            overheadAllocation: parseFloat(editingRecipe.overheadAllocation) || 0,
+                            updatedAt: new Date().toISOString()
+                        };
+                        await db.saveRecipe(selectedRecipeProduct.id, payload);
+                        setRecipesList(prev => {
+                            const existing = prev.find(r => r.id === selectedRecipeProduct.id);
+                            if (existing) {
+                                return prev.map(r => r.id === selectedRecipeProduct.id ? { id: selectedRecipeProduct.id, ...payload } : r);
+                            }
+                            return [...prev, { id: selectedRecipeProduct.id, ...payload }];
+                        });
+                        setSelectedRecipeProduct(null);
+                        showToast('Recipe costing configured successfully! ✅');
+                    } catch (error) {
+                        showToast('Failed to save recipe costing', 'error');
+                    }
+                };
+
+                return (
+                    <div style={{ padding: '1.5rem', background: '#f8fafc', borderRadius: '24px', border: '1px solid #e2e8f0', minHeight: '80vh' }}>
+                        
+                        {/* Tab Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
+                            <div>
+                                <h2 style={{ margin: 0, fontWeight: '900', color: '#0f172a', fontSize: '1.6rem' }}>🧮 Food Costing ERP</h2>
+                                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.85rem' }}>Configure raw materials, build sub-recipes, and compute final product menu costing & margins.</p>
+                            </div>
+                        </div>
+
+                        {/* Sub-tab Navigation */}
+                        <div style={{ display: 'flex', gap: '8px', background: '#e2e8f0', padding: '6px', borderRadius: '12px', marginBottom: '2rem', alignSelf: 'flex-start', width: 'fit-content' }}>
+                            {[
+                                { id: 'raw', label: '🌾 Raw Materials' },
+                                { id: 'bundle', label: '📦 Prep Bundles' },
+                                { id: 'final', label: '🍨 Product Costs' }
+                            ].map(tab => (
+                                <button key={tab.id} onClick={() => setCostingSubTab(tab.id)}
+                                    style={{
+                                        border: 'none', background: costingSubTab === tab.id ? 'white' : 'transparent',
+                                        color: costingSubTab === tab.id ? '#0f172a' : '#475569',
+                                        padding: '8px 16px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer',
+                                        fontSize: '0.85rem', boxShadow: costingSubTab === tab.id ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+                                        transition: 'all 0.15s'
+                                    }}>
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* SUB TAB 1: RAW MATERIALS */}
+                        {costingSubTab === 'raw' && (
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                    <h3 style={{ margin: 0, color: '#1e293b', fontWeight: '800' }}>Raw Materials Registry</h3>
+                                    {(!isReadOnly && !isChef) && (
+                                        <button onClick={() => { setShowAddRawForm(!showAddRawForm); setEditingRaw(null); }}
+                                            style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
+                                            {showAddRawForm ? 'Close Form' : '+ Add Material'}
+                                        </button>
+                                    )}
+                                </div>
+
+                                {showAddRawForm && (
+                                    <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.25rem', marginBottom: '1.5rem' }}>
+                                        <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>{editingRaw ? '✏️ Edit Raw Material' : '➕ Add New Raw Material'}</h4>
+                                        <form onSubmit={handleSaveRawMaterial} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Material Name</label>
+                                                <input type="text" value={newRaw.name} onChange={e => setNewRaw({ ...newRaw, name: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px' }} required placeholder="e.g. Pistachio Kernels" />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Category</label>
+                                                <select value={newRaw.category} onChange={e => setNewRaw({ ...newRaw, category: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }}>
+                                                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Purchase Cost (₹)</label>
+                                                <input type="number" step="0.01" value={newRaw.price} onChange={e => setNewRaw({ ...newRaw, price: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px' }} required placeholder="0.00" />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Purchase Quantity</label>
+                                                <input type="number" step="0.01" value={newRaw.quantity} onChange={e => setNewRaw({ ...newRaw, quantity: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px' }} required placeholder="1000" />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Unit</label>
+                                                <select value={newRaw.unit} onChange={e => setNewRaw({ ...newRaw, unit: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }}>
+                                                    <option value="g">Grams (g)</option>
+                                                    <option value="ml">Millilitres (ml)</option>
+                                                    <option value="pcs">Pieces (pcs)</option>
+                                                </select>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button type="submit" style={{ flex: 1, background: '#0284c7', color: 'white', border: 'none', borderRadius: '8px', padding: '10px', fontWeight: '700', cursor: 'pointer' }}>Save</button>
+                                                <button type="button" onClick={() => setShowAddRawForm(false)} style={{ flex: 1, background: 'white', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px', fontWeight: '700', cursor: 'pointer' }}>Cancel</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                )}
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
+                                    {rawMaterials.map(raw => {
+                                        const unitCost = getRawMaterialUnitPrice(raw);
+                                        return (
+                                            <div key={raw.id} style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 2px 6px rgba(0,0,0,0.01)' }}>
+                                                <div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                        <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', padding: '3px 8px', borderRadius: '20px', fontWeight: '700' }}>{raw.category}</span>
+                                                        {(!isReadOnly && !isChef) && (
+                                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                                                <button onClick={() => { setEditingRaw(raw); setNewRaw({ name: raw.name, category: raw.category, price: raw.price.toString(), quantity: raw.quantity.toString(), unit: raw.unit }); setShowAddRawForm(true); }} style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.8rem', cursor: 'pointer', fontWeight: '600' }}>Edit</button>
+                                                                <button onClick={() => handleDeleteRawMaterial(raw.id)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer', fontWeight: '600' }}>Delete</button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <h4 style={{ margin: '10px 0 4px', fontWeight: '800', color: '#0f172a', fontSize: '1rem' }}>{raw.name}</h4>
+                                                    <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>Cost: ₹{raw.price} per {raw.quantity}{raw.unit}</p>
+                                                </div>
+                                                <div style={{ marginTop: '1.25rem', borderTop: '1px dashed #e2e8f0', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: '600' }}>Unit Rate:</span>
+                                                    <span style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.95rem' }}>₹{unitCost.toFixed(4)} / {raw.unit}</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SUB TAB 2: PREP BUNDLES */}
+                        {costingSubTab === 'bundle' && (
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                    <h3 style={{ margin: 0, color: '#1e293b', fontWeight: '800' }}>Prep sub-recipes / Bundles</h3>
+                                    {(!isReadOnly && !isChef) && (
+                                        <button onClick={() => { setShowAddBundleForm(!showAddBundleForm); setEditingBundle(null); setNewBundle({ name: '', yieldQuantity: '1000', yieldUnit: 'g', ingredients: [] }); }}
+                                            style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
+                                            {showAddBundleForm ? 'Close Form' : '+ Add Prep Recipe'}
+                                        </button>
+                                    )}
+                                </div>
+
+                                {showAddBundleForm && (
+                                    <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.25rem', marginBottom: '1.5rem' }}>
+                                        <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>{editingBundle ? '✏️ Edit Prep Sub-Recipe' : '➕ Add New Prep Sub-Recipe'}</h4>
+                                        <form onSubmit={handleSaveBundleItem} style={{ display: 'grid', gap: '1rem' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Sub-Recipe Name</label>
+                                                    <input type="text" value={newBundle.name} onChange={e => setNewBundle({ ...newBundle, name: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px' }} required placeholder="e.g. Milk Pudding Base" />
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Yield Output Quantity</label>
+                                                    <input type="number" step="0.01" value={newBundle.yieldQuantity} onChange={e => setNewBundle({ ...newBundle, yieldQuantity: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px' }} required />
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Yield Output Unit</label>
+                                                    <select value={newBundle.yieldUnit} onChange={e => setNewBundle({ ...newBundle, yieldUnit: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }}>
+                                                        <option value="g">Grams (g)</option>
+                                                        <option value="ml">Millilitres (ml)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            {/* Ingredients builder */}
+                                            <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '1rem', background: '#f8fafc' }}>
+                                                <h5 style={{ margin: '0 0 10px 0', fontWeight: '700' }}>Ingredients & Raw Materials used</h5>
+                                                {newBundle.ingredients.map((ing, idx) => {
+                                                    const raw = rawMaterials.find(r => r.id === ing.materialId);
+                                                    return (
+                                                        <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px' }}>
+                                                            <select value={ing.materialId} onChange={e => {
+                                                                const updated = [...newBundle.ingredients];
+                                                                updated[idx].materialId = e.target.value;
+                                                                setNewBundle({ ...newBundle, ingredients: updated });
+                                                            }} style={{ flex: 2, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white' }}>
+                                                                <option value="">-- Choose Material --</option>
+                                                                {rawMaterials.map(r => <option key={r.id} value={r.id}>{r.name} (₹{getRawMaterialUnitPrice(r).toFixed(3)}/{r.unit})</option>)}
+                                                            </select>
+                                                            <input type="number" step="0.01" placeholder="Quantity used" value={ing.quantity} onChange={e => {
+                                                                const updated = [...newBundle.ingredients];
+                                                                updated[idx].quantity = e.target.value;
+                                                                setNewBundle({ ...newBundle, ingredients: updated });
+                                                            }} style={{ flex: 1, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
+                                                            <span style={{ fontSize: '0.85rem', color: '#64748b', minWidth: '30px' }}>{raw?.unit || ''}</span>
+                                                            <button type="button" onClick={() => {
+                                                                setNewBundle({ ...newBundle, ingredients: newBundle.ingredients.filter((_, i) => i !== idx) });
+                                                            }} style={{ border: 'none', background: '#fee2e2', color: '#ef4444', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>Delete</button>
+                                                        </div>
+                                                    );
+                                                })}
+                                                <button type="button" onClick={() => {
+                                                    setNewBundle({ ...newBundle, ingredients: [...newBundle.ingredients, { materialId: '', quantity: '' }] });
+                                                }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', color: '#475569', fontSize: '0.8rem', marginTop: '5px' }}>
+                                                    + Add Ingredient
+                                                </button>
+                                            </div>
+
+                                            <div style={{ display: 'flex', gap: '8px', alignSelf: 'flex-end' }}>
+                                                <button type="submit" style={{ background: '#0284c7', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 24px', fontWeight: '700', cursor: 'pointer' }}>Save Recipe</button>
+                                                <button type="button" onClick={() => setShowAddBundleForm(false)} style={{ background: 'white', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 24px', fontWeight: '700', cursor: 'pointer' }}>Cancel</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                )}
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                                    {bundleItems.map(bundle => {
+                                        const totalCost = getBundleItemTotalCost(bundle);
+                                        const unitCost = getBundleItemUnitCost(bundle);
+                                        return (
+                                            <div key={bundle.id} style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 2px 6px rgba(0,0,0,0.01)' }}>
+                                                <div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                                        <span style={{ fontSize: '0.72rem', background: '#eff6ff', color: '#1d4ed8', padding: '3px 8px', borderRadius: '20px', fontWeight: '700' }}>Prep Recipe</span>
+                                                        {(!isReadOnly && !isChef) && (
+                                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                                                <button onClick={() => { setEditingBundle(bundle); setNewBundle({ name: bundle.name, yieldQuantity: bundle.yieldQuantity.toString(), yieldUnit: bundle.yieldUnit, ingredients: bundle.ingredients }); setShowAddBundleForm(true); }} style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.8rem', cursor: 'pointer', fontWeight: '600' }}>Edit</button>
+                                                                <button onClick={() => handleDeleteBundleItem(bundle.id)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer', fontWeight: '600' }}>Delete</button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <h4 style={{ margin: '0 0 6px', fontWeight: '800', color: '#0f172a', fontSize: '1rem' }}>{bundle.name}</h4>
+                                                    <p style={{ margin: '0 0 10px', fontSize: '0.82rem', color: '#64748b' }}>Yields {bundle.yieldQuantity}{bundle.yieldUnit}</p>
+                                                    
+                                                    {/* Ingredients Mini List */}
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', background: '#f8fafc', padding: '8px', borderRadius: '8px', fontSize: '0.75rem', color: '#475569' }}>
+                                                        {bundle.ingredients.map((ing, i) => {
+                                                            const raw = rawMaterials.find(r => r.id === ing.materialId);
+                                                            return (
+                                                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                    <span>· {raw?.name || 'Unknown'} ({ing.quantity}{raw?.unit || ''})</span>
+                                                                    <span style={{ fontWeight: '600' }}>₹{((parseFloat(ing.quantity) || 0) * getRawMaterialUnitPrice(raw || {})).toFixed(2)}</span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                                <div style={{ marginTop: '1.25rem', borderTop: '1px dashed #e2e8f0', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: '600' }}>Unit Cost:</span>
+                                                    <span style={{ fontWeight: '800', color: '#16a34a', fontSize: '1rem' }}>₹{unitCost.toFixed(4)} / {bundle.yieldUnit}</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SUB TAB 3: PRODUCT COSTINGS & MARKUPS */}
+                        {costingSubTab === 'final' && (
+                            <div>
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <h3 style={{ margin: 0, color: '#1e293b', fontWeight: '800' }}>Final Menu Product Cost Analysis</h3>
+                                </div>
+
+                                {selectedRecipeProduct && (
+                                    <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #0ea5e9', padding: '1.25rem', marginBottom: '1.5rem' }}>
+                                        <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontWeight: '800' }}>🧁 Configure Recipe for: {selectedRecipeProduct.name}</h4>
+                                        <form onSubmit={handleSaveProductRecipe} style={{ display: 'grid', gap: '1.2rem' }}>
+                                            
+                                            {/* Overhead Allocation */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', background: '#f0f9ff', padding: '12px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#0369a1', marginBottom: '4px' }}>Packaging Cost (₹) / Unit</label>
+                                                    <input type="number" step="0.01" value={editingRecipe.packagingCost} onChange={e => setEditingRecipe({ ...editingRecipe, packagingCost: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }} />
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#0369a1', marginBottom: '4px' }}>Monthly Fixed Cost Allocated (₹)</label>
+                                                    <input type="number" step="0.01" value={editingRecipe.overheadAllocation} onChange={e => setEditingRecipe({ ...editingRecipe, overheadAllocation: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }} placeholder="e.g. Monthly rent/labor share" />
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#0369a1', marginBottom: '4px' }}>Batch Yield (No. of items made)</label>
+                                                    <input type="number" value={editingRecipe.batchSize} onChange={e => setEditingRecipe({ ...editingRecipe, batchSize: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }} />
+                                                </div>
+                                            </div>
+
+                                            {/* Ingredients Mapping */}
+                                            <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '1rem', background: '#f8fafc' }}>
+                                                <h5 style={{ margin: '0 0 10px 0', fontWeight: '700' }}>Recipe Ingredients (Raw Materials or Prep Bundles)</h5>
+                                                {editingRecipe.ingredients.map((ing, idx) => {
+                                                    const options = ing.type === 'raw' ? rawMaterials : bundleItems;
+                                                    const matchItem = options.find(o => o.id === ing.id);
+                                                    const unitName = ing.type === 'raw' ? matchItem?.unit : matchItem?.yieldUnit;
+                                                    return (
+                                                        <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px' }}>
+                                                            <select value={ing.type} onChange={e => {
+                                                                const updated = [...editingRecipe.ingredients];
+                                                                updated[idx].type = e.target.value;
+                                                                updated[idx].id = '';
+                                                                setEditingRecipe({ ...editingRecipe, ingredients: updated });
+                                                            }} style={{ flex: 1, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white' }}>
+                                                                <option value="raw">🌾 Raw Material</option>
+                                                                <option value="bundle">📦 Prep Bundle</option>
+                                                            </select>
+                                                            <select value={ing.id} onChange={e => {
+                                                                const updated = [...editingRecipe.ingredients];
+                                                                updated[idx].id = e.target.value;
+                                                                setEditingRecipe({ ...editingRecipe, ingredients: updated });
+                                                            }} style={{ flex: 3, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white' }}>
+                                                                <option value="">-- Choose Ingredient --</option>
+                                                                {options.map(o => (
+                                                                    <option key={o.id} value={o.id}>
+                                                                        {o.name} (₹{ing.type === 'raw' ? getRawMaterialUnitPrice(o).toFixed(3) : getBundleItemUnitCost(o).toFixed(3)}/{ing.type === 'raw' ? o.unit : o.yieldUnit})
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                            <input type="number" step="0.001" placeholder="Qty used" value={ing.quantity} onChange={e => {
+                                                                const updated = [...editingRecipe.ingredients];
+                                                                updated[idx].quantity = e.target.value;
+                                                                setNewBundle({ ...newBundle, ingredients: updated });
+                                                                setEditingRecipe({ ...editingRecipe, ingredients: updated });
+                                                            }} style={{ flex: 1.5, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
+                                                            <span style={{ fontSize: '0.85rem', color: '#64748b', minWidth: '30px' }}>{unitName || ''}</span>
+                                                            <button type="button" onClick={() => {
+                                                                setEditingRecipe({ ...editingRecipe, ingredients: editingRecipe.ingredients.filter((_, i) => i !== idx) });
+                                                            }} style={{ border: 'none', background: '#fee2e2', color: '#ef4444', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' }}>Delete</button>
+                                                        </div>
+                                                    );
+                                                })}
+                                                <button type="button" onClick={() => {
+                                                    setEditingRecipe({ ...editingRecipe, ingredients: [...editingRecipe.ingredients, { type: 'raw', id: '', quantity: '' }] });
+                                                }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', color: '#475569', fontSize: '0.8rem', marginTop: '5px' }}>
+                                                    + Add Ingredient
+                                                </button>
+                                            </div>
+
+                                            <div style={{ display: 'flex', gap: '8px', alignSelf: 'flex-end' }}>
+                                                <button type="submit" style={{ background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 24px', fontWeight: '700', cursor: 'pointer' }}>💾 Save Costing Configuration</button>
+                                                <button type="button" onClick={() => setSelectedRecipeProduct(null)} style={{ background: 'white', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 24px', fontWeight: '700', cursor: 'pointer' }}>Cancel</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                )}
+
+                                <div style={{ overflowX: 'auto', background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.01)' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+                                        <thead>
+                                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1' }}>
+                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>Product Name</th>
+                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>Raw Cost</th>
+                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>Packing Cost</th>
+                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>Overhead Allocation</th>
+                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#16a34a', fontSize: '0.85rem' }}>Total Cost</th>
+                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0284c7', fontSize: '0.85rem' }}>Suggested Price (2x)</th>
+                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#e11d48', fontSize: '0.85rem' }}>Retail Price</th>
+                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {products.map(prod => {
+                                                const analysis = getProductRecipeCost(prod.id);
+                                                const currentRecipe = recipesList.find(r => r.id === prod.id);
+                                                const retailPrice = parseFloat(prod.price) || 0;
+                                                return (
+                                                    <tr key={prod.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                        <td style={{ padding: '14px 20px', fontWeight: '700', color: '#1e293b' }}>{prod.name}</td>
+                                                        <td style={{ padding: '14px 20px', color: '#475569' }}>₹{analysis.ingredientsCost.toFixed(2)}</td>
+                                                        <td style={{ padding: '14px 20px', color: '#475569' }}>₹{analysis.packagingCost.toFixed(2)}</td>
+                                                        <td style={{ padding: '14px 20px', color: '#475569' }}>₹{analysis.overheadCost.toFixed(2)} <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>(batch: {currentRecipe?.batchSize || 1})</span></td>
+                                                        <td style={{ padding: '14px 20px', fontWeight: '800', color: '#16a34a' }}>₹{analysis.totalUnitCost.toFixed(2)}</td>
+                                                        <td style={{ padding: '14px 20px', fontWeight: '800', color: '#0284c7' }}>₹{(analysis.totalUnitCost * 2).toFixed(2)}</td>
+                                                        <td style={{ padding: '14px 20px', fontWeight: '800', color: '#e11d48' }}>₹{retailPrice.toFixed(2)}</td>
+                                                        <td style={{ padding: '14px 20px' }}>
+                                                            {(!isReadOnly && !isChef) ? (
+                                                                <button onClick={() => {
+                                                                    setSelectedRecipeProduct(prod);
+                                                                    setEditingRecipe({
+                                                                        ingredients: currentRecipe?.ingredients || [],
+                                                                        packagingCost: (currentRecipe?.packagingCost || 0).toString(),
+                                                                        batchSize: (currentRecipe?.batchSize || 1).toString(),
+                                                                        overheadAllocation: (currentRecipe?.overheadAllocation || 0).toString()
+                                                                    });
+                                                                }} style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>
+                                                                    Configure Costing
+                                                                </button>
+                                                            ) : (
+                                                                <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>Read-only</span>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 );
             })()}
