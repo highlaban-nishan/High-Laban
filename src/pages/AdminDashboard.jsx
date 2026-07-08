@@ -157,7 +157,7 @@ const AdminDashboard = () => {
     // Add bundle item form state
     const [showAddBundleForm, setShowAddBundleForm] = useState(false);
     const [editingBundle, setEditingBundle] = useState(null);
-    const [newBundle, setNewBundle] = useState({ name: '', yieldQuantity: '1000', yieldUnit: 'g', ingredients: [] }); // ingredients: [{ materialId: '', quantity: '' }]
+    const [newBundle, setNewBundle] = useState({ name: '', yieldQuantity: '1000', yieldUnit: 'g', portions: '24', servingTool: 'Standard Scoop', ingredients: [] }); // ingredients: [{ materialId: '', quantity: '' }]
 
     // Product recipe form state
     const [selectedRecipeProduct, setSelectedRecipeProduct] = useState(null); // product ID for editing recipe
@@ -192,8 +192,10 @@ const AdminDashboard = () => {
         vendorId: '', amount: '', paymentMode: 'Cash', notes: '', billUrl: '', location: 'Main Kitchen',
         purchaserName: ''
     });
-    const [purchaserType, setPurchaserType] = useState('select');
-    const [editPurchaserType, setEditPurchaserType] = useState('select');
+    const [isPurchaseCustom, setIsPurchaseCustom] = useState(false);
+    const [isEditPurchaseCustom, setIsEditPurchaseCustom] = useState(false);
+    const [isRawCustom, setIsRawCustom] = useState(false);
+
 
     // Users & Logins State
     const [systemUsers, setSystemUsers] = useState([]);
@@ -4826,6 +4828,10 @@ const AdminDashboard = () => {
                 ).sort((a, b) => parseFloat(a.price) - parseFloat(b.price)) : [];
 
                 const VendorForm = ({ data, setData, onSave, onCancel, title }) => {
+                    const [isCustom, setIsCustom] = useState(
+                        data.category === 'Other' || 
+                        (data.category && !['Dairy & Milk', 'Eggs', 'Fruits & Vegetables', 'Dry Fruits & Nuts', 'Sweeteners & Flavours', 'Packaging', 'Cleaning & Supplies', 'Gas & Fuel', 'Equipment & Tools'].includes(data.category))
+                    );
                     const addItem = () => setData(d => ({ ...d, items: [...(d.items || []), { itemName: '', unit: 'kg', price: '' }] }));
                     const updateItem = (i, field, val) => setData(d => { const items = [...(d.items || [])]; items[i] = { ...items[i], [field]: val }; return { ...d, items }; });
                     const removeItem = (i) => setData(d => ({ ...d, items: (d.items || []).filter((_, idx) => idx !== i) }));
@@ -4848,10 +4854,26 @@ const AdminDashboard = () => {
                                 ))}
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Category</label>
-                                    <select value={data.category} onChange={e => setData(d => ({ ...d, category: e.target.value }))}
-                                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.9rem', boxSizing: 'border-box' }}>
-                                        {VENDOR_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                    </select>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <select value={isCustom ? 'Other' : (data.category || '')} onChange={e => {
+                                            if (e.target.value === 'Other') {
+                                                setIsCustom(true);
+                                                setData(d => ({ ...d, category: '' }));
+                                            } else {
+                                                setIsCustom(false);
+                                                setData(d => ({ ...d, category: e.target.value }));
+                                            }
+                                        }}
+                                            style={{ flex: 1, padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.9rem', boxSizing: 'border-box', background: 'white' }}>
+                                            <option value="">-- Choose Category --</option>
+                                            {VENDOR_CATEGORIES.filter(c => c !== 'Other').map(c => <option key={c} value={c}>{c}</option>)}
+                                            <option value="Other">Other</option>
+                                        </select>
+                                        {isCustom && (
+                                            <input type="text" placeholder="Type Custom Category..." value={data.category || ''} onChange={e => setData(d => ({ ...d, category: e.target.value }))}
+                                                style={{ flex: 1, padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.9rem', boxSizing: 'border-box' }} required />
+                                        )}
+                                    </div>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Notes</label>
@@ -5408,9 +5430,25 @@ const AdminDashboard = () => {
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Category</label>
-                                        <select value={newPurchase.category} onChange={e => setNewPurchase({ ...newPurchase, category: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', background: 'white' }}>
-                                            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                        </select>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <select value={isPurchaseCustom ? 'Other' : (newPurchase.category || '')} onChange={e => {
+                                                if (e.target.value === 'Other') {
+                                                    setIsPurchaseCustom(true);
+                                                    setNewPurchase(prev => ({ ...prev, category: '' }));
+                                                } else {
+                                                    setIsPurchaseCustom(false);
+                                                    setNewPurchase(prev => ({ ...prev, category: e.target.value }));
+                                                }
+                                            }} style={{ flex: 1, padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px', background: 'white' }}>
+                                                <option value="">-- Choose Category --</option>
+                                                {CATEGORIES.filter(c => c !== 'Other').map(c => <option key={c} value={c}>{c}</option>)}
+                                                <option value="Other">Other</option>
+                                            </select>
+                                            {isPurchaseCustom && (
+                                                <input type="text" placeholder="Type Custom Category..." value={newPurchase.category || ''} onChange={e => setNewPurchase(prev => ({ ...prev, category: e.target.value }))}
+                                                    style={{ flex: 1, padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px' }} required />
+                                            )}
+                                        </div>
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>
@@ -5493,9 +5531,25 @@ const AdminDashboard = () => {
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Category</label>
-                                        <select value={editingPurchase.category} onChange={e => setEditingPurchase({ ...editingPurchase, category: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', background: 'white' }}>
-                                            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                        </select>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <select value={isEditPurchaseCustom ? 'Other' : (editingPurchase.category || '')} onChange={e => {
+                                                if (e.target.value === 'Other') {
+                                                    setIsEditPurchaseCustom(true);
+                                                    setEditingPurchase(prev => ({ ...prev, category: '' }));
+                                                } else {
+                                                    setIsEditPurchaseCustom(false);
+                                                    setEditingPurchase(prev => ({ ...prev, category: e.target.value }));
+                                                }
+                                            }} style={{ flex: 1, padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', background: 'white' }}>
+                                                <option value="">-- Choose Category --</option>
+                                                {CATEGORIES.filter(c => c !== 'Other').map(c => <option key={c} value={c}>{c}</option>)}
+                                                <option value="Other">Other</option>
+                                            </select>
+                                            {isEditPurchaseCustom && (
+                                                <input type="text" placeholder="Type Custom Category..." value={editingPurchase.category || ''} onChange={e => setEditingPurchase(prev => ({ ...prev, category: e.target.value }))}
+                                                    style={{ flex: 1, padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px' }} required />
+                                            )}
+                                        </div>
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>
@@ -5826,6 +5880,20 @@ const AdminDashboard = () => {
                     });
                 };
 
+                const getBundleQuantityUsedInProduct = (product, bundleId) => {
+                    const recipe = recipesList.find(r => r.id === product.id);
+                    if (!recipe) return 0;
+                    const baseIng = (recipe.ingredients || []).find(ing => ing.type === 'bundle' && ing.id === bundleId);
+                    if (baseIng) return parseFloat(baseIng.quantity) || 0;
+                    
+                    let toppingQty = 0;
+                    (recipe.toppings || []).forEach(t => {
+                        const tIng = (t.ingredients || []).find(ing => ing.type === 'bundle' && ing.id === bundleId);
+                        if (tIng) toppingQty += parseFloat(tIng.quantity) || 0;
+                    });
+                    return toppingQty;
+                };
+
                 const getProductRecipeCost = (productId, selectedToppingIndex = -1) => {
                     const recipe = recipesList.find(r => r.id === productId);
                     if (!recipe) return { ingredientsCost: 0, packagingCost: 0, overheadCost: 0, toppingCost: 0, totalUnitCost: 0 };
@@ -5921,7 +5989,7 @@ const AdminDashboard = () => {
                     }
                 };
 
-                const handleSaveBundleItem = async (e) => {
+                 const handleSaveBundleItem = async (e) => {
                     e.preventDefault();
                     if (isReadOnly || isChef) return;
                     if (!newBundle.name.trim() || !newBundle.yieldQuantity) {
@@ -5933,6 +6001,8 @@ const AdminDashboard = () => {
                             name: newBundle.name.trim(),
                             yieldQuantity: parseFloat(newBundle.yieldQuantity),
                             yieldUnit: newBundle.yieldUnit,
+                            portions: parseInt(newBundle.portions) || 1,
+                            servingTool: newBundle.servingTool || 'Standard Scoop',
                             ingredients: newBundle.ingredients,
                             updatedAt: new Date().toISOString()
                         };
@@ -5946,7 +6016,7 @@ const AdminDashboard = () => {
                             setBundleItems(prev => [added, ...prev]);
                             showToast('Bundle sub-recipe added successfully!');
                         }
-                        setNewBundle({ name: '', yieldQuantity: '1000', yieldUnit: 'g', ingredients: [] });
+                        setNewBundle({ name: '', yieldQuantity: '1000', yieldUnit: 'g', portions: '24', servingTool: 'Standard Scoop', ingredients: [] });
                         setShowAddBundleForm(false);
                     } catch (error) {
                         showToast('Failed to save bundle sub-recipe', 'error');
@@ -6041,7 +6111,7 @@ const AdminDashboard = () => {
                                         </div>
                                     </div>
                                     {(!isReadOnly && !isChef) && (
-                                        <button onClick={() => { setShowAddRawForm(!showAddRawForm); setEditingRaw(null); }}
+                                        <button onClick={() => { setShowAddRawForm(!showAddRawForm); setEditingRaw(null); setIsRawCustom(false); }}
                                             style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
                                             {showAddRawForm ? 'Close Form' : '+ Add Material'}
                                         </button>
@@ -6095,18 +6165,20 @@ const AdminDashboard = () => {
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Category</label>
                                                 <div style={{ display: 'flex', gap: '8px' }}>
-                                                    <select value={newRaw.category} onChange={e => {
-                                                        if (e.target.value === '__custom__') {
+                                                    <select value={isRawCustom ? 'Other' : (newRaw.category || '')} onChange={e => {
+                                                        if (e.target.value === 'Other') {
+                                                            setIsRawCustom(true);
                                                             setNewRaw(prev => ({ ...prev, category: '' }));
                                                         } else {
+                                                            setIsRawCustom(false);
                                                             setNewRaw(prev => ({ ...prev, category: e.target.value }));
                                                         }
                                                     }} style={{ flex: 1, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }}>
                                                         <option value="">-- Choose Category --</option>
-                                                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                                        <option value="__custom__">+ Type Custom Category...</option>
+                                                        {CATEGORIES.filter(c => c !== 'Other').map(c => <option key={c} value={c}>{c}</option>)}
+                                                        <option value="Other">Other</option>
                                                     </select>
-                                                    {(!CATEGORIES.includes(newRaw.category) || newRaw.category === '') && (
+                                                    {isRawCustom && (
                                                         <input type="text" placeholder="Type Custom Category..." value={newRaw.category || ''} onChange={e => setNewRaw(prev => ({ ...prev, category: e.target.value }))}
                                                             style={{ flex: 1, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px' }} required />
                                                     )}
@@ -6199,7 +6271,7 @@ const AdminDashboard = () => {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                     <h3 style={{ margin: 0, color: '#1e293b', fontWeight: '800' }}>Prep sub-recipes / Bundles</h3>
                                     {(!isReadOnly && !isChef) && (
-                                        <button onClick={() => { setShowAddBundleForm(!showAddBundleForm); setEditingBundle(null); setNewBundle({ name: '', yieldQuantity: '1000', yieldUnit: 'g', ingredients: [] }); }}
+                                        <button onClick={() => { setShowAddBundleForm(!showAddBundleForm); setEditingBundle(null); setNewBundle({ name: '', yieldQuantity: '1000', yieldUnit: 'g', portions: '24', servingTool: 'Standard Scoop', ingredients: [] }); }}
                                             style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
                                             {showAddBundleForm ? 'Close Form' : '+ Add Prep Recipe'}
                                         </button>
@@ -6210,7 +6282,7 @@ const AdminDashboard = () => {
                                     <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.25rem', marginBottom: '1.5rem' }}>
                                         <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>{editingBundle ? '✏️ Edit Prep Sub-Recipe' : '➕ Add New Prep Sub-Recipe'}</h4>
                                         <form onSubmit={handleSaveBundleItem} style={{ display: 'grid', gap: '1rem' }}>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Sub-Recipe Name</label>
                                                     <input type="text" value={newBundle.name} onChange={e => setNewBundle({ ...newBundle, name: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px' }} required placeholder="e.g. Milk Pudding Base" />
@@ -6226,7 +6298,44 @@ const AdminDashboard = () => {
                                                         <option value="ml">Millilitres (ml)</option>
                                                     </select>
                                                 </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Yield Portions / Pieces</label>
+                                                    <input type="number" value={newBundle.portions || '24'} onChange={e => setNewBundle({ ...newBundle, portions: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px' }} required />
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Serving Tool / Standard Scoop</label>
+                                                    <input type="text" value={newBundle.servingTool || 'Standard Scoop'} onChange={e => setNewBundle({ ...newBundle, servingTool: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px' }} placeholder="e.g. Standard Scoop, 9-portion Tray" />
+                                                </div>
                                             </div>
+
+                                            {editingBundle && (() => {
+                                                const usedProducts = getProductsUsingBundle(editingBundle.id);
+                                                if (usedProducts.length === 0) return null;
+                                                return (
+                                                    <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '12px', padding: '1rem' }}>
+                                                        <h5 style={{ margin: '0 0 10px 0', color: '#0369a1', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            🧁 Piece-wise Yield Guide for Products using this Prep Sub-Recipe
+                                                        </h5>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
+                                                            {usedProducts.map(p => {
+                                                                const qtyUsed = getBundleQuantityUsedInProduct(p, editingBundle.id);
+                                                                const piecesProduced = qtyUsed > 0 ? (parseFloat(newBundle.yieldQuantity) / qtyUsed) : 0;
+                                                                return (
+                                                                    <div key={p.id} style={{ background: 'white', border: '1px solid #e0f2fe', borderRadius: '8px', padding: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                                                                        <div style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.85rem', marginBottom: '4px' }}>{p.name.toUpperCase()}</div>
+                                                                        <div style={{ fontSize: '0.78rem', color: '#475569' }}>
+                                                                            Uses: <strong style={{ color: '#0ea5e9' }}>{qtyUsed} {newBundle.yieldUnit}</strong> per portion
+                                                                        </div>
+                                                                        <div style={{ fontSize: '0.78rem', color: '#15803d', fontWeight: '700', marginTop: '4px' }}>
+                                                                            Yield: {piecesProduced.toFixed(1)} pieces / portions per batch
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
 
                                             {/* Ingredients builder */}
                                             <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '1rem', background: '#f8fafc' }}>
@@ -6285,7 +6394,7 @@ const AdminDashboard = () => {
                                                         <span style={{ fontSize: '0.72rem', background: '#eff6ff', color: '#1d4ed8', padding: '3px 8px', borderRadius: '20px', fontWeight: '700' }}>Prep Recipe</span>
                                                         {(!isReadOnly && !isChef) && (
                                                             <div style={{ display: 'flex', gap: '6px' }}>
-                                                                <button onClick={() => { setEditingBundle(bundle); setNewBundle({ name: bundle.name, yieldQuantity: bundle.yieldQuantity.toString(), yieldUnit: bundle.yieldUnit, ingredients: bundle.ingredients }); setShowAddBundleForm(true); }} style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.8rem', cursor: 'pointer', fontWeight: '600' }}>Edit</button>
+                                                                <button onClick={() => { setEditingBundle(bundle); setNewBundle({ name: bundle.name, yieldQuantity: bundle.yieldQuantity.toString(), yieldUnit: bundle.yieldUnit, portions: (bundle.portions || 24).toString(), servingTool: bundle.servingTool || 'Standard Scoop', ingredients: bundle.ingredients }); setShowAddBundleForm(true); }} style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.8rem', cursor: 'pointer', fontWeight: '600' }}>Edit</button>
                                                                 <button onClick={() => handleDeleteBundleItem(bundle.id)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer', fontWeight: '600' }}>Delete</button>
                                                             </div>
                                                         )}
