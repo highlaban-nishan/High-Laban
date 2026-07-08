@@ -88,12 +88,53 @@ const availableRoles = [
     { id: 'partner', label: 'Partner (All reports view-only)' }
 ];
 
+const availableTabsList = [
+    { id: 'products', label: '🛍️ Products' },
+    { id: 'content', label: '📝 Content' },
+    { id: 'locations', label: '📍 Locations' },
+    { id: 'customers', label: '👥 Users' },
+    { id: 'franchise', label: '🤝 Franchise' },
+    { id: 'staff', label: '🧑‍🍳 HR Staff' },
+    { id: 'payroll', label: '💵 Payroll' },
+    { id: 'vendors', label: '🏪 Vendors' },
+    { id: 'purchases', label: '🛒 Purchases' },
+    { id: 'costing', label: '🧮 Food Costing' }
+];
+
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const user = db.getUser(); // Check auth immediately
+    const hasTabAccess = (tabId) => {
+        if (!user) return false;
+        if (user.role === 'admin') return true;
+        if (user.allowedTabs && user.allowedTabs.length > 0) {
+            return user.allowedTabs.includes(tabId);
+        }
+        // Fallback for legacy role-based rules
+        if (user.role === 'chef') {
+            return tabId === 'costing' || tabId === 'products';
+        }
+        if (user.role === 'purchaser' || user.role === 'accounts') {
+            return tabId === 'purchases' || tabId === 'vendors';
+        }
+        if (user.role === 'partner') {
+            return true;
+        }
+        return false;
+    };
+
+    const getInitialTab = () => {
+        if (user?.role === 'chef') return 'costing';
+        const defaultOrder = ['products', 'content', 'locations', 'customers', 'franchise', 'staff', 'payroll', 'vendors', 'purchases', 'costing'];
+        for (const t of defaultOrder) {
+            if (hasTabAccess(t)) return t;
+        }
+        return 'products';
+    };
+
+    const [activeTab, setActiveTab] = useState(getInitialTab());
     const isReadOnly = user?.role === 'accounts' || user?.role === 'partner';
     const isChef = user?.role === 'chef';
-    const [activeTab, setActiveTab] = useState(user?.role === 'chef' ? 'costing' : 'products');
     const [products, setProducts] = useState([]);
     const [orders, setOrders] = useState([]);
     const [customers, setCustomers] = useState([]);
@@ -157,7 +198,7 @@ const AdminDashboard = () => {
     const [systemUsers, setSystemUsers] = useState([]);
     const [showAddUserForm, setShowAddUserForm] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
-    const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'purchaser' });
+    const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'purchaser', allowedTabs: [] });
     const [usersSubTab, setUsersSubTab] = useState('logins'); // 'logins' | 'subscribers'
 
 
@@ -1273,58 +1314,75 @@ const AdminDashboard = () => {
                 </div>
 
                 <nav className={styles.nav}>
-                    {(!isChef || user?.role === 'chef') && (
+                    {hasTabAccess('products') && (
                         <div className={`${styles.navItem} ${activeTab === 'products' ? styles.active : ''}`} onClick={() => { setActiveTab('products'); setIsMobileOpen(false); }}>
                             <span style={{ fontSize: '1.2rem' }}>🛍️</span> Products
                             {activeTab === 'products' && <div className={styles.activeDot}></div>}
                         </div>
                     )}
 
-                    {!isChef ? (
-                        <>
-                            <div className={`${styles.navItem} ${activeTab === 'content' ? styles.active : ''}`} onClick={() => { setActiveTab('content'); setIsMobileOpen(false); }}>
-                                <span style={{ fontSize: '1.2rem' }}>📝</span> Content
-                                {activeTab === 'content' && <div className={styles.activeDot}></div>}
-                            </div>
+                    {hasTabAccess('content') && (
+                        <div className={`${styles.navItem} ${activeTab === 'content' ? styles.active : ''}`} onClick={() => { setActiveTab('content'); setIsMobileOpen(false); }}>
+                            <span style={{ fontSize: '1.2rem' }}>📝</span> Content
+                            {activeTab === 'content' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
 
-                            <div className={`${styles.navItem} ${activeTab === 'locations' ? styles.active : ''}`} onClick={() => { setActiveTab('locations'); setIsMobileOpen(false); }}>
-                                <span style={{ fontSize: '1.2rem' }}>📍</span> Locations
-                                {activeTab === 'locations' && <div className={styles.activeDot}></div>}
-                            </div>
+                    {hasTabAccess('locations') && (
+                        <div className={`${styles.navItem} ${activeTab === 'locations' ? styles.active : ''}`} onClick={() => { setActiveTab('locations'); setIsMobileOpen(false); }}>
+                            <span style={{ fontSize: '1.2rem' }}>📍</span> Locations
+                            {activeTab === 'locations' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
 
+                    {hasTabAccess('customers') && (
+                        <div className={`${styles.navItem} ${activeTab === 'customers' ? styles.active : ''}`} onClick={() => { setActiveTab('customers'); setIsMobileOpen(false); }}>
+                            <span style={{ fontSize: '1.2rem' }}>👥</span> Users
+                            {activeTab === 'customers' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
 
+                    {hasTabAccess('franchise') && (
+                        <div className={`${styles.navItem} ${activeTab === 'franchise' ? styles.active : ''}`} onClick={() => { setActiveTab('franchise'); setIsMobileOpen(false); }}>
+                            <span style={{ fontSize: '1.2rem' }}>🤝</span> Franchise
+                            {activeTab === 'franchise' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
 
-                            <div className={`${styles.navItem} ${activeTab === 'customers' ? styles.active : ''}`} onClick={() => { setActiveTab('customers'); setIsMobileOpen(false); }}>
-                                <span style={{ fontSize: '1.2rem' }}>👥</span> Users
-                                {activeTab === 'customers' && <div className={styles.activeDot}></div>}
-                            </div>
-                            <div className={`${styles.navItem} ${activeTab === 'franchise' ? styles.active : ''}`} onClick={() => { setActiveTab('franchise'); setIsMobileOpen(false); }}>
-                                <span style={{ fontSize: '1.2rem' }}>🤝</span> Franchise
-                                {activeTab === 'franchise' && <div className={styles.activeDot}></div>}
-                            </div>
-                            <div className={`${styles.navItem} ${activeTab === 'staff' ? styles.active : ''}`} onClick={() => { setActiveTab('staff'); setIsMobileOpen(false); }}>
-                                <span style={{ fontSize: '1.2rem' }}>🧑‍🍳</span> HR Staff
-                                {activeTab === 'staff' && <div className={styles.activeDot}></div>}
-                            </div>
-                            <div className={`${styles.navItem} ${activeTab === 'payroll' ? styles.active : ''}`} onClick={() => { setActiveTab('payroll'); setIsMobileOpen(false); }}>
-                                <span style={{ fontSize: '1.2rem' }}>💵</span> Payroll
-                                {activeTab === 'payroll' && <div className={styles.activeDot}></div>}
-                            </div>
-                            <div className={`${styles.navItem} ${activeTab === 'vendors' ? styles.active : ''}`} onClick={() => { setActiveTab('vendors'); setIsMobileOpen(false); }}>
-                                <span style={{ fontSize: '1.2rem' }}>🏪</span> Vendors
-                                {activeTab === 'vendors' && <div className={styles.activeDot}></div>}
-                            </div>
-                            <div className={`${styles.navItem} ${activeTab === 'purchases' ? styles.active : ''}`} onClick={() => { setActiveTab('purchases'); setIsMobileOpen(false); }}>
-                                <span style={{ fontSize: '1.2rem' }}>🛒</span> Purchases
-                                {activeTab === 'purchases' && <div className={styles.activeDot}></div>}
-                            </div>
-                        </>
-                    ) : null}
+                    {hasTabAccess('staff') && (
+                        <div className={`${styles.navItem} ${activeTab === 'staff' ? styles.active : ''}`} onClick={() => { setActiveTab('staff'); setIsMobileOpen(false); }}>
+                            <span style={{ fontSize: '1.2rem' }}>🧑‍🍳</span> HR Staff
+                            {activeTab === 'staff' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
 
-                    <div className={`${styles.navItem} ${activeTab === 'costing' ? styles.active : ''}`} onClick={() => { setActiveTab('costing'); setIsMobileOpen(false); }}>
-                        <span style={{ fontSize: '1.2rem' }}>🧮</span> Food Costing
-                        {activeTab === 'costing' && <div className={styles.activeDot}></div>}
-                    </div>
+                    {hasTabAccess('payroll') && (
+                        <div className={`${styles.navItem} ${activeTab === 'payroll' ? styles.active : ''}`} onClick={() => { setActiveTab('payroll'); setIsMobileOpen(false); }}>
+                            <span style={{ fontSize: '1.2rem' }}>💵</span> Payroll
+                            {activeTab === 'payroll' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
+
+                    {hasTabAccess('vendors') && (
+                        <div className={`${styles.navItem} ${activeTab === 'vendors' ? styles.active : ''}`} onClick={() => { setActiveTab('vendors'); setIsMobileOpen(false); }}>
+                            <span style={{ fontSize: '1.2rem' }}>🏪</span> Vendors
+                            {activeTab === 'vendors' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
+
+                    {hasTabAccess('purchases') && (
+                        <div className={`${styles.navItem} ${activeTab === 'purchases' ? styles.active : ''}`} onClick={() => { setActiveTab('purchases'); setIsMobileOpen(false); }}>
+                            <span style={{ fontSize: '1.2rem' }}>🛒</span> Purchases
+                            {activeTab === 'purchases' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
+
+                    {hasTabAccess('costing') && (
+                        <div className={`${styles.navItem} ${activeTab === 'costing' ? styles.active : ''}`} onClick={() => { setActiveTab('costing'); setIsMobileOpen(false); }}>
+                            <span style={{ fontSize: '1.2rem' }}>🧮</span> Food Costing
+                            {activeTab === 'costing' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
                 </nav>
 
                 <div className={styles.signOut} onClick={handleLogout}>
@@ -1735,7 +1793,7 @@ const AdminDashboard = () => {
                             try {
                                 const added = await db.addUser(newUser);
                                 setSystemUsers(prev => [added, ...prev]);
-                                setNewUser({ name: '', email: '', password: '', role: 'purchaser' });
+                                setNewUser({ name: '', email: '', password: '', role: 'purchaser', allowedTabs: [] });
                                 setShowAddUserForm(false);
                                 showToast('User created successfully!');
                             } catch (error) {
@@ -1866,6 +1924,29 @@ const AdminDashboard = () => {
                                                             })}
                                                         </div>
                                                     </div>
+                                                    <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '8px', background: 'white', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                                                         <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748b' }}>TAB ACCESS PERMISSIONS (GRANULAR ACCESS)</span>
+                                                         <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                                                             {availableTabsList.map(tab => {
+                                                                 const isChecked = (newUser.allowedTabs || []).includes(tab.id);
+                                                                 return (
+                                                                     <label key={tab.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', cursor: 'pointer', fontWeight: '600', color: '#334155' }}>
+                                                                         <input type="checkbox" checked={isChecked} onChange={e => {
+                                                                             const current = newUser.allowedTabs || [];
+                                                                             let next;
+                                                                             if (e.target.checked) {
+                                                                                 next = [...current, tab.id];
+                                                                             } else {
+                                                                                 next = current.filter(t => t !== tab.id);
+                                                                             }
+                                                                             setNewUser({ ...newUser, allowedTabs: next });
+                                                                         }} />
+                                                                         {tab.label}
+                                                                     </label>
+                                                                 );
+                                                             })}
+                                                         </div>
+                                                     </div>
                                                     <div style={{ display: 'flex', gap: '8px' }}>
                                                         <button type="submit" style={{ flex: 1, background: '#009ceb', color: 'white', border: 'none', borderRadius: '8px', padding: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Save User</button>
                                                         <button type="button" onClick={() => setShowAddUserForm(false)} style={{ flex: 1, background: 'white', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
@@ -1915,6 +1996,29 @@ const AdminDashboard = () => {
                                                             })}
                                                         </div>
                                                     </div>
+                                                    <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '8px', background: 'white', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                                                         <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#b45309' }}>TAB ACCESS PERMISSIONS (GRANULAR ACCESS)</span>
+                                                         <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                                                             {availableTabsList.map(tab => {
+                                                                 const isChecked = (editingUser.allowedTabs || []).includes(tab.id);
+                                                                 return (
+                                                                     <label key={tab.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', cursor: 'pointer', fontWeight: '600', color: '#334155' }}>
+                                                                         <input type="checkbox" checked={isChecked} onChange={e => {
+                                                                             const current = editingUser.allowedTabs || [];
+                                                                             let next;
+                                                                             if (e.target.checked) {
+                                                                                 next = [...current, tab.id];
+                                                                             } else {
+                                                                                 next = current.filter(t => t !== tab.id);
+                                                                             }
+                                                                             setEditingUser({ ...editingUser, allowedTabs: next });
+                                                                         }} />
+                                                                         {tab.label}
+                                                                     </label>
+                                                                 );
+                                                             })}
+                                                         </div>
+                                                     </div>
                                                     <div style={{ display: 'flex', gap: '8px' }}>
                                                         <button type="submit" style={{ flex: 1, background: '#009ceb', color: 'white', border: 'none', borderRadius: '8px', padding: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Update</button>
                                                         <button type="button" onClick={() => setEditingUser(null)} style={{ flex: 1, background: 'white', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
@@ -1948,13 +2052,28 @@ const AdminDashboard = () => {
                                                             </div>
                                                         </div>
                                                         <div style={{ display: 'flex', gap: '6px' }}>
-                                                            <button onClick={() => { setEditingUser(usr); setShowAddUserForm(false); }} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '5px 10px', fontSize: '0.75rem', fontWeight: 'bold', color: '#009ceb', cursor: 'pointer' }}>Edit</button>
+                                                            <button onClick={() => { setEditingUser({ ...usr, allowedTabs: usr.allowedTabs || [] }); setShowAddUserForm(false); }} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '5px 10px', fontSize: '0.75rem', fontWeight: 'bold', color: '#009ceb', cursor: 'pointer' }}>Edit</button>
                                                             <button onClick={() => handleDeleteUser(usr.id)} style={{ background: '#fee2e2', border: 'none', borderRadius: '6px', padding: '5px 10px', fontSize: '0.75rem', fontWeight: 'bold', color: '#ef4444', cursor: 'pointer' }}>Del</button>
                                                         </div>
                                                     </div>
                                                     <div style={{ fontSize: '0.8rem', color: '#64748b', borderTop: '1px dashed #f1f5f9', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                                         <div>👤 Username: <strong style={{ color: '#334155' }}>{usr.email}</strong></div>
                                                         <div>🔑 Password: <strong style={{ color: '#334155' }}>{usr.password}</strong></div>
+                                                        {usr.allowedTabs && usr.allowedTabs.length > 0 && (
+                                                             <div style={{ marginTop: '4px' }}>
+                                                                 <div style={{ fontSize: '0.72rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', marginBottom: '2px' }}>Tab Access:</div>
+                                                                 <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                                                     {usr.allowedTabs.map(t => {
+                                                                         const tabMeta = availableTabsList.find(x => x.id === t);
+                                                                         return (
+                                                                             <span key={t} style={{ display: 'inline-block', background: '#f1f5f9', color: '#475569', padding: '1px 6px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: '500' }}>
+                                                                                 {tabMeta ? tabMeta.label.split(' ')[1] || tabMeta.label : t}
+                                                                             </span>
+                                                                         );
+                                                                     })}
+                                                                 </div>
+                                                             </div>
+                                                         )}
                                                     </div>
                                                 </div>
                                             ))}

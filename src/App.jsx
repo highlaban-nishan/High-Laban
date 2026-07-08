@@ -30,9 +30,9 @@ function App() {
   const user = db.getUser();
   const isDashboardRoute = location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/admin') || location.pathname.startsWith('/purchases');
 
-  // Role-based dashboard
   const DashboardRoute = () => {
     if (!user) return <Navigate to="/login" replace />;
+    if (user.allowedTabs && user.allowedTabs.length > 0) return <AdminDashboard />;
     if (user.role === 'purchaser' || user.role === 'accounts') return <PurchaserDashboard />;
     return <AdminDashboard />;
   };

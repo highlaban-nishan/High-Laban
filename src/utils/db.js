@@ -845,7 +845,12 @@ const db = {
                 }
             });
             if (foundUser) {
-                const user = { email: foundUser.email, name: foundUser.name, role: foundUser.role };
+                const user = { 
+                    email: foundUser.email, 
+                    name: foundUser.name, 
+                    role: foundUser.role,
+                    allowedTabs: foundUser.allowedTabs || []
+                };
                 localStorage.setItem('highlaban_user', JSON.stringify(user));
                 return user;
             }
@@ -855,27 +860,27 @@ const db = {
 
         // Fallback to static credentials if Firestore query didn't find anything or failed
         if (cleanEmail === 'highlaban@gmail.com' && password === 'Laban@2025') {
-            const user = { email: cleanEmail, name: 'Admin', role: 'admin' };
+            const user = { email: cleanEmail, name: 'Admin', role: 'admin', allowedTabs: ['products', 'content', 'locations', 'customers', 'franchise', 'staff', 'payroll', 'vendors', 'purchases', 'costing'] };
             localStorage.setItem('highlaban_user', JSON.stringify(user));
             return user;
         } else if (cleanEmail === 'marchad@highlaban.com' && password === 'Marchad@2026') {
-            const user = { email: cleanEmail, name: 'Marchad', role: 'purchaser' };
+            const user = { email: cleanEmail, name: 'Marchad', role: 'purchaser', allowedTabs: ['purchases', 'vendors'] };
             localStorage.setItem('highlaban_user', JSON.stringify(user));
             return user;
         } else if (cleanEmail === 'nufoor@highlaban.com' && password === 'Nufoor@2026') {
-            const user = { email: cleanEmail, name: 'Nufoor', role: 'purchaser' };
+            const user = { email: cleanEmail, name: 'Nufoor', role: 'purchaser', allowedTabs: ['purchases', 'vendors'] };
             localStorage.setItem('highlaban_user', JSON.stringify(user));
             return user;
         } else if (cleanEmail === 'accounts@highlaban.com' && password === 'Accounts@2026') {
-            const user = { email: cleanEmail, name: 'Accounts Team', role: 'accounts' };
+            const user = { email: cleanEmail, name: 'Accounts Team', role: 'accounts', allowedTabs: ['purchases', 'vendors'] };
             localStorage.setItem('highlaban_user', JSON.stringify(user));
             return user;
         } else if (cleanEmail === 'chef@highlaban.com' && password === 'Chef@2026') {
-            const user = { email: cleanEmail, name: 'Chef', role: 'chef' };
+            const user = { email: cleanEmail, name: 'Chef', role: 'chef', allowedTabs: ['costing', 'products'] };
             localStorage.setItem('highlaban_user', JSON.stringify(user));
             return user;
         } else if (cleanEmail === 'partner@highlaban.com' && password === 'Partner@2026') {
-            const user = { email: cleanEmail, name: 'Partner', role: 'partner' };
+            const user = { email: cleanEmail, name: 'Partner', role: 'partner', allowedTabs: ['products', 'content', 'locations', 'customers', 'franchise', 'staff', 'payroll', 'vendors', 'purchases', 'costing'] };
             localStorage.setItem('highlaban_user', JSON.stringify(user));
             return user;
         } else {
