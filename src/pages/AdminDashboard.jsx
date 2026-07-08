@@ -5791,6 +5791,29 @@ const AdminDashboard = () => {
                     return totalCost / yieldQty;
                 };
 
+                const getBundleSopDetails = (bundle) => {
+                    let totalWeight = 0;
+                    let batchCost = 0;
+                    (bundle.ingredients || []).forEach(ing => {
+                        const raw = rawMaterials.find(r => r.id === ing.materialId);
+                        const qty = parseFloat(ing.quantity) || 0;
+                        totalWeight += qty;
+                        if (raw) {
+                            batchCost += qty * getRawMaterialUnitPrice(raw);
+                        }
+                    });
+                    const yieldPortions = parseFloat(bundle.portions) || 1;
+                    const portionSize = yieldPortions > 0 ? (totalWeight / yieldPortions) : 0;
+                    const costPerPortion = yieldPortions > 0 ? (batchCost / yieldPortions) : 0;
+                    return {
+                        totalWeight,
+                        batchCost,
+                        portionSize,
+                        costPerPortion,
+                        yieldPortions
+                    };
+                };
+
                 const getProductRecipeCost = (productId, selectedToppingIndex = -1) => {
                     const recipe = recipesList.find(r => r.id === productId);
                     if (!recipe) return { ingredientsCost: 0, packagingCost: 0, overheadCost: 0, toppingCost: 0, totalUnitCost: 0 };
@@ -5974,7 +5997,8 @@ const AdminDashboard = () => {
                             {[
                                 { id: 'raw', label: '🌾 Raw Materials' },
                                 { id: 'bundle', label: '📦 Prep Bundles' },
-                                { id: 'final', label: '🍨 Product Costs' }
+                                { id: 'final', label: '🍨 Product Costs' },
+                                { id: 'sop', label: '📖 SOP Manual' }
                             ].map(tab => (
                                 <button key={tab.id} onClick={() => setCostingSubTab(tab.id)}
                                     style={{
@@ -6547,6 +6571,106 @@ const AdminDashboard = () => {
                                             })}
                                         </tbody>
                                     </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {costingSubTab === 'sop' && (
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '15px' }}>
+                                    <div>
+                                        <h3 style={{ margin: 0, color: '#1e293b', fontWeight: '800' }}>📖 Kitchen SOP & Recipe Manual</h3>
+                                        <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.8rem' }}>Displaying standardized batches, serving tools, and cost metrics for kitchen staff.</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => {
+                                            let fullMarkdown = '';
+                                            bundleItems.forEach(bundle => {
+                                                const details = getBundleSopDetails(bundle);
+                                                let tableRows = '';
+                                                (bundle.ingredients || []).forEach(ing => {
+                                                    const raw = rawMaterials.find(r => r.id === ing.materialId);
+                                                    tableRows += `| ${raw?.name || 'Unknown'} | ${(ing.quantity || 0)} ${raw?.unit || ''} |\n`;
+                                                });
+                                                fullMarkdown += `\n---\n\n# ${bundle.name.toUpperCase()}\n\n### Batch Information\n\n* **Batch Yield:** ${details.yieldPortions} Portions\n* **Total Batch Weight:** ${details.totalWeight} g\n* **Standard Portion Size:** **${details.portionSize.toFixed(0)} g**\n* **Batch Cost:** ₹${details.batchCost.toFixed(2)}\n* **Cost Per Portion:** ₹${details.costPerPortion.toFixed(2)}\n\n### Ingredients\n\n| Ingredient | Qty |\n| --- | ---: |\n${tableRows}\n`;
+                                            });
+                                            navigator.clipboard.writeText(fullMarkdown);
+                                            showToast('Copied full manual to clipboard! 📋');
+                                        }}
+                                        style={{ background: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                    >
+                                        📋 Copy Full Manual (Markdown)
+                                    </button>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+                                    {bundleItems.map(bundle => {
+                                        const details = getBundleSopDetails(bundle);
+                                        return (
+                                            <div key={bundle.id} style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', position: 'relative' }}>
+                                                <button 
+                                                    onClick={() => {
+                                                        let tableRows = '';
+                                                        (bundle.ingredients || []).forEach(ing => {
+                                                            const raw = rawMaterials.find(r => r.id === ing.materialId);
+                                                            tableRows += `| ${raw?.name || 'Unknown'} | ${(ing.quantity || 0)} ${raw?.unit || ''} |\n`;
+                                                        });
+                                                        const cardMd = `\n---\n\n# ${bundle.name.toUpperCase()}\n\n### Batch Information\n\n* **Batch Yield:** ${details.yieldPortions} Portions\n* **Total Batch Weight:** ${details.totalWeight} g\n* **Standard Portion Size:** **${details.portionSize.toFixed(0)} g**\n* **Batch Cost:** ₹${details.batchCost.toFixed(2)}\n* **Cost Per Portion:** ₹${details.costPerPortion.toFixed(2)}\n\n### Ingredients\n\n| Ingredient | Qty |\n| --- | ---: |\n${tableRows}\n`;
+                                                        navigator.clipboard.writeText(cardMd);
+                                                        showToast(`Copied ${bundle.name} SOP! 📋`);
+                                                    }}
+                                                    style={{ position: 'absolute', top: '15px', right: '15px', background: '#f1f5f9', border: 'none', borderRadius: '6px', padding: '4px 8px', fontSize: '0.7rem', fontWeight: '700', color: '#475569', cursor: 'pointer' }}
+                                                >
+                                                    Copy Card
+                                                </button>
+                                                
+                                                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.2rem', color: '#0f172a', fontWeight: '900', borderBottom: '2px solid #cbd5e1', paddingBottom: '8px' }}>
+                                                    {bundle.name.toUpperCase()}
+                                                </h3>
+
+                                                <h4 style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: '#475569', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                    Batch Information
+                                                </h4>
+                                                
+                                                <ul style={{ margin: '0 0 1.2rem 0', paddingLeft: '20px', fontSize: '0.88rem', color: '#334155', display: 'flex', flexDirection: 'column', gap: '4px', listStyleType: 'disc' }}>
+                                                    <li><strong>Batch Yield:</strong> {details.yieldPortions} Portions</li>
+                                                    <li><strong>Total Batch Weight:</strong> {details.totalWeight} g</li>
+                                                    <li><strong>Standard Portion Size:</strong> <span style={{ background: '#fef3c7', padding: '2px 6px', borderRadius: '4px', fontWeight: '800' }}>{details.portionSize.toFixed(0)} g</span></li>
+                                                    <li><strong>Serving Tool:</strong> <span style={{ fontStyle: 'italic', color: '#0ea5e9', fontWeight: 'bold' }}>{bundle.servingTool || 'Standard Scoop'}</span></li>
+                                                    <li><strong>Batch Cost:</strong> ₹{details.batchCost.toFixed(2)}</li>
+                                                    <li><strong>Cost Per Portion:</strong> ₹{details.costPerPortion.toFixed(2)}</li>
+                                                </ul>
+
+                                                {bundle.ingredients && bundle.ingredients.length > 0 && (
+                                                    <>
+                                                        <h4 style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: '#475569', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                            Ingredients
+                                                        </h4>
+
+                                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+                                                            <thead>
+                                                                <tr style={{ borderBottom: '1px solid #cbd5e1' }}>
+                                                                    <th style={{ padding: '6px 0', color: '#64748b' }}>Ingredient</th>
+                                                                    <th style={{ padding: '6px 0', textAlign: 'right', color: '#64748b' }}>Qty</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {(bundle.ingredients || []).map((ing, idx) => {
+                                                                    const raw = rawMaterials.find(r => r.id === ing.materialId);
+                                                                    return (
+                                                                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                                            <td style={{ padding: '6px 0', color: '#334155', fontWeight: '600' }}>{raw?.name || 'Unknown'}</td>
+                                                                            <td style={{ padding: '6px 0', textAlign: 'right', color: '#475569', fontWeight: '700' }}>{ing.quantity} {raw?.unit || ''}</td>
+                                                                        </tr>
+                                                                    );
+                                                                })}
+                                                            </tbody>
+                                                        </table>
+                                                    </>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
