@@ -80,6 +80,14 @@ const getProrationFactor = (staff, monthStr) => {
     }
 };
 
+const availableRoles = [
+    { id: 'admin', label: 'Admin (Full Access)' },
+    { id: 'purchaser', label: 'Purchaser (Add purchases, view all)' },
+    { id: 'accounts', label: 'Accounts (View-only purchases)' },
+    { id: 'chef', label: 'Chef (Food costing & shop items)' },
+    { id: 'partner', label: 'Partner (All reports view-only)' }
+];
+
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const user = db.getUser(); // Check auth immediately
@@ -111,7 +119,8 @@ const AdminDashboard = () => {
 
     // Product recipe form state
     const [selectedRecipeProduct, setSelectedRecipeProduct] = useState(null); // product ID for editing recipe
-    const [editingRecipe, setEditingRecipe] = useState({ ingredients: [], packagingCost: '0', batchSize: '1', overheadAllocation: '0', toppings: [] }); // ingredients: [{ type: 'raw'/'bundle', id: '', quantity: '' }]
+    const [editingRecipe, setEditingRecipe] = useState({ ingredients: [], containerCost: '0', spoonCost: '0', stickerCost: '0', packagingCost: '0', batchSize: '1', overheadAllocation: '0', toppings: [] }); // ingredients: [{ type: 'raw'/'bundle', id: '', quantity: '' }]
+    const [selectedPurchaseOutlet, setSelectedPurchaseOutlet] = useState(null);
 
     // Vendors State
     const [vendors, setVendors] = useState([]);
@@ -1830,17 +1839,34 @@ const AdminDashboard = () => {
                                                         <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Password</label>
                                                         <input type="text" value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} placeholder="Set password" required />
                                                     </div>
-                                                    <div>
-                                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Role / Permission</label>
-                                                        <select value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}>
-                                                            <option value="purchaser">Purchaser (Add purchases, view all)</option>
-                                                            <option value="accounts">Accounts Team (View-only purchases)</option>
-                                                            <option value="chef">Chef (Food costing control & shop items)</option>
-                                                            <option value="partner">Partner (Reports, staff, food cost, vendors)</option>
-                                                            <option value="admin">Administrator (Full Access)</option>
-                                                        </select>
+
+                                                    <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '8px', background: 'white', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                                                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748b' }}>SELECT SYSTEM ROLES (MULTI-ROLE ALLOWED)</span>
+                                                        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                                                            {availableRoles.map(role => {
+                                                                const isChecked = (newUser.role || '').split(',').includes(role.id);
+                                                                return (
+                                                                    <label key={role.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', cursor: 'pointer', fontWeight: '600', color: '#334155' }}>
+                                                                        <input type="checkbox" checked={isChecked} onChange={e => {
+                                                                            const current = (newUser.role || '').split(',').filter(Boolean);
+                                                                            let next;
+                                                                            if (e.target.checked) {
+                                                                                next = [...current, role.id];
+                                                                            } else {
+                                                                                next = current.filter(r => r !== role.id);
+                                                                            }
+                                                                            setNewUser({ ...newUser, role: next.join(',') });
+                                                                        }} />
+                                                                        {role.label}
+                                                                    </label>
+                                                                );
+                                                            })}
+                                                        </div>
                                                     </div>
-                                                    <button type="submit" style={{ background: '#009ceb', color: 'white', border: 'none', borderRadius: '8px', padding: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Save User</button>
+                                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                                        <button type="submit" style={{ flex: 1, background: '#009ceb', color: 'white', border: 'none', borderRadius: '8px', padding: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Save User</button>
+                                                        <button type="button" onClick={() => setShowAddUserForm(false)} style={{ flex: 1, background: 'white', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+                                                    </div>
                                                 </form>
                                             </div>
                                         )}
@@ -1862,15 +1888,29 @@ const AdminDashboard = () => {
                                                         <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 'bold', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Password</label>
                                                         <input type="text" value={editingUser.password} onChange={e => setEditingUser({ ...editingUser, password: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required />
                                                     </div>
-                                                    <div>
-                                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 'bold', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Role / Permission</label>
-                                                        <select value={editingUser.role} onChange={e => setEditingUser({ ...editingUser, role: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}>
-                                                            <option value="purchaser">Purchaser (Add purchases, view all)</option>
-                                                            <option value="accounts">Accounts Team (View-only purchases)</option>
-                                                            <option value="chef">Chef (Food costing control & shop items)</option>
-                                                            <option value="partner">Partner (Reports, staff, food cost, vendors)</option>
-                                                            <option value="admin">Administrator (Full Access)</option>
-                                                        </select>
+
+                                                    <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '8px', background: 'white', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                                                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#b45309' }}>SELECT SYSTEM ROLES (MULTI-ROLE ALLOWED)</span>
+                                                        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                                                            {availableRoles.map(role => {
+                                                                const isChecked = (editingUser.role || '').split(',').includes(role.id);
+                                                                return (
+                                                                    <label key={role.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', cursor: 'pointer', fontWeight: '600', color: '#334155' }}>
+                                                                        <input type="checkbox" checked={isChecked} onChange={e => {
+                                                                            const current = (editingUser.role || '').split(',').filter(Boolean);
+                                                                            let next;
+                                                                            if (e.target.checked) {
+                                                                                next = [...current, role.id];
+                                                                            } else {
+                                                                                next = current.filter(r => r !== role.id);
+                                                                            }
+                                                                            setEditingUser({ ...editingUser, role: next.join(',') });
+                                                                        }} />
+                                                                        {role.label}
+                                                                    </label>
+                                                                );
+                                                            })}
+                                                        </div>
                                                     </div>
                                                     <div style={{ display: 'flex', gap: '8px' }}>
                                                         <button type="submit" style={{ flex: 1, background: '#009ceb', color: 'white', border: 'none', borderRadius: '8px', padding: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Update</button>
@@ -1887,14 +1927,22 @@ const AdminDashboard = () => {
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                                         <div>
                                                             <div style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.98rem' }}>{usr.name}</div>
-                                                            <span style={{ 
-                                                                display: 'inline-block', padding: '2px 8px', borderRadius: '50px', fontSize: '0.7rem', fontWeight: 'bold', marginTop: '4px',
-                                                                background: usr.role === 'admin' ? '#fee2e2' : usr.role === 'accounts' ? '#ede9fe' : '#e0f2fe',
-                                                                color: usr.role === 'admin' ? '#991b1b' : usr.role === 'accounts' ? '#5b21b6' : '#0369a1',
-                                                                border: `1px solid ${usr.role === 'admin' ? '#fca5a5' : usr.role === 'accounts' ? '#c4b5fd' : '#7dd3fc'}`
-                                                            }}>
-                                                                {usr.role?.toUpperCase()}
-                                                            </span>
+                                                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
+                                                                {(usr.role || 'purchaser').split(',').map(r => {
+                                                                    const roleName = r.trim().toLowerCase();
+                                                                    const bg = roleName === 'admin' ? '#fee2e2' : roleName === 'accounts' ? '#ede9fe' : roleName === 'chef' ? '#fef3c7' : roleName === 'partner' ? '#dcfce7' : '#e0f2fe';
+                                                                    const fg = roleName === 'admin' ? '#991b1b' : roleName === 'accounts' ? '#5b21b6' : roleName === 'chef' ? '#b45309' : roleName === 'partner' ? '#15803d' : '#0369a1';
+                                                                    const border = roleName === 'admin' ? '#fca5a5' : roleName === 'accounts' ? '#c4b5fd' : roleName === 'chef' ? '#fde68a' : roleName === 'partner' ? '#86efac' : '#7dd3fc';
+                                                                    return (
+                                                                        <span key={roleName} style={{ 
+                                                                            display: 'inline-block', padding: '2px 8px', borderRadius: '50px', fontSize: '0.7rem', fontWeight: 'bold',
+                                                                            background: bg, color: fg, border: `1px solid ${border}`
+                                                                        }}>
+                                                                            {roleName.toUpperCase()}
+                                                                        </span>
+                                                                    );
+                                                                })}
+                                                            </div>
                                                         </div>
                                                         <div style={{ display: 'flex', gap: '6px' }}>
                                                             <button onClick={() => { setEditingUser(usr); setShowAddUserForm(false); }} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '5px 10px', fontSize: '0.75rem', fontWeight: 'bold', color: '#009ceb', cursor: 'pointer' }}>Edit</button>
@@ -5123,37 +5171,81 @@ const AdminDashboard = () => {
                     'Cleaning & Supplies': '🧹'
                 }[cat] || '🛒');
 
+                if (!selectedPurchaseOutlet) {
+                    const outlets = ['Main Kitchen', ...runningFranchises.filter(f => f.status === 'Running').map(f => f.outletName)];
+                    return (
+                        <div style={{ width: '100%' }}>
+                            <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+                                <h2 style={{ fontWeight: '900', color: '#0f172a', fontSize: '1.75rem', marginBottom: '8px' }}>🏪 Select Outlet to Manage Purchases</h2>
+                                <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Choose a location to view and input purchase records</p>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', maxWidth: '900px', margin: '0 auto' }}>
+                                {outlets.map(outlet => {
+                                    const count = purchases.filter(p => (p.location || 'Main Kitchen') === outlet).length;
+                                    const totalSpent = purchases.filter(p => (p.location || 'Main Kitchen') === outlet).reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+                                    const isMain = outlet === 'Main Kitchen';
+                                    return (
+                                        <div 
+                                            key={outlet} 
+                                            onClick={() => {
+                                                setSelectedPurchaseOutlet(outlet);
+                                                setPurchaseFilterLocation(outlet);
+                                            }}
+                                            style={{
+                                                background: 'white', borderRadius: '20px', border: '1px solid #e2e8f0', padding: '2rem', 
+                                                cursor: 'pointer', textAlign: 'center', transition: 'all 0.25s',
+                                                boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
+                                            }}
+                                            onMouseEnter={e => {
+                                                e.currentTarget.style.transform = 'translateY(-4px)';
+                                                e.currentTarget.style.borderColor = '#0ea5e9';
+                                                e.currentTarget.style.boxShadow = '0 10px 25px rgba(14, 165, 233, 0.1)';
+                                            }}
+                                            onMouseLeave={e => {
+                                                e.currentTarget.style.transform = 'translateY(0)';
+                                                e.currentTarget.style.borderColor = '#e2e8f0';
+                                                e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.02)';
+                                            }}
+                                        >
+                                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>{isMain ? '🍳' : '🏪'}</div>
+                                            <h3 style={{ margin: '0 0 10px', fontSize: '1.25rem', color: '#0f172a', fontWeight: '900' }}>{outlet.replace('High Laban - ', '')}</h3>
+                                            <div style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1rem' }}>{isMain ? 'Main Production Facility' : 'Franchise Outlet'}</div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-around', borderTop: '1px dashed #e2e8f0', paddingTop: '15px', marginTop: '10px' }}>
+                                                <div>
+                                                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase' }}>Transactions</div>
+                                                    <div style={{ fontSize: '1rem', fontWeight: '800', color: '#334155' }}>{count}</div>
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase' }}>Total Expenses</div>
+                                                    <div style={{ fontSize: '1rem', fontWeight: '800', color: '#10b981' }}>₹{totalSpent.toFixed(0)}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                }
+
                 return (
                     <div style={{ width: '100%' }}>
-                        {/* Location / Outlets selector menu bar */}
-                        <div style={{ display: 'flex', gap: '8px', marginBottom: '1.5rem', background: '#f1f5f9', padding: '6px', borderRadius: '14px', overflowX: 'auto', border: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <button 
-                                onClick={() => setPurchaseFilterLocation('Main Kitchen')}
+                                onClick={() => {
+                                    setSelectedPurchaseOutlet(null);
+                                }}
                                 style={{
-                                    border: 'none', background: currentFilterLoc === 'Main Kitchen' ? 'white' : 'transparent',
-                                    color: currentFilterLoc === 'Main Kitchen' ? '#0f172a' : '#64748b',
-                                    padding: '8px 18px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer',
-                                    fontSize: '0.85rem', boxShadow: currentFilterLoc === 'Main Kitchen' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
-                                    transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '6px'
+                                    border: '1px solid #cbd5e1', background: 'white', color: '#64748b',
+                                    padding: '8px 16px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer',
+                                    fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px'
                                 }}
                             >
-                                🍳 Main Kitchen
+                                ⬅ Switch Outlet
                             </button>
-                            {runningFranchises.filter(f => f.status === 'Running').map(outlet => (
-                                <button 
-                                    key={outlet.id}
-                                    onClick={() => setPurchaseFilterLocation(outlet.outletName)}
-                                    style={{
-                                        border: 'none', background: currentFilterLoc === outlet.outletName ? 'white' : 'transparent',
-                                        color: currentFilterLoc === outlet.outletName ? '#0f172a' : '#64748b',
-                                        padding: '8px 18px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer',
-                                        fontSize: '0.85rem', boxShadow: currentFilterLoc === outlet.outletName ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
-                                        transition: 'all 0.2s', whiteSpace: 'nowrap'
-                                    }}
-                                >
-                                    🏪 {outlet.outletName.replace('High Laban - ', '')}
-                                </button>
-                            ))}
+                            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0ea5e9', background: '#f0f9ff', padding: '6px 12px', borderRadius: '20px', border: '1px solid #bae6fd' }}>
+                                Selected Location: {selectedPurchaseOutlet}
+                            </span>
                         </div>
 
                         {/* Purchases Header */}
@@ -5957,18 +6049,32 @@ const AdminDashboard = () => {
                                         <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontWeight: '800' }}>🧁 Configure Recipe for: {selectedRecipeProduct.name}</h4>
                                         <form onSubmit={handleSaveProductRecipe} style={{ display: 'grid', gap: '1.2rem' }}>
                                             
-                                            {/* Overhead Allocation */}
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', background: '#f0f9ff', padding: '12px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
+                                            {/* Overhead & Split Packaging Costs */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', background: '#f0f9ff', padding: '16px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
                                                 <div>
-                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#0369a1', marginBottom: '4px' }}>Packaging Cost (₹) / Unit</label>
-                                                    <input type="number" step="0.01" value={editingRecipe.packagingCost} onChange={e => setEditingRecipe({ ...editingRecipe, packagingCost: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }} />
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#0369a1', marginBottom: '4px' }}>Container Cost (₹)</label>
+                                                    <input type="number" step="0.01" value={editingRecipe.containerCost || '0'} onChange={e => setEditingRecipe({ ...editingRecipe, containerCost: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }} />
                                                 </div>
                                                 <div>
-                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#0369a1', marginBottom: '4px' }}>Monthly Fixed Cost Allocated (₹)</label>
-                                                    <input type="number" step="0.01" value={editingRecipe.overheadAllocation} onChange={e => setEditingRecipe({ ...editingRecipe, overheadAllocation: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }} placeholder="e.g. Monthly rent/labor share" />
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#0369a1', marginBottom: '4px' }}>Spoon / Cutlery (₹)</label>
+                                                    <input type="number" step="0.01" value={editingRecipe.spoonCost || '0'} onChange={e => setEditingRecipe({ ...editingRecipe, spoonCost: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }} />
                                                 </div>
                                                 <div>
-                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#0369a1', marginBottom: '4px' }}>Batch Yield (No. of items made)</label>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#0369a1', marginBottom: '4px' }}>Sticker / Label (₹)</label>
+                                                    <input type="number" step="0.01" value={editingRecipe.stickerCost || '0'} onChange={e => setEditingRecipe({ ...editingRecipe, stickerCost: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }} />
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', marginBottom: '4px' }}>Total Packing</label>
+                                                    <div style={{ padding: '8px 12px', background: '#e2e8f0', borderRadius: '8px', fontWeight: '700', fontSize: '0.9rem', color: '#334155', border: '1px solid #cbd5e1', textAlign: 'center' }}>
+                                                        ₹{((parseFloat(editingRecipe.containerCost) || 0) + (parseFloat(editingRecipe.spoonCost) || 0) + (parseFloat(editingRecipe.stickerCost) || 0)).toFixed(2)}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#0369a1', marginBottom: '4px' }}>Monthly Cost Allocated (₹)</label>
+                                                    <input type="number" step="0.01" value={editingRecipe.overheadAllocation} onChange={e => setEditingRecipe({ ...editingRecipe, overheadAllocation: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }} />
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#0369a1', marginBottom: '4px' }}>Batch Yield (Qty)</label>
                                                     <input type="number" value={editingRecipe.batchSize} onChange={e => setEditingRecipe({ ...editingRecipe, batchSize: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }} />
                                                 </div>
                                             </div>
@@ -6034,11 +6140,21 @@ const AdminDashboard = () => {
                                                                 updated[tIdx].name = e.target.value;
                                                                 setEditingRecipe({ ...editingRecipe, toppings: updated });
                                                             }} style={{ flex: 2, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: '700' }} required />
-                                                            <input type="number" step="0.01" placeholder="Extra Packing Cost" value={topping.packagingCost || '0'} onChange={e => {
-                                                                const updated = [...editingRecipe.toppings];
-                                                                updated[tIdx].packagingCost = e.target.value;
-                                                                setEditingRecipe({ ...editingRecipe, toppings: updated });
-                                                            }} style={{ flex: 1, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
+                                                            <input type="number" step="0.01" placeholder="Container (₹)" value={topping.containerCost || '0'} onChange={e => {
+                                                                 const updated = [...editingRecipe.toppings];
+                                                                 updated[tIdx].containerCost = e.target.value;
+                                                                 setEditingRecipe({ ...editingRecipe, toppings: updated });
+                                                             }} style={{ flex: 1, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
+                                                             <input type="number" step="0.01" placeholder="Spoon (₹)" value={topping.spoonCost || '0'} onChange={e => {
+                                                                 const updated = [...editingRecipe.toppings];
+                                                                 updated[tIdx].spoonCost = e.target.value;
+                                                                 setEditingRecipe({ ...editingRecipe, toppings: updated });
+                                                             }} style={{ flex: 1, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
+                                                             <input type="number" step="0.01" placeholder="Sticker (₹)" value={topping.stickerCost || '0'} onChange={e => {
+                                                                 const updated = [...editingRecipe.toppings];
+                                                                 updated[tIdx].stickerCost = e.target.value;
+                                                                 setEditingRecipe({ ...editingRecipe, toppings: updated });
+                                                             }} style={{ flex: 1, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
                                                             <button type="button" onClick={() => {
                                                                 setEditingRecipe({ ...editingRecipe, toppings: editingRecipe.toppings.filter((_, i) => i !== tIdx) });
                                                             }} style={{ border: 'none', background: '#fee2e2', color: '#ef4444', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' }}>Delete Topping</button>
@@ -6120,6 +6236,8 @@ const AdminDashboard = () => {
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#16a34a', fontSize: '0.85rem' }}>Total Cost</th>
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0284c7', fontSize: '0.85rem' }}>Suggested Price (2x)</th>
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#e11d48', fontSize: '0.85rem' }}>Retail Price</th>
+                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0f766e', fontSize: '0.85rem' }}>Profit (₹)</th>
+                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#b45309', fontSize: '0.85rem' }}>Margin (%)</th>
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>Actions</th>
                                             </tr>
                                         </thead>
@@ -6147,7 +6265,14 @@ const AdminDashboard = () => {
                                                             )}
                                                         </td>
                                                         <td style={{ padding: '14px 20px', color: '#475569' }}>₹{analysis.ingredientsCost.toFixed(2)}</td>
-                                                        <td style={{ padding: '14px 20px', color: '#475569' }}>₹{analysis.packagingCost.toFixed(2)}</td>
+                                                        <td style={{ padding: '14px 20px', color: '#475569' }}>
+                                                             ₹{analysis.packagingCost.toFixed(2)}
+                                                             {currentRecipe && (
+                                                                 <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block' }}>
+                                                                     (Cont: ₹{currentRecipe.containerCost || 0} + Spn: ₹{currentRecipe.spoonCost || 0} + Stk: ₹{currentRecipe.stickerCost || 0})
+                                                                 </span>
+                                                             )}
+                                                         </td>
                                                         <td style={{ padding: '14px 20px', color: '#475569' }}>
                                                             ₹{analysis.overheadCost.toFixed(2)}
                                                             <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>(batch: {currentRecipe?.batchSize || 1})</span>
@@ -6162,6 +6287,17 @@ const AdminDashboard = () => {
                                                         </td>
                                                         <td style={{ padding: '14px 20px', fontWeight: '800', color: '#0284c7' }}>₹{(analysis.totalUnitCost * 2).toFixed(2)}</td>
                                                         <td style={{ padding: '14px 20px', fontWeight: '800', color: '#e11d48' }}>₹{retailPrice.toFixed(2)}</td>
+                                                        {(() => {
+                                                            const profit = retailPrice - analysis.totalUnitCost;
+                                                            const margin = retailPrice > 0 ? (profit / retailPrice) * 100 : 0;
+                                                            const profitColor = profit >= 0 ? '#0f766e' : '#ef4444';
+                                                            return (
+                                                                <>
+                                                                    <td style={{ padding: '14px 20px', fontWeight: '800', color: profitColor }}>₹{profit.toFixed(2)}</td>
+                                                                    <td style={{ padding: '14px 20px', fontWeight: '800', color: profitColor }}>{margin.toFixed(1)}%</td>
+                                                                </>
+                                                            );
+                                                        })()}
                                                         <td style={{ padding: '14px 20px' }}>
                                                             {(!isReadOnly && !isChef) ? (
                                                                 <button onClick={() => {
