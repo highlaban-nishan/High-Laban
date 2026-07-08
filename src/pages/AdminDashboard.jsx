@@ -5814,6 +5814,18 @@ const AdminDashboard = () => {
                     };
                 };
 
+                const getProductsUsingBundle = (bundleId) => {
+                    return products.filter(p => {
+                        const recipe = recipesList.find(r => r.id === p.id);
+                        if (!recipe) return false;
+                        const usesInBase = (recipe.ingredients || []).some(ing => ing.type === 'bundle' && ing.id === bundleId);
+                        const usesInToppings = (recipe.toppings || []).some(t => 
+                            (t.ingredients || []).some(ing => ing.type === 'bundle' && ing.id === bundleId)
+                        );
+                        return usesInBase || usesInToppings;
+                    });
+                };
+
                 const getProductRecipeCost = (productId, selectedToppingIndex = -1) => {
                     const recipe = recipesList.find(r => r.id === productId);
                     if (!recipe) return { ingredientsCost: 0, packagingCost: 0, overheadCost: 0, toppingCost: 0, totalUnitCost: 0 };
@@ -6248,6 +6260,10 @@ const AdminDashboard = () => {
                                     {bundleItems.map(bundle => {
                                         const totalCost = getBundleItemTotalCost(bundle);
                                         const unitCost = getBundleItemUnitCost(bundle);
+                                        const portions = parseFloat(bundle.portions) || 1;
+                                        const pieceWeight = (parseFloat(bundle.yieldQuantity) || 0) / portions;
+                                        const pieceCost = totalCost / portions;
+                                        const usedProducts = getProductsUsingBundle(bundle.id);
                                         return (
                                             <div key={bundle.id} style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 2px 6px rgba(0,0,0,0.01)' }}>
                                                 <div>
@@ -6261,7 +6277,18 @@ const AdminDashboard = () => {
                                                         )}
                                                     </div>
                                                     <h4 style={{ margin: '0 0 6px', fontWeight: '800', color: '#0f172a', fontSize: '1rem' }}>{bundle.name}</h4>
-                                                    <p style={{ margin: '0 0 10px', fontSize: '0.82rem', color: '#64748b' }}>Yields {bundle.yieldQuantity}{bundle.yieldUnit}</p>
+                                                    <p style={{ margin: '0 0 4px', fontSize: '0.82rem', color: '#64748b', fontWeight: '500' }}>
+                                                        Output: 1 Batch / Tray ({bundle.yieldQuantity}{bundle.yieldUnit})
+                                                    </p>
+                                                    <p style={{ margin: '0 0 10px', fontSize: '0.82rem', color: '#0f766e', fontWeight: '700' }}>
+                                                        Yields: {portions} Pieces ({pieceWeight.toFixed(0)}g per Piece)
+                                                    </p>
+
+                                                    {usedProducts.length > 0 && (
+                                                        <p style={{ margin: '0 0 10px', fontSize: '0.72rem', color: '#0ea5e9', fontWeight: '700', background: '#f0f9ff', padding: '4px 8px', borderRadius: '6px' }}>
+                                                            🧁 Used in: {usedProducts.map(p => p.name).join(', ')}
+                                                        </p>
+                                                    )}
                                                     
                                                     {/* Ingredients Mini List */}
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', background: '#f8fafc', padding: '8px', borderRadius: '8px', fontSize: '0.75rem', color: '#475569' }}>
@@ -6276,9 +6303,15 @@ const AdminDashboard = () => {
                                                         })}
                                                     </div>
                                                 </div>
-                                                <div style={{ marginTop: '1.25rem', borderTop: '1px dashed #e2e8f0', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: '600' }}>Unit Cost:</span>
-                                                    <span style={{ fontWeight: '800', color: '#16a34a', fontSize: '1rem' }}>₹{unitCost.toFixed(4)} / {bundle.yieldUnit}</span>
+                                                <div style={{ marginTop: '1.25rem', borderTop: '1px dashed #e2e8f0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: '600' }}>Unit Cost:</span>
+                                                        <span style={{ fontWeight: '800', color: '#16a34a', fontSize: '1rem' }}>₹{unitCost.toFixed(4)} / {bundle.yieldUnit}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: '600' }}>Piece Cost:</span>
+                                                        <span style={{ fontWeight: '800', color: '#0284c7', fontSize: '1rem' }}>₹{pieceCost.toFixed(2)} / Piece</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
@@ -6606,19 +6639,22 @@ const AdminDashboard = () => {
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
                                     {bundleItems.map(bundle => {
                                         const details = getBundleSopDetails(bundle);
+                                        const usedProducts = getProductsUsingBundle(bundle.id);
+                                        const copyCardHandler = () => {
+                                            let tableRows = '';
+                                            (bundle.ingredients || []).forEach(ing => {
+                                                const raw = rawMaterials.find(r => r.id === ing.materialId);
+                                                tableRows += `| ${raw?.name || 'Unknown'} | ${(ing.quantity || 0)} ${raw?.unit || ''} |\n`;
+                                            });
+                                            const usesText = usedProducts.length > 0 ? `\n* **Used In Products:** ${usedProducts.map(p => p.name).join(', ')}` : '';
+                                            const cardMd = `\n---\n\n# ${bundle.name.toUpperCase()}\n\n### Batch Information\n\n* **Batch Yield:** ${details.yieldPortions} Pieces / Portions (1 Batch / Tray)\n* **Total Batch Weight:** ${details.totalWeight} g\n* **Standard Portion Size:** **${details.portionSize.toFixed(0)} g**\n* **Serving Tool:** ${bundle.servingTool || 'Standard Scoop'}\n* **Batch Cost:** ₹${details.batchCost.toFixed(2)}\n* **Cost Per Portion:** ₹${details.costPerPortion.toFixed(2)}${usesText}\n\n### Ingredients\n\n| Ingredient | Qty |\n| --- | ---: |\n${tableRows}\n`;
+                                            navigator.clipboard.writeText(cardMd);
+                                            showToast(`Copied ${bundle.name} SOP! 📋`);
+                                        };
                                         return (
                                             <div key={bundle.id} style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', position: 'relative' }}>
                                                 <button 
-                                                    onClick={() => {
-                                                        let tableRows = '';
-                                                        (bundle.ingredients || []).forEach(ing => {
-                                                            const raw = rawMaterials.find(r => r.id === ing.materialId);
-                                                            tableRows += `| ${raw?.name || 'Unknown'} | ${(ing.quantity || 0)} ${raw?.unit || ''} |\n`;
-                                                        });
-                                                        const cardMd = `\n---\n\n# ${bundle.name.toUpperCase()}\n\n### Batch Information\n\n* **Batch Yield:** ${details.yieldPortions} Portions\n* **Total Batch Weight:** ${details.totalWeight} g\n* **Standard Portion Size:** **${details.portionSize.toFixed(0)} g**\n* **Batch Cost:** ₹${details.batchCost.toFixed(2)}\n* **Cost Per Portion:** ₹${details.costPerPortion.toFixed(2)}\n\n### Ingredients\n\n| Ingredient | Qty |\n| --- | ---: |\n${tableRows}\n`;
-                                                        navigator.clipboard.writeText(cardMd);
-                                                        showToast(`Copied ${bundle.name} SOP! 📋`);
-                                                    }}
+                                                    onClick={copyCardHandler}
                                                     style={{ position: 'absolute', top: '15px', right: '15px', background: '#f1f5f9', border: 'none', borderRadius: '6px', padding: '4px 8px', fontSize: '0.7rem', fontWeight: '700', color: '#475569', cursor: 'pointer' }}
                                                 >
                                                     Copy Card
@@ -6628,17 +6664,23 @@ const AdminDashboard = () => {
                                                     {bundle.name.toUpperCase()}
                                                 </h3>
 
+                                                {usedProducts.length > 0 && (
+                                                    <div style={{ marginBottom: '12px', fontSize: '0.72rem', color: '#0ea5e9', fontWeight: '700', background: '#f0f9ff', padding: '6px 10px', borderRadius: '8px', border: '1px solid #bae6fd' }}>
+                                                        🧁 Used in: {usedProducts.map(p => p.name).join(', ')}
+                                                    </div>
+                                                )}
+
                                                 <h4 style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: '#475569', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                                     Batch Information
                                                 </h4>
                                                 
                                                 <ul style={{ margin: '0 0 1.2rem 0', paddingLeft: '20px', fontSize: '0.88rem', color: '#334155', display: 'flex', flexDirection: 'column', gap: '4px', listStyleType: 'disc' }}>
-                                                    <li><strong>Batch Yield:</strong> {details.yieldPortions} Portions</li>
+                                                    <li><strong>Batch Yield / Tray:</strong> {details.yieldPortions} Pieces / Portions</li>
                                                     <li><strong>Total Batch Weight:</strong> {details.totalWeight} g</li>
-                                                    <li><strong>Standard Portion Size:</strong> <span style={{ background: '#fef3c7', padding: '2px 6px', borderRadius: '4px', fontWeight: '800' }}>{details.portionSize.toFixed(0)} g</span></li>
+                                                    <li><strong>Standard Piece Weight:</strong> <span style={{ background: '#fef3c7', padding: '2px 6px', borderRadius: '4px', fontWeight: '800' }}>{details.portionSize.toFixed(0)} g</span></li>
                                                     <li><strong>Serving Tool:</strong> <span style={{ fontStyle: 'italic', color: '#0ea5e9', fontWeight: 'bold' }}>{bundle.servingTool || 'Standard Scoop'}</span></li>
                                                     <li><strong>Batch Cost:</strong> ₹{details.batchCost.toFixed(2)}</li>
-                                                    <li><strong>Cost Per Portion:</strong> ₹{details.costPerPortion.toFixed(2)}</li>
+                                                    <li><strong>Cost Per Piece / Portion:</strong> ₹{details.costPerPortion.toFixed(2)}</li>
                                                 </ul>
 
                                                 {bundle.ingredients && bundle.ingredients.length > 0 && (
