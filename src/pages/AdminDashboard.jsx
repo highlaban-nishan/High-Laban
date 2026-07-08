@@ -157,7 +157,7 @@ const AdminDashboard = () => {
     // Add bundle item form state
     const [showAddBundleForm, setShowAddBundleForm] = useState(false);
     const [editingBundle, setEditingBundle] = useState(null);
-    const [newBundle, setNewBundle] = useState({ name: '', yieldQuantity: '1000', yieldUnit: 'g', portions: '24', servingTool: 'Standard Scoop', ingredients: [] }); // ingredients: [{ materialId: '', quantity: '' }]
+    const [newBundle, setNewBundle] = useState({ name: '', yieldQuantity: '1000', yieldUnit: 'g', portions: '24', servingTool: 'Standard Scoop', ingredients: [], productUsages: [] }); // ingredients: [{ materialId: '', quantity: '' }]
 
     // Product recipe form state
     const [selectedRecipeProduct, setSelectedRecipeProduct] = useState(null); // product ID for editing recipe
@@ -6271,7 +6271,7 @@ const AdminDashboard = () => {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                     <h3 style={{ margin: 0, color: '#1e293b', fontWeight: '800' }}>Prep sub-recipes / Bundles</h3>
                                     {(!isReadOnly && !isChef) && (
-                                        <button onClick={() => { setShowAddBundleForm(!showAddBundleForm); setEditingBundle(null); setNewBundle({ name: '', yieldQuantity: '1000', yieldUnit: 'g', portions: '24', servingTool: 'Standard Scoop', ingredients: [] }); }}
+                                        <button onClick={() => { setShowAddBundleForm(!showAddBundleForm); setEditingBundle(null); setNewBundle({ name: '', yieldQuantity: '1000', yieldUnit: 'g', portions: '24', servingTool: 'Standard Scoop', ingredients: [], productUsages: [] }); }}
                                             style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
                                             {showAddBundleForm ? 'Close Form' : '+ Add Prep Recipe'}
                                         </button>
@@ -6308,34 +6308,65 @@ const AdminDashboard = () => {
                                                 </div>
                                             </div>
 
-                                            {editingBundle && (() => {
-                                                const usedProducts = getProductsUsingBundle(editingBundle.id);
-                                                if (usedProducts.length === 0) return null;
-                                                return (
-                                                    <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '12px', padding: '1rem' }}>
-                                                        <h5 style={{ margin: '0 0 10px 0', color: '#0369a1', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                            🧁 Piece-wise Yield Guide for Products using this Prep Sub-Recipe
-                                                        </h5>
-                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
-                                                            {usedProducts.map(p => {
-                                                                const qtyUsed = getBundleQuantityUsedInProduct(p, editingBundle.id);
-                                                                const piecesProduced = qtyUsed > 0 ? (parseFloat(newBundle.yieldQuantity) / qtyUsed) : 0;
-                                                                return (
-                                                                    <div key={p.id} style={{ background: 'white', border: '1px solid #e0f2fe', borderRadius: '8px', padding: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-                                                                        <div style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.85rem', marginBottom: '4px' }}>{p.name.toUpperCase()}</div>
-                                                                        <div style={{ fontSize: '0.78rem', color: '#475569' }}>
-                                                                            Uses: <strong style={{ color: '#0ea5e9' }}>{qtyUsed} {newBundle.yieldUnit}</strong> per portion
-                                                                        </div>
-                                                                        <div style={{ fontSize: '0.78rem', color: '#15803d', fontWeight: '700', marginTop: '4px' }}>
-                                                                            Yield: {piecesProduced.toFixed(1)} pieces / portions per batch
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })}
+                                            {/* Product Usage & Yield Mapping */}
+                                            <div style={{ border: '1px solid #bae6fd', borderRadius: '12px', padding: '1rem', background: '#f0f9ff' }}>
+                                                <h5 style={{ margin: '0 0 4px 0', color: '#0369a1', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    🧁 Product Usage & Yield Mapping
+                                                </h5>
+                                                <p style={{ margin: '0 0 12px 0', fontSize: '0.78rem', color: '#0369a1' }}>
+                                                    Link this prep sub-recipe to final menu products and specify how much goes into each portion. This automatically updates their recipes.
+                                                </p>
+                                                
+                                                {(newBundle.productUsages || []).map((usage, idx) => {
+                                                    const qtyUsed = parseFloat(usage.quantity) || 0;
+                                                    const batchQty = parseFloat(newBundle.yieldQuantity) || 0;
+                                                    const piecesProduced = qtyUsed > 0 ? (batchQty / qtyUsed) : 0;
+                                                    
+                                                    return (
+                                                        <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap' }}>
+                                                            <select value={usage.productId} onChange={e => {
+                                                                const updated = [...(newBundle.productUsages || [])];
+                                                                updated[idx].productId = e.target.value;
+                                                                setNewBundle({ ...newBundle, productUsages: updated });
+                                                            }} style={{ flex: 2, minWidth: '150px', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white' }}>
+                                                                <option value="">-- Choose Product --</option>
+                                                                {products.map(p => (
+                                                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                                                ))}
+                                                            </select>
+                                                            
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: '120px' }}>
+                                                                <input type="number" step="0.01" placeholder="Qty used" value={usage.quantity} onChange={e => {
+                                                                    const updated = [...(newBundle.productUsages || [])];
+                                                                    updated[idx].quantity = e.target.value;
+                                                                    setNewBundle({ ...newBundle, productUsages: updated });
+                                                                }} style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
+                                                                <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: 'bold' }}>{newBundle.yieldUnit}</span>
+                                                            </div>
+
+                                                            {qtyUsed > 0 && (
+                                                                <span style={{ fontSize: '0.78rem', color: '#15803d', fontWeight: '700', minWidth: '140px' }}>
+                                                                    Yields: {piecesProduced.toFixed(1)} pcs/batch
+                                                                </span>
+                                                            )}
+
+                                                            <button type="button" onClick={() => {
+                                                                const updated = (newBundle.productUsages || []).filter((_, i) => i !== idx);
+                                                                setNewBundle({ ...newBundle, productUsages: updated });
+                                                            }} style={{ border: 'none', background: '#fee2e2', color: '#ef4444', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
+                                                                Delete
+                                                            </button>
                                                         </div>
-                                                    </div>
-                                                );
-                                            })()}
+                                                    );
+                                                })}
+                                                
+                                                <button type="button" onClick={() => {
+                                                    const updated = [...(newBundle.productUsages || []), { productId: '', quantity: '' }];
+                                                    setNewBundle({ ...newBundle, productUsages: updated });
+                                                }} style={{ background: 'white', border: '1px solid #bae6fd', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', color: '#0369a1', fontSize: '0.8rem', marginTop: '5px' }}>
+                                                    + Link Product
+                                                </button>
+                                            </div>
 
                                             {/* Ingredients builder */}
                                             <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '1rem', background: '#f8fafc' }}>
@@ -6394,7 +6425,26 @@ const AdminDashboard = () => {
                                                         <span style={{ fontSize: '0.72rem', background: '#eff6ff', color: '#1d4ed8', padding: '3px 8px', borderRadius: '20px', fontWeight: '700' }}>Prep Recipe</span>
                                                         {(!isReadOnly && !isChef) && (
                                                             <div style={{ display: 'flex', gap: '6px' }}>
-                                                                <button onClick={() => { setEditingBundle(bundle); setNewBundle({ name: bundle.name, yieldQuantity: bundle.yieldQuantity.toString(), yieldUnit: bundle.yieldUnit, portions: (bundle.portions || 24).toString(), servingTool: bundle.servingTool || 'Standard Scoop', ingredients: bundle.ingredients }); setShowAddBundleForm(true); }} style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.8rem', cursor: 'pointer', fontWeight: '600' }}>Edit</button>
+                                                                <button onClick={() => {
+                                                                    setEditingBundle(bundle);
+                                                                    const usages = [];
+                                                                    products.forEach(p => {
+                                                                        const qty = getBundleQuantityUsedInProduct(p, bundle.id);
+                                                                        if (qty > 0) {
+                                                                            usages.push({ productId: p.id, quantity: qty.toString() });
+                                                                        }
+                                                                    });
+                                                                    setNewBundle({
+                                                                        name: bundle.name,
+                                                                        yieldQuantity: bundle.yieldQuantity.toString(),
+                                                                        yieldUnit: bundle.yieldUnit,
+                                                                        portions: (bundle.portions || 24).toString(),
+                                                                        servingTool: bundle.servingTool || 'Standard Scoop',
+                                                                        ingredients: bundle.ingredients || [],
+                                                                        productUsages: usages
+                                                                    });
+                                                                    setShowAddBundleForm(true);
+                                                                }} style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.8rem', cursor: 'pointer', fontWeight: '600' }}>Edit</button>
                                                                 <button onClick={() => handleDeleteBundleItem(bundle.id)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer', fontWeight: '600' }}>Delete</button>
                                                             </div>
                                                         )}
