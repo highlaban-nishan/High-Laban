@@ -1637,15 +1637,13 @@ const AdminDashboard = () => {
                             </div>
 
                             {/* Add Product Form (Slide Open) */}
-                            <div style={{
-                                maxHeight: showAddForm ? '800px' : '0',
-                                opacity: showAddForm ? 1 : 0,
-                                marginBottom: showAddForm ? '2rem' : 0,
-                                borderBottom: showAddForm ? '1px solid #e2e8f0' : 'none',
-                                paddingBottom: showAddForm ? '2rem' : 0
-                            }} className={styles.slideOpen}>
-                                <div className={styles.card} style={{ maxWidth: '800px', margin: '0 auto' }}>
-                                    <h3 style={{ marginBottom: '1.5rem' }}>Add New Product</h3>
+                            {showAddForm && (
+                                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050, padding: '1rem' }}>
+                                    <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.5rem', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                            <h3 style={{ margin: 0 }}>Add New Product</h3>
+                                            <button type="button" onClick={() => setShowAddForm(false)} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}>&times;</button>
+                                        </div>
                                     <form onSubmit={handleAddProduct} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', alignItems: 'end' }}>
                                         {/* ... Inputs ... */}
                                         <div>
@@ -1782,8 +1780,9 @@ const AdminDashboard = () => {
                                             </div>
                                         </div>
                                     </form>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             <div className={styles.grid}>
                                 {products.map((product) => (
@@ -2592,56 +2591,58 @@ const AdminDashboard = () => {
                                                     <div key={outlet.id} className={styles.card} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem', position: 'relative', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
                                                         
                                                         {/* Header */}
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                                                            <div>
-                                                                <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#1e293b', fontWeight: 'bold' }}>{outlet.outletName === outlet.city && outlet.address ? (outlet.address.split(',').length > 1 ? outlet.address.split(',')[1].trim() : outlet.outletName) : outlet.outletName}</h3>
-                                                                <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginTop: '2px' }}>
-                                                                    Opened: {outlet.openDate ? new Date(outlet.openDate).toLocaleDateString() : 'N/A'}
-                                                                </span>
-                                                            </div>
-                                                            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                                                                <button onClick={() => setEditingFranchiseOutlet(outlet)} className={styles.editBtn} style={{ width: '28px', height: '28px', padding: '4px', border: 'none', background: '#f1f5f9', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Edit Outlet">
-                                                                    <EditIcon />
-                                                                </button>
-                                                                <button onClick={() => handleDeleteFranchiseOutlet(outlet.id)} className={styles.deleteButton} style={{ width: '28px', height: '28px', padding: '4px', border: 'none', background: '#fee2e2', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Delete Outlet">
-                                                                    <TrashIcon />
-                                                                </button>
-                                                                <span className={`${styles.statusBadge} ${styles['status_' + (outlet.status || 'running').toLowerCase().replace(' ', '_').replace('-', '_')]}`} style={{ marginLeft: '4px' }}>
-                                                                    {outlet.status || 'Running'}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                        {/* Owner details */}
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.9rem' }}>
-                                                            <div style={{ fontWeight: '500', color: '#334155' }}>Owner: <strong>{outlet.ownerName}</strong></div>
-                                                            <a href={`tel:${outlet.phone}`} style={{ color: '#475569', textDecoration: 'none' }}>📞 {outlet.phone}</a>
-                                                            {outlet.email && <a href={`mailto:${outlet.email}`} style={{ color: '#009ceb', textDecoration: 'none' }}>📧 {outlet.email}</a>}
-                                                        </div>
-
-                                                        {/* Address Box */}
-                                                        <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '8px', fontSize: '0.85rem', border: '1px solid #f1f5f9' }}>
-                                                            <div><strong>Model:</strong> {outlet.modelType}</div>
-                                                            <div style={{ marginTop: '4px', color: '#64748b' }}>📍 {outlet.address}, {outlet.city}, {outlet.state}</div>
-                                                        </div>
-
-                                                        {/* Linked Store Location status */}
                                                         {(() => {
                                                             const linkedLoc = locations.find(l => l.franchiseId === outlet.id);
-                                                            if (linkedLoc) {
-                                                                return (
-                                                                    <div style={{ padding: '10px', background: '#ecfdf5', borderRadius: '8px', fontSize: '0.8rem', border: '1px solid #a7f3d0' }}>
-                                                                        <div style={{ color: '#047857', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                            <span>📍 Store Location: {linkedLoc.name}</span>
-                                                                            <span style={{ fontSize: '0.7rem', padding: '1px 5px', background: '#10b981', color: 'white', borderRadius: '4px', fontWeight: 'bold' }}>{linkedLoc.status}</span>
+                                                            const displayTitle = linkedLoc?.area || outlet.outletName;
+                                                            return (
+                                                                <>
+                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                                                                        <div>
+                                                                            <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#1e293b', fontWeight: 'bold' }}>{displayTitle}</h3>
+                                                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginTop: '2px' }}>
+                                                                                Opened: {outlet.openDate ? new Date(outlet.openDate).toLocaleDateString() : 'N/A'}
+                                                                            </span>
                                                                         </div>
-                                                                        <div style={{ color: '#065f46', marginTop: '2px' }}>Area: {linkedLoc.area}</div>
-                                                                        {linkedLoc.mapUrl && (
-                                                                            <a href={linkedLoc.mapUrl} target="_blank" rel="noreferrer" style={{ color: '#047857', textDecoration: 'underline', display: 'inline-block', marginTop: '4px', fontWeight: '600' }}>Open Google Map ↗</a>
-                                                                        )}
+                                                                        <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                                                                            <button onClick={() => setEditingFranchiseOutlet(outlet)} className={styles.editBtn} style={{ width: '28px', height: '28px', padding: '4px', border: 'none', background: '#f1f5f9', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Edit Outlet">
+                                                                                <EditIcon />
+                                                                            </button>
+                                                                            <button onClick={() => handleDeleteFranchiseOutlet(outlet.id)} className={styles.deleteButton} style={{ width: '28px', height: '28px', padding: '4px', border: 'none', background: '#fee2e2', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Delete Outlet">
+                                                                                <TrashIcon />
+                                                                            </button>
+                                                                            <span className={`${styles.statusBadge} ${styles['status_' + (outlet.status || 'running').toLowerCase().replace(' ', '_').replace('-', '_')]}`} style={{ marginLeft: '4px' }}>
+                                                                                {outlet.status || 'Running'}
+                                                                            </span>
+                                                                        </div>
                                                                     </div>
-                                                                );
-                                                            }
-                                                            return null;
+                                                                    {/* Owner details */}
+                                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.9rem' }}>
+                                                                        <div style={{ fontWeight: '500', color: '#334155' }}>Owner: <strong>{outlet.ownerName}</strong></div>
+                                                                        <a href={`tel:${outlet.phone}`} style={{ color: '#475569', textDecoration: 'none' }}>📞 {outlet.phone}</a>
+                                                                        {outlet.email && <a href={`mailto:${outlet.email}`} style={{ color: '#009ceb', textDecoration: 'none' }}>📧 {outlet.email}</a>}
+                                                                    </div>
+
+                                                                    {/* Address Box */}
+                                                                    <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '8px', fontSize: '0.85rem', border: '1px solid #f1f5f9' }}>
+                                                                        <div><strong>Model:</strong> {outlet.modelType}</div>
+                                                                        <div style={{ marginTop: '4px', color: '#64748b' }}>📍 {outlet.address}, {outlet.city}, {outlet.state}</div>
+                                                                    </div>
+
+                                                                    {/* Linked Store Location status */}
+                                                                    {linkedLoc && (
+                                                                        <div style={{ padding: '10px', background: '#ecfdf5', borderRadius: '8px', fontSize: '0.8rem', border: '1px solid #a7f3d0' }}>
+                                                                            <div style={{ color: '#047857', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                                <span>📍 Store Location: {linkedLoc.name}</span>
+                                                                                <span style={{ fontSize: '0.7rem', padding: '1px 5px', background: '#10b981', color: 'white', borderRadius: '4px', fontWeight: 'bold' }}>{linkedLoc.status}</span>
+                                                                            </div>
+                                                                            <div style={{ color: '#065f46', marginTop: '2px' }}>Area: {linkedLoc.area}</div>
+                                                                            {linkedLoc.mapUrl && (
+                                                                                <a href={linkedLoc.mapUrl} target="_blank" rel="noreferrer" style={{ color: '#047857', textDecoration: 'underline', display: 'inline-block', marginTop: '4px', fontWeight: '600' }}>Open Google Map ↗</a>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </>
+                                                            );
                                                         })()}
 
                                                         {/* Documents Box */}
@@ -6346,7 +6347,12 @@ const AdminDashboard = () => {
 
                 const getProductRecipeCost = (productId, selectedToppingIndex = -1) => {
                     const recipe = recipesList.find(r => r.id === productId);
-                    if (!recipe) return { ingredientsCost: 0, packagingCost: 0, overheadCost: 0, fixedCostPerPiece: 0, toppingCost: 0, totalUnitCost: 0 };
+                    
+                    const recipeKitchen = kitchens.find(k => k.id === (recipe?.kitchenId || selectedOverheadKitchenId));
+                    const totalKitchenFixedCost = recipeKitchen ? (recipeKitchen.fixedCosts || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) : 0;
+                    const fixedCostPerPiece = parseFloat(monthlyPiecesSold) > 0 ? (totalKitchenFixedCost / parseFloat(monthlyPiecesSold)) : 0;
+
+                    if (!recipe) return { ingredientsCost: 0, packagingCost: 0, overheadCost: 0, fixedCostPerPiece: fixedCostPerPiece, toppingCost: 0, totalUnitCost: fixedCostPerPiece };
 
                     let ingCost = 0;
                     (recipe.ingredients || []).forEach(ing => {
@@ -6386,10 +6392,7 @@ const AdminDashboard = () => {
                         });
                     }
 
-                    // Kitchen Overhead cost calculation
-                    const recipeKitchen = kitchens.find(k => k.id === (recipe.kitchenId || selectedOverheadKitchenId));
-                    const totalKitchenFixedCost = recipeKitchen ? (recipeKitchen.fixedCosts || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) : 0;
-                    const fixedCostPerPiece = parseFloat(monthlyPiecesSold) > 0 ? (totalKitchenFixedCost / parseFloat(monthlyPiecesSold)) : 0;
+                    // Kitchen Overhead cost calculation (already calculated above)
 
                     const unitIngCost = ingCost;
                     const unitPkgCost = pkgCost;
@@ -6624,9 +6627,10 @@ const AdminDashboard = () => {
                                 </div>
 
                                 {showAddRawForm && (
-                                    <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.25rem', marginBottom: '1.5rem' }}>
-                                        <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>{editingRaw ? '✏️ Edit Raw Material' : '➕ Add New Raw Material'}</h4>
-                                        <form onSubmit={handleSaveRawMaterial} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+                                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050, padding: '1rem' }}>
+                                        <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.5rem', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+                                            <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontSize: '1.25rem' }}>{editingRaw ? '✏️ Edit Raw Material' : '➕ Add New Raw Material'}</h4>
+                                            <form onSubmit={handleSaveRawMaterial} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', alignItems: 'end' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Link to Vendor (Optional)</label>
                                                 <select value={newRaw.vendorId || ''} onChange={e => {
@@ -6711,6 +6715,7 @@ const AdminDashboard = () => {
                                             </div>
                                         </form>
                                     </div>
+                                    </div>
                                 )}
 
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
@@ -6784,9 +6789,10 @@ const AdminDashboard = () => {
                                 </div>
 
                                 {showAddBundleForm && (
-                                    <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.25rem', marginBottom: '1.5rem' }}>
-                                        <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>{editingBundle ? 'âœï¸ Edit Prep Sub-Recipe' : '➕ Add New Prep Sub-Recipe'}</h4>
-                                        <form onSubmit={handleSaveBundleItem} style={{ display: 'grid', gap: '1rem' }}>
+                                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050, padding: '1rem' }}>
+                                        <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.5rem', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+                                            <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontSize: '1.25rem' }}>{editingBundle ? '✏️ Edit Prep Sub-Recipe' : '➕ Add New Prep Sub-Recipe'}</h4>
+                                            <form onSubmit={handleSaveBundleItem} style={{ display: 'grid', gap: '1rem' }}>
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Sub-Recipe Name</label>
@@ -6928,6 +6934,7 @@ const AdminDashboard = () => {
                                             </div>
                                         </form>
                                     </div>
+                                    </div>
                                 )}
 
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
@@ -7017,8 +7024,9 @@ const AdminDashboard = () => {
                         {costingSubTab === 'final' && (
                             <div>
                                 {selectedRecipeProduct && (
-                                    <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #0ea5e9', padding: '1.25rem', marginBottom: '1.5rem' }}>
-                                        <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontWeight: '800' }}>🧠 Configure Recipe for: {selectedRecipeProduct.name}</h4>
+                                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050, padding: '1rem' }}>
+                                        <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #0ea5e9', padding: '1.5rem', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+                                            <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontWeight: '800' }}>🧠 Configure Recipe for: {selectedRecipeProduct.name}</h4>
                                         <form onSubmit={handleSaveProductRecipe} style={{ display: 'grid', gap: '1.2rem' }}>
                                             
                                             {/* Overhead Costs & Yield */}
@@ -7259,6 +7267,7 @@ const AdminDashboard = () => {
                                                 </div>
                                             </div>
                                         </form>
+                                    </div>
                                     </div>
                                 )}
 
