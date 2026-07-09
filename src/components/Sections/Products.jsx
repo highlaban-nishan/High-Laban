@@ -178,15 +178,13 @@ const ProductCard = ({ product, index, isModal = false, onOrderClick }) => {
             {product.ingredients && (() => {
                 const chips = product.ingredients.split(/[-•,]/).map(s => s.trim()).filter(Boolean);
                 return (
-                    <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                    <div style={{ marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
                         <span style={{ 
-                            fontSize: '0.72rem', 
-                            fontWeight: '900', 
-                            background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
+                            fontSize: '0.68rem', 
+                            fontWeight: '850', 
+                            color: '#0284c7', // solid bright cyan-blue
                             textTransform: 'uppercase', 
-                            letterSpacing: '0.8px', 
+                            letterSpacing: '0.6px', 
                             whiteSpace: 'nowrap', 
                             flexShrink: 0 
                         }}>Layers:</span>
@@ -198,12 +196,12 @@ const ProductCard = ({ product, index, isModal = false, onOrderClick }) => {
                                     <span
                                         key={i}
                                         style={{
-                                            fontSize: '0.7rem',
+                                            fontSize: '0.68rem',
                                             color: '#0369a1',
-                                            background: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)',
+                                            background: '#e0f2fe',
                                             padding: '0.2rem 0.6rem',
-                                            borderRadius: '20px',
-                                            fontWeight: '800',
+                                            borderRadius: '6px',
+                                            fontWeight: '750',
                                             border: '1px solid #bae6fd',
                                             whiteSpace: 'nowrap',
                                             flexShrink: 0,
