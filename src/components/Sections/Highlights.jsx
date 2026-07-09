@@ -13,8 +13,8 @@ export default function Highlights({ manualContent }) {
         storyTitle: 'Our Story',
         storyBadge: 'HL',
         storyBadgeImage: '',
-        storyText1: "For many people in India, Middle Eastern desserts mean only Kunafa and Baklava. But that's just the beginning.. Egypt is home to a world of incredible desserts like Umm Ali, Heba Cake, Qashtoota, Salankatia, and many more, each with its own story, tradition, and unforgettable flavor. We created High Laban to bring these hidden gems to India and introduce a dessert experience unlike anything you've had before.",
-        storyText2: "Founded by Nishan, Nufoor, and Marshad, High Laban started with a shared passion for food and a dream of bringing authentic Egyptian desserts to India. Our journey began in Indiranagar, Bangalore, where we blend traditional recipes, premium ingredients, and modern creativity to craft desserts that stay true to their roots while delighting Indian taste buds. This is only the beginning. Our vision is to take High Laban to Kerala, Chennai, Hyderabad, Mumbai, Delhi, and beyond, sharing the rich flavors and culture of Egypt with every city.",
+        storyText1: "For most people in India, Middle Eastern desserts begin and end with Kunafa and Baklava. But Egypt has a much richer dessert culture waiting to be discovered. That's why High Laban was created. Founded by Nishan, Nufoor, and Marsha, three passionate food lovers, High Laban was born from a dream of introducing India to authentic Egyptian desserts like Umm Ali, Heba Cake, Qashtoota, Salankatia, and many more.",
+        storyText2: "Our journey began in Indiranagar, Bangalore, where we combine traditional Egyptian recipes with premium ingredients and a modern touch inspired by Indian taste preferences. Every dessert is crafted to preserve its authentic roots while creating a new experience for today's generation. This is only the beginning. Our vision is to take High Laban across Kerala, Chennai, Hyderabad, Mumbai, Delhi, and beyond, sharing Egypt's rich dessert heritage with every city we visit.",
         rightLabel: 'ABOUT US',
         rightHeadline: 'Where Tradition Meets Innovation',
         rightDescription: "We don't just make desserts; we craft experiences. By combining centuries-old recipes with modern culinary techniques, we deliver a taste that is both nostalgic and excitingly new.",
@@ -68,45 +68,48 @@ export default function Highlights({ manualContent }) {
     return (
         <section id="story-section" className={styles.section} ref={sectionRef}>
             <Container>
-                <div className={styles.splitLayout}>
-                    {/* Left Card */}
-                    <div className={`${styles.storyCard} ${isVisible ? styles.visible : styles.hiddenLeft}`}>
-                        <div className={styles.storyCardTitle}>
-                            {content.storyTitle}
-                            <div className={styles.hlLogoContainer}>
-                                {content.storyBadgeImage ? (
-                                    <img
-                                        src={content.storyBadgeImage}
-                                        alt="Story Badge"
-                                        className={styles.badgeImage}
-                                        style={{ width: '60px', height: '60px', objectFit: 'contain' }}
-                                        onError={handleImageError}
-                                    />
-                                ) : (
-                                    <span className={styles.hlText}>{content.storyBadge}</span>
-                                )}
-                            </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '3.5rem', alignItems: 'center' }}>
+                    {/* Left Decorative Visual Card */}
+                    <div 
+                        className={`${styles.storyCard} ${isVisible ? styles.visible : styles.hiddenLeft}`}
+                        style={{ 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', 
+                            borderRadius: '32px', 
+                            padding: '4rem 2rem', 
+                            textAlign: 'center', 
+                            color: 'white', 
+                            boxShadow: '0 20px 40px rgba(14, 165, 233, 0.15)', 
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            maxWidth: '100%'
+                        }}
+                    >
+                        <div style={{ width: '80px', height: '80px', background: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', boxShadow: '0 10px 20px rgba(0,0,0,0.05)' }}>
+                            <span style={{ fontSize: '2.5rem' }}>🩵</span>
                         </div>
-                        <p className={styles.storyCardText}>
-                            {content.storyText1}
-                        </p>
-                        <p className={styles.storyCardText}>
-                            {content.storyText2}
-                        </p>
+                        <h3 style={{ fontSize: '2rem', fontWeight: '900', color: 'white', margin: '0 0 10px 0' }}>High Laban</h3>
+                        <p style={{ fontSize: '0.95rem', opacity: '0.9', margin: 0, lineHeight: '1.6', color: '#e0f2fe', fontWeight: '600' }}>Authentic Egyptian Desserts & Modern Indulgence</p>
                     </div>
 
-                    {/* Right Content */}
+                    {/* Right Narrative Story Content */}
                     <div className={`${styles.storyRight} ${isVisible ? styles.visible : styles.hiddenRight}`}>
-                        <span className={styles.labelSmall}>{content.rightLabel}</span>
-                        <h2 className={styles.storyHeadline}>{content.rightHeadline}</h2>
-                        <p className={styles.storyDescription}>
-                            {content.rightDescription}
+                        <span className={styles.labelSmall} style={{ color: '#0ea5e9', fontWeight: '800', letterSpacing: '2px', display: 'block', marginBottom: '10px' }}>OUR STORY</span>
+                        <h2 className={styles.storyHeadline} style={{ fontSize: '2.25rem', fontWeight: '900', color: '#0f172a', margin: '0 0 1.5rem 0', lineHeight: '1.2' }}>Where Tradition Meets Innovation</h2>
+                        
+                        <p style={{ fontSize: '0.95rem', color: '#475569', lineHeight: '1.8', margin: '0 0 1.25rem 0' }}>
+                            {content.storyText1}
+                        </p>
+                        <p style={{ fontSize: '0.95rem', color: '#475569', lineHeight: '1.8', margin: '0 0 2rem 0' }}>
+                            {content.storyText2}
                         </p>
 
                         <div className={styles.storyGrid}>
-                            {content.features && content.features.map((feature, index) => (
-                                <div key={index} className={styles.featureItem}>
-                                    <span className={styles.featureIcon}><FaCheckCircle /></span>
+                            {(content.features || []).map((feature, index) => (
+                                <div key={index} className={styles.featureItem} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 16px', background: '#f8fafc', fontWeight: '700', fontSize: '0.85rem' }}>
+                                    <span className={styles.featureIcon} style={{ color: '#0ea5e9' }}><FaCheckCircle /></span>
                                     {feature}
                                 </div>
                             ))}

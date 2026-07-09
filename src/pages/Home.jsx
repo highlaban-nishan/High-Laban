@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect } from 'react';
 import Hero from '../components/Hero/Hero';
-
+import About from '../components/Sections/About';
 import Highlights from '../components/Sections/Highlights';
 import VideoSection from '../components/Sections/VideoSection';
 import Products from '../components/Sections/Products';
