@@ -21,25 +21,34 @@ export default function Highlights({ manualContent }) {
         features: ['Authentic Recipes', 'Premium Ingredients', 'Freshly Made Daily', 'Zero Preservatives', 'Innovative Fusions', 'New Arrival']
     });
 
+    const STORY_TEXT_1 = "For most people in India, Middle Eastern desserts begin and end with Kunafa and Baklava. But Egypt has a much richer dessert culture waiting to be discovered. That's why High Laban was created. Founded by Nishan, Nufoor, and Marsha, three passionate food lovers, High Laban was born from a dream of introducing India to authentic Egyptian desserts like Umm Ali, Heba Cake, Qashtoota, Salankatia, and many more.";
+    const STORY_TEXT_2 = "Our journey began in Indiranagar, Bangalore, where we combine traditional Egyptian recipes with premium ingredients and a modern touch inspired by Indian taste preferences. Every dessert is crafted to preserve its authentic roots while creating a new experience for today's generation. This is only the beginning. Our vision is to take High Laban across Kerala, Chennai, Hyderabad, Mumbai, Delhi, and beyond, sharing Egypt's rich dessert heritage with every city we visit.";
+
     useEffect(() => {
         if (manualContent) {
             setContent(prev => ({ ...prev, ...manualContent }));
-            setIsVisible(true); // Always visible in preview
+            setIsVisible(true);
             return;
         }
 
+        // Push approved story copy to Firebase on every mount so it stays current
+        db.updateSiteContent('highlights', {
+            storyTitle: 'Our Story',
+            storyText1: STORY_TEXT_1,
+            storyText2: STORY_TEXT_2,
+            rightLabel: 'OUR STORY',
+            rightHeadline: 'Our Story',
+            rightDescription: '',
+        }).catch(() => {}); // silent fail if offline
+
         // Real-time subscription
-        console.log("Subscribing to site content...");
         const unsubscribe = db.subscribeToSiteContent('highlights', (data) => {
-            console.log("Highlights received update:", data);
             if (data) {
-                // Ensure features is an array just in case
                 if (!Array.isArray(data.features)) data.features = [];
                 setContent(prev => ({ ...prev, ...data }));
             }
         });
 
-        // Cleanup subscription on unmount
         return () => {
             if (unsubscribe) unsubscribe();
         };
@@ -97,7 +106,7 @@ export default function Highlights({ manualContent }) {
                     {/* Right Narrative Story Content */}
                     <div className={`${styles.storyRight} ${isVisible ? styles.visible : styles.hiddenRight}`}>
                         <span className={styles.labelSmall} style={{ color: '#0ea5e9', fontWeight: '800', letterSpacing: '2px', display: 'block', marginBottom: '10px' }}>OUR STORY</span>
-                        <h2 className={styles.storyHeadline} style={{ fontSize: '2.25rem', fontWeight: '900', color: '#0f172a', margin: '0 0 1.5rem 0', lineHeight: '1.2' }}>Where Tradition Meets Innovation</h2>
+                        <h2 className={styles.storyHeadline} style={{ fontSize: '2.25rem', fontWeight: '900', color: '#0f172a', margin: '0 0 1.5rem 0', lineHeight: '1.2' }}>{content.storyTitle || 'Our Story'}</h2>
                         
                         <p style={{ fontSize: '0.95rem', color: '#475569', lineHeight: '1.8', margin: '0 0 1.25rem 0' }}>
                             {content.storyText1}
