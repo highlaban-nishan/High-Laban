@@ -136,82 +136,95 @@ const ProductCard = ({ product, index, isModal = false, onOrderClick }) => {
                 </svg>
             </div>
 
-            {product.ingredients && (
-                <div style={{ marginBottom: '0.5rem' }}>
-                    <span className={styles.ingredientsTag}>
-                        Layers: {product.ingredients.split(/[-•,]/).map(s => s.trim()).filter(Boolean).join(' • ')}
-                    </span>
-                </div>
-            )}
-
-            {product.toppings && (
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px',
-                    marginBottom: '0.75rem',
-                    minWidth: 0,
-                    overflow: 'hidden',
-                }}>
-                    <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Toppings:</span>
-                    <div
-                        className="toppings-slider"
-                        style={{
-                            display: 'flex',
-                            flexWrap: 'nowrap',
-                            gap: '6px',
-                            overflowX: 'auto',
-                            paddingBottom: '2px',
-                            width: '100%',
-                            minWidth: 0,
-                            scrollbarWidth: 'none',
-                            msOverflowStyle: 'none',
-                            WebkitOverflowScrolling: 'touch',
-                        }}
-                    >
-                    {(Array.isArray(product.toppings) ? product.toppings : product.toppings.split(',')).map((topping, tIdx) => {
-                        const hasMatchingPic = images.some(img => 
-                            img.tag && img.tag.toLowerCase().trim() === topping.trim().toLowerCase()
-                        );
-                        const isActive = activeTopping && activeTopping.toLowerCase().trim() === topping.toLowerCase().trim();
-
-                        return (
-                            <span 
-                                key={tIdx} 
-                                onClick={() => {
-                                    if (hasMatchingPic) {
-                                        const matchingIdx = images.findIndex(img => 
-                                            img.tag && img.tag.toLowerCase().trim() === topping.trim().toLowerCase()
-                                        );
-                                        if (matchingIdx !== -1) {
-                                            goToSlide(matchingIdx);
-                                        }
-                                    }
+            {product.ingredients && (() => {
+                const layerText = 'Layers: ' + product.ingredients.split(/[-•,]/).map(s => s.trim()).filter(Boolean).join(' • ');
+                return (
+                    <div style={{ marginBottom: '0.5rem', overflow: 'hidden' }}>
+                        <div style={{ overflow: 'hidden', width: '100%' }}>
+                            <div
+                                className="marquee-track"
+                                style={{
+                                    display: 'flex',
+                                    width: 'max-content',
+                                    animation: 'toppingsSlide 10s linear infinite',
                                 }}
-                                style={{ 
-                                    fontSize: '0.65rem', 
-                                    color: isActive ? '#ffffff' : '#009ceb', 
-                                    background: isActive ? '#009ceb' : '#f0f9ff', 
-                                    border: isActive ? '1px solid #009ceb' : '1px solid #cbd5e1',
-                                    padding: '3px 10px', 
-                                    borderRadius: '50px', 
-                                    fontWeight: '800',
-                                    cursor: hasMatchingPic ? 'pointer' : 'default',
-                                    transition: 'all 0.2s ease',
-                                    transform: isActive ? 'scale(1.08)' : 'scale(1)',
-                                    boxShadow: isActive ? '0 2px 8px rgba(0, 156, 235, 0.4)' : 'none',
-                                    flexShrink: 0,
-                                    whiteSpace: 'nowrap',
-                                }}
-                                title={hasMatchingPic ? "Click to view photo" : ""}
+                                onMouseEnter={e => e.currentTarget.style.animationPlayState = 'paused'}
+                                onMouseLeave={e => e.currentTarget.style.animationPlayState = 'running'}
                             >
-                                {topping.trim()}
-                            </span>
-                        );
-                    })}
-                    </div>{/* end horizontal scroll row */}
-                </div>
-            )}
+                                {[layerText, layerText].map((txt, i) => (
+                                    <span
+                                        key={i}
+                                        className={styles.ingredientsTag}
+                                        style={{ marginRight: '24px', flexShrink: 0 }}
+                                    >
+                                        {txt}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {product.toppings && (Array.isArray(product.toppings) ? product.toppings : product.toppings.split(',')).filter(t => t.trim()).length > 0 && (() => {
+                const chips = (Array.isArray(product.toppings) ? product.toppings : product.toppings.split(',')).filter(t => t.trim());
+                const renderChip = (topping, tIdx) => {
+                    const hasMatchingPic = images.some(img =>
+                        img.tag && img.tag.toLowerCase().trim() === topping.trim().toLowerCase()
+                    );
+                    const isActive = activeTopping && activeTopping.toLowerCase().trim() === topping.toLowerCase().trim();
+                    return (
+                        <span
+                            key={tIdx}
+                            onClick={() => {
+                                if (hasMatchingPic) {
+                                    const matchingIdx = images.findIndex(img =>
+                                        img.tag && img.tag.toLowerCase().trim() === topping.trim().toLowerCase()
+                                    );
+                                    if (matchingIdx !== -1) goToSlide(matchingIdx);
+                                }
+                            }}
+                            style={{
+                                fontSize: '0.65rem',
+                                color: isActive ? '#ffffff' : '#009ceb',
+                                background: isActive ? '#009ceb' : '#f0f9ff',
+                                border: isActive ? '1px solid #009ceb' : '1px solid #cbd5e1',
+                                padding: '3px 10px',
+                                borderRadius: '50px',
+                                fontWeight: '800',
+                                cursor: hasMatchingPic ? 'pointer' : 'default',
+                                transition: 'all 0.2s ease',
+                                flexShrink: 0,
+                                whiteSpace: 'nowrap',
+                                marginRight: '6px',
+                            }}
+                        >
+                            {topping.trim()}
+                        </span>
+                    );
+                };
+                return (
+                    <div style={{ marginBottom: '0.75rem', minWidth: 0 }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '4px' }}>Toppings:</span>
+                        <div style={{ overflow: 'hidden', width: '100%' }}>
+                            <div
+                                className="marquee-track"
+                                style={{
+                                    display: 'flex',
+                                    width: 'max-content',
+                                    animation: 'toppingsSlide 8s linear infinite',
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.animationPlayState = 'paused'}
+                                onMouseLeave={e => e.currentTarget.style.animationPlayState = 'running'}
+                            >
+                                {/* Duplicate chips for seamless loop */}
+                                {chips.map((t, i) => renderChip(t, i))}
+                                {chips.map((t, i) => renderChip(t, `dup-${i}`))}
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             <div className={`${styles.dropdownWrapper} ${isExpanded ? styles.expanded : ''}`}>
                 <div className={styles.dropdownInner}>
@@ -237,7 +250,7 @@ const ProductCard = ({ product, index, isModal = false, onOrderClick }) => {
                         if (isModal && typeof onOrderClick === 'function') {
                             onOrderClick();
                         } else {
-                            const element = document.getElementById('locations');
+                            const element = document.getElementById('story-section');
                             if (element) {
                                 const y = element.getBoundingClientRect().top + window.scrollY - 100;
                                 window.scrollTo({ top: y, behavior: 'smooth' });

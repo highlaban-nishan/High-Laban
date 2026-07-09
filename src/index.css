@@ -72,6 +72,18 @@ html {
     display: none;
 }
 
+/* Marquee track must NOT be capped by mobile max-width rule */
+.marquee-track {
+    max-width: none !important;
+    width: max-content !important;
+}
+
+/* Auto-scroll animation for Layers and Toppings marquee */
+@keyframes toppingsSlide {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
 h1 {
     font-size: 3.2em;
     line-height: 1.1;

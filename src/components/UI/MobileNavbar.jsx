@@ -6,8 +6,16 @@ import logo from '../../assets/logo.png';
 
 export default function MobileNavbar({ onOpenFranchise }) {
     const [activeIndex, setActiveIndex] = useState(0);
+    const [isScrolled, setIsScrolled] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Hide logo after scrolling past hero
+    useEffect(() => {
+        const handleScroll = () => setIsScrolled(window.scrollY > 80);
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     // Map location to active index on mount/update
     useEffect(() => {
@@ -60,8 +68,11 @@ export default function MobileNavbar({ onOpenFranchise }) {
 
     return (
         <>
-            {/* Mobile Top Logo */}
-            <div className={styles.mobileTopLogo} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+            {/* Mobile Top Logo — hidden after scrolling past hero */}
+            <div
+                className={`${styles.mobileTopLogo} ${isScrolled ? styles.logoHidden : ''}`}
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            >
                 <img src={logo} alt="High Laban" />
             </div>
 

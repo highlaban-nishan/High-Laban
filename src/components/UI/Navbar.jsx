@@ -38,11 +38,15 @@ export default function Navbar() {
 
     return (
         <nav className={styles.navbar}>
-            {/* Logo — fixed top-left outside pill */}
-            <Link to="/" className={styles.logoOutside} onClick={(e) => {
-                e.preventDefault();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}>
+            {/* Logo — visible only in hero area, fades out on scroll */}
+            <Link
+                to="/"
+                className={`${styles.logoOutside} ${isScrolled ? styles.logoHidden : ''}`}
+                onClick={(e) => {
+                    e.preventDefault();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+            >
                 <img src={logo} alt="High Laban" />
             </Link>
 
