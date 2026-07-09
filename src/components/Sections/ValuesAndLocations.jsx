@@ -152,30 +152,56 @@ export default function ValuesAndLocations() {
                                         onClick={() => handleCardClick(loc)}
                                         className={styles.locationCard}
                                     >
-                                        {loc.imageUrl ? (
-                                            <div style={{ width: '100%', height: '150px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1.25rem', border: '1px solid #e2e8f0' }}>
-                                                <img src={loc.imageUrl} alt={loc.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <div className={styles.cardInner}>
+                                            {/* Front Side */}
+                                            <div className={styles.cardFront}>
+                                                <div>
+                                                    {loc.imageUrl ? (
+                                                        <div style={{ width: '100%', height: '140px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', border: '1px solid #e2e8f0' }}>
+                                                            <img src={loc.imageUrl} alt={loc.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        </div>
+                                                    ) : (
+                                                        <div className={styles.locationIconWrapper}>
+                                                            <FaMapMarkerAlt />
+                                                        </div>
+                                                    )}
+                                                    <h3 className={styles.locationName}>{loc.area || loc.name}</h3>
+                                                    {loc.area && <p className={styles.locationAddress}>{loc.name}</p>}
+                                                </div>
+                                                <div>
+                                                    <div className={styles.divider} style={{ margin: '0.75rem 0' }}></div>
+                                                    <span className={styles.locationStatus} style={{
+                                                        color: loc.status === 'Coming Soon' ? '#f97316' :
+                                                            loc.status === 'Closed' ? '#ef4444' : '#0ea5e9',
+                                                        fontWeight: 'bold',
+                                                        fontSize: '0.8rem'
+                                                    }}>
+                                                        {loc.status}
+                                                    </span>
+                                                </div>
                                             </div>
-                                        ) : (
-                                            <div className={styles.locationIconWrapper}>
-                                                <FaMapMarkerAlt />
+
+                                            {/* Back Side */}
+                                            <div className={styles.cardBack}>
+                                                <div>
+                                                    <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#0ea5e9', textTransform: 'uppercase', letterSpacing: '1px' }}>Quick Info</span>
+                                                    <h3 className={styles.locationName} style={{ color: 'white', marginTop: '4px' }}>{loc.area || loc.name}</h3>
+                                                    <p style={{ fontSize: '0.85rem', color: '#cbd5e1', margin: '12px 0 0', lineHeight: '1.4' }}>
+                                                        <strong>Address:</strong> {loc.address || 'India Store'}
+                                                    </p>
+                                                    {loc.phone && (
+                                                        <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '8px 0 0' }}>
+                                                            📞 {loc.phone}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <div style={{ textAlign: 'center', width: '100%' }}>
+                                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#0284c7', color: 'white', padding: '8px 16px', borderRadius: '50px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                                                        View & Order ➔
+                                                    </div>
+                                                </div>
                                             </div>
-                                        )}
-                                        {/* Area Name (Big Title) e.g., Bangalore */}
-                                        <h3 className={styles.locationName}>{loc.area || loc.name}</h3>
-
-                                        {/* Full Name / Subtitle e.g., Bangalore - India */}
-                                        {loc.area && <p className={styles.locationAddress}>{loc.name}</p>}
-
-                                        <div className={styles.divider}></div>
-
-                                        {/* Status */}
-                                        <span className={styles.locationStatus} style={{
-                                            color: loc.status === 'Coming Soon' ? '#f97316' :
-                                                loc.status === 'Closed' ? '#ef4444' : '#0ea5e9'
-                                        }}>
-                                            {loc.status}
-                                        </span>
+                                        </div>
                                     </div>
                                 );
                             })
