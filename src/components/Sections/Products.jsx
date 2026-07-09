@@ -176,31 +176,34 @@ const ProductCard = ({ product, index, isModal = false, onOrderClick }) => {
             </div>
 
             {product.ingredients && (() => {
-                const layerText = 'Layers: ' + product.ingredients.split(/[-•,]/).map(s => s.trim()).filter(Boolean).join(' • ');
+                const chips = product.ingredients.split(/[-•,]/).map(s => s.trim()).filter(Boolean);
                 return (
-                    <div style={{ marginBottom: '0.5rem' }}>
-                        <MarqueeRow
-                            items={[layerText]}
-                            speed={35}
-                            renderItem={(txt, i) => (
-                                <span
-                                    key={i}
-                                    style={{
-                                        fontSize: '0.75rem',
-                                        color: '#64748b',
-                                        background: '#f1f5f9',
-                                        padding: '0.3rem 0.8rem',
-                                        borderRadius: '20px',
-                                        fontWeight: '600',
-                                        border: '1px solid #e2e8f0',
-                                        whiteSpace: 'nowrap',
-                                        flexShrink: 0,
-                                    }}
-                                >
-                                    {txt}
-                                </span>
-                            )}
-                        />
+                    <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: '805', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', flexShrink: 0 }}>Layers:</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <MarqueeRow
+                                items={chips}
+                                speed={35}
+                                renderItem={(txt, i) => (
+                                    <span
+                                        key={i}
+                                        style={{
+                                            fontSize: '0.7rem',
+                                            color: '#475569',
+                                            background: '#f1f5f9',
+                                            padding: '0.2rem 0.6rem',
+                                            borderRadius: '20px',
+                                            fontWeight: '700',
+                                            border: '1px solid #e2e8f0',
+                                            whiteSpace: 'nowrap',
+                                            flexShrink: 0,
+                                        }}
+                                    >
+                                        {txt}
+                                    </span>
+                                )}
+                            />
+                        </div>
                     </div>
                 );
             })()}
