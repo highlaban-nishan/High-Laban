@@ -226,23 +226,7 @@
 
 /* Finest Quality */
 
-/* Typography Overrides for Text Cards */
-.card1 h2 {
-    font-family: 'Playfair Display', serif;
-    /* Or script font if available */
-    font-size: 2.5rem;
-    color: #27AAE1;
-    margin-bottom: 0.5rem;
-    font-style: italic;
-}
-
-.card1 p {
-    color: #27AAE1;
-    font-weight: 600;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    font-size: 0.8rem;
-}
+/* Typography overrides removed to maintain unified Outfit theme across all sections */
 
 /* Responsive */
 @media (max-width: 900px) {
