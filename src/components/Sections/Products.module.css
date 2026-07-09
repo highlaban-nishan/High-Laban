@@ -558,10 +558,14 @@
     }
 
     .orderButton {
-        padding: 0.4rem 0.8rem !important;
-        font-size: 0.7rem !important;
-        border-radius: 10px !important;
+        padding: 0.4rem 0.6rem !important;
+        font-size: 0.65rem !important;
+        border-radius: 50px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 2px !important;
     }
+
 
     /* Restyle the larger featured card to retain standard premium size */
     .grid > div:nth-child(3n+1) .imageContainer,
