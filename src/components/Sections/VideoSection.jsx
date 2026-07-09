@@ -127,7 +127,7 @@ export default function VideoSection() {
                             backgroundImage: `url('${alwaysFreshBg}')`,
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
-                            filter: 'blur(4px)',
+                            filter: 'blur(4px) brightness(0.6)',
                             zIndex: 0
                         }}></div>
                         <div className={styles.cardContent} style={{ position: 'relative', zIndex: 1 }}>
