@@ -6599,36 +6599,6 @@ const AdminDashboard = () => {
                                                                     setEditingRecipe({ ...editingRecipe, toppings: updated });
                                                                 }} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: '700' }} required />
                                                             </div>
-                                                            <div style={{ flex: 1, minWidth: '110px' }}>
-                                                                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: '700', color: '#0369a1', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>🥡 Container (₹)</label>
-                                                                <input type="number" step="0.01" placeholder="0" value={topping.containerCost || '0'} onChange={e => {
-                                                                     const updated = [...editingRecipe.toppings];
-                                                                     updated[tIdx].containerCost = e.target.value;
-                                                                     setEditingRecipe({ ...editingRecipe, toppings: updated });
-                                                                 }} style={{ width: '100%', padding: '8px 12px', border: '1px solid #bae6fd', borderRadius: '6px', background: '#f0f9ff' }} />
-                                                            </div>
-                                                            <div style={{ flex: 1, minWidth: '110px' }}>
-                                                                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: '700', color: '#0369a1', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>🥄 Spoon / Cutlery (₹)</label>
-                                                                <input type="number" step="0.01" placeholder="0" value={topping.spoonCost || '0'} onChange={e => {
-                                                                     const updated = [...editingRecipe.toppings];
-                                                                     updated[tIdx].spoonCost = e.target.value;
-                                                                     setEditingRecipe({ ...editingRecipe, toppings: updated });
-                                                                 }} style={{ width: '100%', padding: '8px 12px', border: '1px solid #bae6fd', borderRadius: '6px', background: '#f0f9ff' }} />
-                                                            </div>
-                                                            <div style={{ flex: 1, minWidth: '110px' }}>
-                                                                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: '700', color: '#0369a1', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>🏷️ Sticker / Label (₹)</label>
-                                                                <input type="number" step="0.01" placeholder="0" value={topping.stickerCost || '0'} onChange={e => {
-                                                                     const updated = [...editingRecipe.toppings];
-                                                                     updated[tIdx].stickerCost = e.target.value;
-                                                                     setEditingRecipe({ ...editingRecipe, toppings: updated });
-                                                                 }} style={{ width: '100%', padding: '8px 12px', border: '1px solid #bae6fd', borderRadius: '6px', background: '#f0f9ff' }} />
-                                                            </div>
-                                                            <div style={{ minWidth: '110px' }}>
-                                                                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: '700', color: '#94a3b8', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Packing</label>
-                                                                <div style={{ padding: '8px 12px', background: '#f1f5f9', borderRadius: '6px', fontWeight: '800', fontSize: '0.85rem', color: '#334155', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                                                                    ₹{((parseFloat(topping.containerCost) || 0) + (parseFloat(topping.spoonCost) || 0) + (parseFloat(topping.stickerCost) || 0)).toFixed(2)}
-                                                                </div>
-                                                            </div>
                                                             <div>
                                                                 <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: '700', color: 'transparent', marginBottom: '3px' }}>-</label>
                                                                 <button type="button" onClick={() => {
