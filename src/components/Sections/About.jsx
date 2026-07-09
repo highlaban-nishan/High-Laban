@@ -5,7 +5,7 @@ import aboutCow from '../../assets/about_cow.png';
 
 export default function About() {
     return (
-        <section className={styles.section}>
+        <section className={styles.section} style={{ background: '#ffffff' }}>
             <Container>
                 <div className={styles.aboutGrid}>
                     <div className={styles.aboutContent}>
