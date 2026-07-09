@@ -215,21 +215,22 @@
     }
 
     .locationsGrid {
-        display: grid !important;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
         gap: 1.5rem !important;
-        justify-content: center !important;
         padding-bottom: 2rem !important;
-        overflow-x: visible !important;
+        width: 100% !important;
     }
 
     .locationCard {
         min-width: 280px;
-        max-width: 280px;
+        max-width: 320px;
+        width: 100% !important;
         height: 380px;
         scroll-snap-align: start;
         flex-shrink: 0;
-        margin-right: 0;
+        margin: 0 auto !important;
         background: transparent;
         border: none;
         box-shadow: none;

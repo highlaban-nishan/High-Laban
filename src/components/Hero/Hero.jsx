@@ -133,8 +133,18 @@ export default function Hero() {
 
                     <div className={styles.buttonGroup}>
                         <button className={styles.btnPrimary} onClick={() => document.getElementById('franchise-section')?.scrollIntoView({ behavior: 'smooth' })}>FRANCHISE</button>
-                        <button className={styles.btnSecondary} onClick={() => document.getElementById('story-section')?.scrollIntoView({ behavior: 'smooth' })}>Our Story</button>
-                        <div className={styles.playWrapper} onClick={() => document.getElementById('story-section')?.scrollIntoView({ behavior: 'smooth' })} style={{ cursor: 'pointer' }}>
+                        <button className={styles.btnSecondary} onClick={() => {
+                            const element = document.getElementById('story-section');
+                            if (element) {
+                                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                        }}>Our Story</button>
+                        <div className={styles.playWrapper} onClick={() => {
+                            const element = document.getElementById('story-section');
+                            if (element) {
+                                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                        }} style={{ cursor: 'pointer' }}>
                             <div className={styles.rotatingText}>
                                 <svg viewBox="0 0 100 100">
                                     <defs>
