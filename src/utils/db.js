@@ -547,47 +547,6 @@ const db = {
             const list = [];
             querySnapshot.forEach((doc) => list.push({ id: doc.id, ...doc.data() }));
 
-            // Seed sample franchises if empty
-            if (list.length === 0) {
-                const samples = [
-                    {
-                        outletName: "High Laban - Koramangala Cafe",
-                        ownerName: "Naveen Gowda",
-                        phone: "9886012456",
-                        email: "naveen.kora@highlaban.com",
-                        city: "Bangalore",
-                        state: "KA",
-                        address: "80 Feet Road, 4th Block, Koramangala, Bangalore",
-                        modelType: "Premium Cafe",
-                        status: "Running",
-                        openDate: "2024-03-01",
-                        agreementUrl: "",
-                        gstUrl: "",
-                        ownerIdUrl: "",
-                        updatedAt: new Date().toISOString()
-                    },
-                    {
-                        outletName: "High Laban - Connaught Place",
-                        ownerName: "Rajesh Kumar",
-                        phone: "9811054789",
-                        email: "rajesh.cp@highlaban.com",
-                        city: "New Delhi",
-                        state: "DL",
-                        address: "Connaught Circus, Block G, Connaught Place, New Delhi",
-                        modelType: "Express Model",
-                        status: "Running",
-                        openDate: "2024-05-15",
-                        agreementUrl: "",
-                        gstUrl: "",
-                        ownerIdUrl: "",
-                        updatedAt: new Date().toISOString()
-                    }
-                ];
-                for (const s of samples) {
-                    const docRef = await addDoc(collection(firestore, 'franchises'), s);
-                    list.push({ id: docRef.id, ...s });
-                }
-            }
             return list;
         } catch (error) {
             console.error("Firestore Error:", error);
@@ -627,6 +586,68 @@ const db = {
         } catch (error) {
             console.error("Firestore Error:", error);
             alert("Failed to delete franchise outlet: " + error.message);
+            throw error;
+        }
+    },
+
+    // --- Kitchens CRUD (Hub & Spoke Model) ---
+    getKitchens: async () => {
+        try {
+            const querySnapshot = await getDocs(collection(firestore, 'kitchens'));
+            const list = [];
+            querySnapshot.forEach((doc) => list.push({ id: doc.id, ...doc.data() }));
+            
+            // Seed a default Main Kitchen if empty
+            if (list.length === 0) {
+                const defaultKitchen = {
+                    name: "Bangalore Main Kitchen",
+                    city: "Bengaluru",
+                    fixedCosts: [],
+                    projectedMonthlyVolume: "10000",
+                    updatedAt: new Date().toISOString()
+                };
+                const docRef = await addDoc(collection(firestore, 'kitchens'), defaultKitchen);
+                list.push({ id: docRef.id, ...defaultKitchen });
+            }
+            return list;
+        } catch (error) {
+            console.error("Firestore Error:", error);
+            return [];
+        }
+    },
+
+    addKitchen: async (data) => {
+        try {
+            const finalData = { ...data, updatedAt: new Date().toISOString() };
+            const docRef = await addDoc(collection(firestore, 'kitchens'), finalData);
+            return { id: docRef.id, ...finalData };
+        } catch (error) {
+            console.error("Firestore Error:", error);
+            alert("Failed to add kitchen: " + error.message);
+            throw error;
+        }
+    },
+
+    updateKitchen: async (id, data) => {
+        try {
+            const docRef = doc(firestore, 'kitchens', id);
+            const finalData = { ...data, updatedAt: new Date().toISOString() };
+            await updateDoc(docRef, finalData);
+            return { id, ...finalData };
+        } catch (error) {
+            console.error("Firestore Error:", error);
+            alert("Failed to update kitchen: " + error.message);
+            throw error;
+        }
+    },
+
+    deleteKitchen: async (id) => {
+        try {
+            await deleteDoc(doc(firestore, 'kitchens', id));
+            return id;
+        } catch (error) {
+            console.error("Firestore Error:", error);
+            alert("Failed to delete kitchen: " + error.message);
             throw error;
         }
     },

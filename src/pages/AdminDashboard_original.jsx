@@ -8,7 +8,6 @@ import logo from '../assets/logo.png';
 import ImageCropper from '../components/UI/ImageCropper';
 import Highlights from '../components/Sections/Highlights'; // For Live Preview
 import SEO from '../components/SEO/SEO';
-import { FiShoppingBag, FiFileText, FiMapPin, FiUsers, FiBriefcase, FiUserCheck, FiDollarSign, FiTruck, FiShoppingCart, FiPieChart } from 'react-icons/fi';
 // import SalesChart from '../components/Dashboard/SalesChart'; // Removed as per request
 // import POS from '../components/Dashboard/POS'; // Removed as per user request
 
@@ -146,12 +145,9 @@ const AdminDashboard = () => {
     const [rawMaterials, setRawMaterials] = useState([]);
     const [bundleItems, setBundleItems] = useState([]);
     const [recipesList, setRecipesList] = useState([]);
-    const [costingSubTab, setCostingSubTab] = useState('raw'); // 'raw' | 'bundle' | 'final' | 'fixed' | 'sop'
+    const [costingSubTab, setCostingSubTab] = useState('raw'); // 'raw' | 'bundle' | 'final'
     const [rawMaterialCategoryFilter, setRawMaterialCategoryFilter] = useState('All');
     const [selectedToppings, setSelectedToppings] = useState({}); // { [productId]: toppingIndex }
-    const [kitchens, setKitchens] = useState([]);
-    const [franchiseFilterCity, setFranchiseFilterCity] = useState('All');
-    const [franchiseFilterKitchen, setFranchiseFilterKitchen] = useState('All');
     
     // Add raw material form state
     const [showAddRawForm, setShowAddRawForm] = useState(false);
@@ -165,7 +161,7 @@ const AdminDashboard = () => {
 
     // Product recipe form state
     const [selectedRecipeProduct, setSelectedRecipeProduct] = useState(null); // product ID for editing recipe
-    const [editingRecipe, setEditingRecipe] = useState({ ingredients: [], packagingIngredients: [], containerCost: '0', spoonCost: '0', stickerCost: '0', packagingCost: '0', batchSize: '1', overheadAllocation: '0', toppings: [], kitchenId: '' }); // ingredients: [{ type: 'raw'/'bundle', id: '', quantity: '' }]
+    const [editingRecipe, setEditingRecipe] = useState({ ingredients: [], packagingIngredients: [], containerCost: '0', spoonCost: '0', stickerCost: '0', packagingCost: '0', batchSize: '1', overheadAllocation: '0', toppings: [] }); // ingredients: [{ type: 'raw'/'bundle', id: '', quantity: '' }]
     const [selectedPurchaseOutlet, setSelectedPurchaseOutlet] = useState(null);
 
     // Vendors State
@@ -248,7 +244,7 @@ const AdminDashboard = () => {
     const [runningFranchises, setRunningFranchises] = useState([]);
     const [openFixedCostOutletId, setOpenFixedCostOutletId] = useState(null);
     const [editingFixedCosts, setEditingFixedCosts] = useState({}); // outletId -> [{ name: '', amount: '' }]
-    const [selectedOverheadKitchenId, setSelectedOverheadKitchenId] = useState('');
+    const [selectedOverheadOutletId, setSelectedOverheadOutletId] = useState('');
     const [monthlyPiecesSold, setMonthlyPiecesSold] = useState('10000');
     const [showAddFranchiseOutletForm, setShowAddFranchiseOutletForm] = useState(false);
     const [editingFranchiseOutlet, setEditingFranchiseOutlet] = useState(null);
@@ -258,8 +254,7 @@ const AdminDashboard = () => {
         agreementUrl: '', gstUrl: '', ownerIdUrl: '',
         mapUrl: '', imageUrl: '', whatsapp: '', zomato: '', swiggy: '', magicpin: '', ondc: '',
         documents: [],
-        locationId: '',
-        assignedKitchenId: ''
+        locationId: ''
     });
     const [payrollMonth, setPayrollMonth] = useState('2026-07');
     const [payrollRecords, setPayrollRecords] = useState([]);
@@ -406,9 +401,8 @@ const AdminDashboard = () => {
         } else if (activeTab === 'franchise') {
             const inquiries = await db.getFranchiseInquiries();
             setFranchiseInquiries(inquiries);
-            const [franchises, kitch] = await Promise.all([db.getFranchises(), db.getKitchens()]);
+            const franchises = await db.getFranchises();
             setRunningFranchises(franchises);
-            setKitchens(kitch);
         } else if (activeTab === 'content') {
             const content = await db.getSiteContent('highlights');
             if (content) {
@@ -449,20 +443,18 @@ const AdminDashboard = () => {
             setVendors(v);
             setRunningFranchises(f);
         } else if (activeTab === 'costing') {
-            const [raws, bunds, recs, prods, p, kitch] = await Promise.all([
+            const [raws, bunds, recs, prods, p] = await Promise.all([
                 db.getRawMaterials(),
                 db.getBundleItems(),
                 db.getRecipes(),
                 db.getProducts(),
-                db.getPurchases(),
-                db.getKitchens()
+                db.getPurchases()
             ]);
             setRawMaterials(raws);
             setBundleItems(bunds);
             setRecipesList(recs);
             setProducts(prods);
             setPurchases(p);
-            setKitchens(kitch);
         }
     };
 
@@ -1290,19 +1282,6 @@ const AdminDashboard = () => {
                 mapUrl: franchise.mapUrl || ''
             }));
             showToast(`Auto-filled details from Franchise: ${franchise.outletName}`);
-            return;
-        }
-        const kitchen = kitchens.find(k => k.id === fid);
-        if (kitchen) {
-             setNewLocation(prev => ({
-                ...prev,
-                franchiseId: fid,
-                name: kitchen.name,
-                area: kitchen.city,
-                address: kitchen.address || '',
-                phone: kitchen.phone || ''
-            }));
-            showToast(`Auto-filled details from Kitchen: ${kitchen.name}`);
         }
     };
 
@@ -1370,70 +1349,70 @@ const AdminDashboard = () => {
                 <nav className={styles.nav}>
                     {hasTabAccess('products') && (
                         <div className={`${styles.navItem} ${activeTab === 'products' ? styles.active : ''}`} onClick={() => { setActiveTab('products'); setIsMobileOpen(false); }}>
-                            <FiShoppingBag style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Products
+                            <span style={{ fontSize: '1.2rem' }}>🛍️</span> Products
                             {activeTab === 'products' && <div className={styles.activeDot}></div>}
                         </div>
                     )}
 
                     {hasTabAccess('content') && (
                         <div className={`${styles.navItem} ${activeTab === 'content' ? styles.active : ''}`} onClick={() => { setActiveTab('content'); setIsMobileOpen(false); }}>
-                            <FiFileText style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Content
+                            <span style={{ fontSize: '1.2rem' }}>📝</span> Content
                             {activeTab === 'content' && <div className={styles.activeDot}></div>}
                         </div>
                     )}
 
                     {hasTabAccess('locations') && (
                         <div className={`${styles.navItem} ${activeTab === 'locations' ? styles.active : ''}`} onClick={() => { setActiveTab('locations'); setIsMobileOpen(false); }}>
-                            <FiMapPin style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Locations
+                            <span style={{ fontSize: '1.2rem' }}>📍</span> Locations
                             {activeTab === 'locations' && <div className={styles.activeDot}></div>}
                         </div>
                     )}
 
                     {hasTabAccess('customers') && (
                         <div className={`${styles.navItem} ${activeTab === 'customers' ? styles.active : ''}`} onClick={() => { setActiveTab('customers'); setIsMobileOpen(false); }}>
-                            <FiUsers style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Users
+                            <span style={{ fontSize: '1.2rem' }}>👥</span> Users
                             {activeTab === 'customers' && <div className={styles.activeDot}></div>}
                         </div>
                     )}
 
                     {hasTabAccess('franchise') && (
                         <div className={`${styles.navItem} ${activeTab === 'franchise' ? styles.active : ''}`} onClick={() => { setActiveTab('franchise'); setIsMobileOpen(false); }}>
-                            <FiBriefcase style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Franchise
+                            <span style={{ fontSize: '1.2rem' }}>🤝</span> Franchise
                             {activeTab === 'franchise' && <div className={styles.activeDot}></div>}
                         </div>
                     )}
 
                     {hasTabAccess('staff') && (
                         <div className={`${styles.navItem} ${activeTab === 'staff' ? styles.active : ''}`} onClick={() => { setActiveTab('staff'); setIsMobileOpen(false); }}>
-                            <FiUserCheck style={{ fontSize: '1.2rem', marginRight: '8px' }} /> HR Staff
+                            <span style={{ fontSize: '1.2rem' }}>🧑‍🍳</span> HR Staff
                             {activeTab === 'staff' && <div className={styles.activeDot}></div>}
                         </div>
                     )}
 
                     {hasTabAccess('payroll') && (
                         <div className={`${styles.navItem} ${activeTab === 'payroll' ? styles.active : ''}`} onClick={() => { setActiveTab('payroll'); setIsMobileOpen(false); }}>
-                            <FiDollarSign style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Payroll
+                            <span style={{ fontSize: '1.2rem' }}>💵</span> Payroll
                             {activeTab === 'payroll' && <div className={styles.activeDot}></div>}
                         </div>
                     )}
 
                     {hasTabAccess('vendors') && (
                         <div className={`${styles.navItem} ${activeTab === 'vendors' ? styles.active : ''}`} onClick={() => { setActiveTab('vendors'); setIsMobileOpen(false); }}>
-                            <FiTruck style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Vendors
+                            <span style={{ fontSize: '1.2rem' }}>🏪</span> Vendors
                             {activeTab === 'vendors' && <div className={styles.activeDot}></div>}
                         </div>
                     )}
 
                     {hasTabAccess('purchases') && (
                         <div className={`${styles.navItem} ${activeTab === 'purchases' ? styles.active : ''}`} onClick={() => { setActiveTab('purchases'); setIsMobileOpen(false); }}>
-                            <FiShoppingCart style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Purchases
+                            <span style={{ fontSize: '1.2rem' }}>🛒</span> Purchases
                             {activeTab === 'purchases' && <div className={styles.activeDot}></div>}
                         </div>
                     )}
 
                     {hasTabAccess('costing') && (
                         <div className={`${styles.navItem} ${activeTab === 'costing' ? styles.active : ''}`} onClick={() => { setActiveTab('costing'); setIsMobileOpen(false); }}>
-                            <FiPieChart style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Food Costing
+                            <span style={{ fontSize: '1.2rem' }}>🧮</span> Food Costing
                             {activeTab === 'costing' && <div className={styles.activeDot}></div>}
                         </div>
                     )}
@@ -1470,7 +1449,7 @@ const AdminDashboard = () => {
                             </div>
                             {showUserMenu && (
                                 <div style={{ position: 'absolute', top: '110%', right: 0, width: '180px', background: 'white', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', padding: '0.5rem', zIndex: 10 }}>
-                                    <button onClick={handleResetData} style={{ width: '100%', padding: '0.8rem', color: '#ef4444', background: 'transparent', border: 'none', textAlign: 'left', cursor: 'pointer', borderRadius: '8px', fontWeight: 'bold' }}>âš ï¸ Reset Data</button>
+                                    <button onClick={handleResetData} style={{ width: '100%', padding: '0.8rem', color: '#ef4444', background: 'transparent', border: 'none', textAlign: 'left', cursor: 'pointer', borderRadius: '8px', fontWeight: 'bold' }}>⚠️ Reset Data</button>
                                 </div>
                             )}
                         </div>
@@ -1582,7 +1561,7 @@ const AdminDashboard = () => {
                                             style={{ cursor: 'pointer', fontSize: '1rem', lineHeight: 1, opacity: 0.6 }}
                                             onMouseOver={e => e.target.style.opacity = 1}
                                             onMouseOut={e => e.target.style.opacity = 0.6}
-                                        >🖼️</span>
+                                        >×</span>
                                     </div>
                                 ))}
                                 <input
@@ -2012,7 +1991,7 @@ const AdminDashboard = () => {
                                         {/* Edit User Form */}
                                         {editingUser && (
                                             <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '16px', padding: '1.5rem' }}>
-                                                <h4 style={{ margin: '0 0 1rem 0' }}>âœï¸ Edit User Details</h4>
+                                                <h4 style={{ margin: '0 0 1rem 0' }}>✏️ Edit User Details</h4>
                                                 <form onSubmit={handleUpdateUser} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
                                                     <div>
                                                         <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 'bold', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Display Name</label>
@@ -2209,7 +2188,7 @@ const AdminDashboard = () => {
                                     >
                                         🤝 Inquiry Pipeline ({franchiseInquiries.length})
                                     </button>
-                                    <button 
+                                                                    <button 
                                         type="button" 
                                         onClick={() => setFranchiseSubTab('outlets')}
                                         style={{ 
@@ -2226,26 +2205,9 @@ const AdminDashboard = () => {
                                     >
                                         🏪 Running Outlets ({runningFranchises.length})
                                     </button>
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setFranchiseSubTab('kitchens')}
-                                        style={{ 
-                                            border: 'none', 
-                                            background: franchiseSubTab === 'kitchens' ? '#009ceb' : 'none', 
-                                            color: franchiseSubTab === 'kitchens' ? 'white' : '#64748b', 
-                                            padding: '0.5rem 1.2rem', 
-                                            borderRadius: '8px', 
-                                            fontWeight: 'bold', 
-                                            cursor: 'pointer',
-                                            fontSize: '0.85rem',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        🍳 Central Kitchens ({kitchens.length})
-                                    </button>
                                 </div>
 
-                                {franchiseSubTab === 'pipeline' && (
+                                {franchiseSubTab === 'pipeline' ? (
                                     <>
                                         <div className={styles.catalogHeader}>
                                             <h2 className={styles.sectionTitle}>Franchise Applications & Pipeline</h2>
@@ -2483,118 +2445,28 @@ const AdminDashboard = () => {
                                             )}
                                         </div>
                                     </>
-                                )}
-                                {franchiseSubTab === 'outlets' && (
+                                ) : (
                                     <>
                                         {/* APPROVED RUNNING OUTLETS VIEW */}
                                         <div className={styles.catalogHeader}>
                                             <h2 className={styles.sectionTitle}>Approved & Running Franchises</h2>
-                                            <div style={{ display: 'flex', gap: '10px' }}>
-                                                <button
-                                                    className={styles.addButton}
-                                                    onClick={async () => {
-                                                        const btn = document.getElementById('syncLocBtn');
-                                                        if(btn) btn.innerHTML = 'Syncing...';
-                                                        try {
-                                                            let syncedCount = 0;
-                                                            for (const loc of locations) {
-                                                                if ((loc.status === 'Open' || loc.status === 'Running') && !loc.franchiseId) {
-                                                                    const existingFranchise = runningFranchises.find(f => f.locationId === loc.id);
-                                                                    if (!existingFranchise) {
-                                                                        const newOutlet = {
-                                                                            outletName: loc.area || loc.name,
-                                                                            ownerName: 'Admin / Owner Pending',
-                                                                            phone: loc.phone || 'N/A',
-                                                                            email: '',
-                                                                            city: loc.name,
-                                                                            state: 'KA',
-                                                                            address: `${loc.name}, ${loc.area || ''}`,
-                                                                            modelType: 'Standard',
-                                                                            status: 'Running',
-                                                                            openDate: new Date().toISOString().split('T')[0],
-                                                                            agreementUrl: '', gstUrl: '', ownerIdUrl: '',
-                                                                            mapUrl: loc.mapUrl || '', whatsapp: loc.whatsapp || '',
-                                                                            zomato: loc.zomato || '', swiggy: loc.swiggy || '',
-                                                                            magicpin: loc.magicpin || '', ondc: loc.ondc || '',
-                                                                            documents: [], locationId: loc.id
-                                                                        };
-                                                                        const createdOutlet = await db.addFranchiseOutlet(newOutlet);
-                                                                        setRunningFranchises(prev => [...prev, createdOutlet]);
-                                                                        await db.updateLocation(loc.id, { ...loc, franchiseId: createdOutlet.id });
-                                                                        syncedCount++;
-                                                                    }
-                                                                }
-                                                            }
-                                                            if (syncedCount > 0) {
-                                                                showToast(`Successfully synced ${syncedCount} missing locations to Franchises!`);
-                                                                refreshData();
-                                                            } else {
-                                                                showToast("All locations are already synced to Franchises.");
-                                                            }
-                                                        } catch (error) {
-                                                            console.error(error);
-                                                            showToast('Error syncing locations', "error");
-                                                        }
-                                                        if(btn) btn.innerHTML = '🔗 Sync Missing Locations';
-                                                    }}
-                                                    id="syncLocBtn"
-                                                    style={{ background: '#10b981' }}
-                                                >
-                                                    🔗 Sync Missing Locations
-                                                </button>
-                                                <button
-                                                    className={styles.addButton}
-                                                    onClick={async () => {
-                                                        if(window.confirm("Delete placeholder dummy franchises (Koramangala & Connaught Place)?")) {
-                                                            try {
-                                                                let deleted = 0;
-                                                                const d1 = runningFranchises.find(f => f.outletName === "High Laban - Connaught Place");
-                                                                const d2 = runningFranchises.find(f => f.outletName === "High Laban - Koramangala Cafe");
-                                                                if (d1) { await db.deleteFranchiseOutlet(d1.id); deleted++; }
-                                                                if (d2) { await db.deleteFranchiseOutlet(d2.id); deleted++; }
-                                                                if(deleted > 0) {
-                                                                    showToast(`Deleted ${deleted} dummy outlets!`);
-                                                                    refreshData();
-                                                                } else {
-                                                                    showToast("No dummy outlets found.");
-                                                                }
-                                                            } catch(e) {
-                                                                showToast("Error deleting", "error");
-                                                            }
-                                                        }
-                                                    }}
-                                                    style={{ background: '#ef4444' }}
-                                                >
-                                                    🗑️ Clear Dummy Outlets
-                                                </button>
-                                                <select 
-                                                    value={franchiseFilterCity} 
-                                                    onChange={e => setFranchiseFilterCity(e.target.value)}
-                                                    style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white', fontWeight: '600', color: '#334155', cursor: 'pointer' }}
-                                                >
-                                                    <option value="All">🌍 All Cities / Regions</option>
-                                                    {[...new Set(runningFranchises.map(f => f.city).filter(Boolean))].map(city => (
-                                                        <option key={city} value={city}>📍 {city}</option>
-                                                    ))}
-                                                </select>
-                                                <button
-                                                    className={styles.addButton}
-                                                    onClick={() => setShowAddFranchiseOutletForm(true)}
-                                                >
-                                                    + ADD NEW OUTLET
-                                                </button>
-                                            </div>
+                                            <button
+                                                className={styles.addButton}
+                                                onClick={() => setShowAddFranchiseOutletForm(true)}
+                                            >
+                                                + ADD NEW OUTLET
+                                            </button>
                                         </div>
 
                                         <div className={styles.grid} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem', marginTop: '1rem' }}>
-                                            {runningFranchises.filter(f => (franchiseFilterCity === 'All' || f.city === franchiseFilterCity) && (franchiseFilterKitchen === 'All' || f.assignedKitchenId === franchiseFilterKitchen)).length > 0 ? (
-                                                runningFranchises.filter(f => (franchiseFilterCity === 'All' || f.city === franchiseFilterCity) && (franchiseFilterKitchen === 'All' || f.assignedKitchenId === franchiseFilterKitchen)).map((outlet) => (
+                                            {runningFranchises.length > 0 ? (
+                                                runningFranchises.map((outlet) => (
                                                     <div key={outlet.id} className={styles.card} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem', position: 'relative', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
                                                         
                                                         {/* Header */}
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                                                             <div>
-                                                                <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#1e293b', fontWeight: 'bold' }}>{outlet.outletName === outlet.city && outlet.address ? (outlet.address.split(',').length > 1 ? outlet.address.split(',')[1].trim() : outlet.outletName) : outlet.outletName}</h3>
+                                                                <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#1e293b', fontWeight: 'bold' }}>{outlet.outletName}</h3>
                                                                 <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginTop: '2px' }}>
                                                                     Opened: {outlet.openDate ? new Date(outlet.openDate).toLocaleDateString() : 'N/A'}
                                                                 </span>
@@ -2785,192 +2657,7 @@ const AdminDashboard = () => {
                                                 </div>
                                             )}
                                         </div>
-                                        </>
-                                )}
-
-                                {franchiseSubTab === 'kitchens' && (
-                                    <>
-                                        <div className={styles.catalogHeader}>
-                                            <h2 className={styles.sectionTitle}>Central Kitchens Hubs</h2>
-                                            <button 
-                                                className={styles.addButton}
-                                                onClick={() => {
-                                                    setEditingFixedCosts({});
-                                                    setOpenFixedCostOutletId(null);
-                                                    showToast('Manage Kitchens in Costing -> Fixed Costs (Or here directly if extended)');
-                                                    const newName = prompt('Enter new Kitchen Name:');
-                                                    if(newName) {
-                                                        const newCity = prompt('Enter City:');
-                                                        db.addKitchen({ name: newName, city: newCity, address: '', phone: '', fixedCosts: [] }).then(k => {
-                                                            setKitchens(prev => [...prev, k]);
-                                                            showToast('Kitchen added! 🍳');
-                                                        });
-                                                    }
-                                                }}
-                                            >
-                                                + ADD KITCHEN HUB
-                                            </button>
-                                        </div>
-                                        <div className={styles.grid} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem', marginTop: '1rem' }}>
-                                            {kitchens.map((k) => (
-                                                <div key={k.id} className={styles.card} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem', position: 'relative', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                                                        <div>
-                                                            <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#1e293b', fontWeight: 'bold' }}>{k.name}</h3>
-                                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginTop: '2px' }}>
-                                                                📍 City: {k.city}
-                                                            </span>
-                                                        </div>
-                                                        <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                                                            <button onClick={() => {
-                                                                const newAddress = prompt('Enter new address:', k.address || '');
-                                                                if(newAddress !== null) {
-                                                                    const newPhone = prompt('Enter new phone:', k.phone || '');
-                                                                    if(newPhone !== null) {
-                                                                        const updatedK = { ...k, address: newAddress, phone: newPhone };
-                                                                        db.updateKitchen(k.id, updatedK).then(() => {
-                                                                            setKitchens(prev => prev.map(old => old.id === k.id ? updatedK : old));
-                                                                            showToast('Kitchen details updated!');
-                                                                        });
-                                                                    }
-                                                                }
-                                                            }} className={styles.editBtn} style={{ width: '28px', height: '28px', padding: '4px', border: 'none', background: '#f1f5f9', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Edit Address/Phone">
-                                                                ✏️
-                                                            </button>
-                                                            <button onClick={async () => {
-                                                                if(window.confirm('Delete this Central Kitchen?')) {
-                                                                    await db.deleteKitchen(k.id);
-                                                                    setKitchens(prev => prev.filter(old => old.id !== k.id));
-                                                                    showToast('Kitchen deleted');
-                                                                }
-                                                            }} className={styles.deleteButton} style={{ width: '28px', height: '28px', padding: '4px', border: 'none', background: '#fee2e2', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Delete Kitchen">
-                                                                🗑️
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.9rem' }}>
-                                                        {k.address ? <div style={{ color: '#334155' }}>📍 {k.address}</div> : <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>No address added</div>}
-                                                        {k.phone ? <a href={`tel:${k.phone}`} style={{ color: '#475569', textDecoration: 'none' }}>📞 {k.phone}</a> : null}
-                                                    </div>
-
-                                                    <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.8rem', marginTop: '0.8rem' }}>
-                                                        <button 
-                                                            type="button"
-                                                            onClick={() => {
-                                                                if (openFixedCostOutletId === k.id) {
-                                                                    setOpenFixedCostOutletId(null);
-                                                                } else {
-                                                                    setOpenFixedCostOutletId(k.id);
-                                                                    setEditingFixedCosts({
-                                                                        ...editingFixedCosts,
-                                                                        [k.id]: k.fixedCosts ? [...k.fixedCosts.map(c => ({ ...c }))] : [{ name: '', amount: '' }]
-                                                                    });
-                                                                }
-                                                            }}
-                                                            style={{ 
-                                                                width: '100%', 
-                                                                background: '#f8fafc', 
-                                                                border: '1px solid #e2e8f0', 
-                                                                padding: '8px', 
-                                                                borderRadius: '6px', 
-                                                                cursor: 'pointer',
-                                                                display: 'flex',
-                                                                justifyContent: 'space-between',
-                                                                alignItems: 'center',
-                                                                color: '#334155',
-                                                                fontWeight: 'bold',
-                                                                fontSize: '0.85rem'
-                                                            }}
-                                                        >
-                                                            <span>💰 Fixed Operational Costs</span>
-                                                            <span style={{ background: '#e2e8f0', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem' }}>
-                                                                ₹{k.fixedCosts ? k.fixedCosts.reduce((sum, cost) => sum + (parseFloat(cost.amount) || 0), 0) : 0}/mo
-                                                            </span>
-                                                        </button>
-                                                        
-                                                        {openFixedCostOutletId === k.id && (
-                                                            <div style={{ marginTop: '12px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                                                <div style={{ marginBottom: '8px', fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>MONTHLY EXPENSES (Rent, Salary, etc.)</div>
-                                                                {(editingFixedCosts[k.id] || []).map((cost, idx) => (
-                                                                    <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                                                                        <input 
-                                                                            type="text" 
-                                                                            placeholder="Expense Name (e.g., Rent)" 
-                                                                            value={cost.name}
-                                                                            onChange={(e) => {
-                                                                                const updated = [...(editingFixedCosts[k.id] || [])];
-                                                                                updated[idx].name = e.target.value;
-                                                                                setEditingFixedCosts({ ...editingFixedCosts, [k.id]: updated });
-                                                                            }}
-                                                                            style={{ flex: 1, padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
-                                                                        />
-                                                                        <input 
-                                                                            type="number" 
-                                                                            placeholder="Amount (₹)" 
-                                                                            value={cost.amount}
-                                                                            onChange={(e) => {
-                                                                                const updated = [...(editingFixedCosts[k.id] || [])];
-                                                                                updated[idx].amount = e.target.value;
-                                                                                setEditingFixedCosts({ ...editingFixedCosts, [k.id]: updated });
-                                                                            }}
-                                                                            style={{ width: '100px', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
-                                                                        />
-                                                                        <button 
-                                                                            type="button" 
-                                                                            onClick={() => {
-                                                                                const updated = [...(editingFixedCosts[k.id] || [])];
-                                                                                updated.splice(idx, 1);
-                                                                                setEditingFixedCosts({ ...editingFixedCosts, [k.id]: updated });
-                                                                            }}
-                                                                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
-                                                                            title="Remove Expense"
-                                                                        >
-                                                                            ❌
-                                                                        </button>
-                                                                    </div>
-                                                                ))}
-                                                                
-                                                                <button 
-                                                                    type="button" 
-                                                                    onClick={() => {
-                                                                        const updated = [...(editingFixedCosts[k.id] || []), { name: '', amount: '' }];
-                                                                        setEditingFixedCosts({ ...editingFixedCosts, [k.id]: updated });
-                                                                    }} 
-                                                                    style={{ width: '100%', background: 'white', border: '1px dashed #cbd5e1', padding: '6px', borderRadius: '6px', cursor: 'pointer', color: '#64748b', fontSize: '0.75rem', fontWeight: '700', marginBottom: '8px' }}
-                                                                >
-                                                                    + Add Item
-                                                                </button>
-                                                                
-                                                                <div style={{ display: 'flex', gap: '6px' }}>
-                                                                    <button 
-                                                                        type="button" 
-                                                                        onClick={async () => {
-                                                                            const updatedK = { ...k, fixedCosts: editingFixedCosts[k.id] };
-                                                                            await db.updateKitchen(k.id, updatedK);
-                                                                            setKitchens(prev => prev.map(old => old.id === k.id ? updatedK : old));
-                                                                            setOpenFixedCostOutletId(null);
-                                                                            showToast('Kitchen fixed costs updated! ✅');
-                                                                        }}
-                                                                        style={{ flex: 1, background: '#0284c7', color: 'white', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '0.75rem' }}
-                                                                    >
-                                                                        Save Costs
-                                                                    </button>
-                                                                    <button 
-                                                                        type="button" 
-                                                                        onClick={() => setOpenFixedCostOutletId(null)}
-                                                                        style={{ background: 'white', border: '1px solid #cbd5e1', color: '#64748b', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '0.75rem' }}
-                                                                    >
-                                                                        Cancel
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        </>
+                                    </>
                                 )}
                             </div>
                         );
@@ -3206,7 +2893,7 @@ const AdminDashboard = () => {
                                         </div>
 
                                         <div style={{ marginTop: '1.2rem', padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
-                                            <h4 style={{ color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '0.75rem', fontWeight: 'bold' }}>🛒 Online Channels & Booking Options</h4>
+                                            <h4 style={{ color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '0.75rem', fontWeight: 'bold' }}>🛍️ Online Channels & Booking Options</h4>
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                                 <div className={styles.formGroup}>
                                                     <label style={{ fontSize: '0.7rem', color: '#64748b' }}>Store Contact Phone</label>
@@ -3516,12 +3203,12 @@ const AdminDashboard = () => {
                             {/* KPI Metrics — compact single row */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.75rem', marginBottom: '1.5rem' }}>
                                 {[
-                                    { label: 'Total Workers', value: totalWorkers, color: '#1e293b', icon: '🏦' },
-                                    { label: 'Active Staff', value: activeCount, color: '#10b981', icon: '🏦' },
-                                    { label: 'Terminated', value: terminatedCount, color: '#f59e0b', icon: '🏦' },
+                                    { label: 'Total Workers', value: totalWorkers, color: '#1e293b', icon: '👥' },
+                                    { label: 'Active Staff', value: activeCount, color: '#10b981', icon: '🟢' },
+                                    { label: 'Terminated', value: terminatedCount, color: '#f59e0b', icon: '🔴' },
                                     { label: 'Pending Bank', value: pendingBankCount, color: '#ef4444', icon: '🏦' },
-                                    { label: 'Docs Collected', value: `${docsPercent}%`, color: '#6366f1', icon: '🏦' },
-                                    { label: 'Active Payout', value: `₹${totalPayroll.toLocaleString('en-IN')}`, color: '#0f172a', icon: '🏦' },
+                                    { label: 'Docs Collected', value: `${docsPercent}%`, color: '#6366f1', icon: '📄' },
+                                    { label: 'Active Payout', value: `₹${totalPayroll.toLocaleString('en-IN')}`, color: '#0f172a', icon: '💸' },
                                 ].map(({ label, value, color, icon }) => (
                                     <div key={label} style={{ background: 'white', padding: '0.85rem 1rem', borderRadius: '14px', boxShadow: '0 2px 4px rgba(0,0,0,0.04)', border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                                         <div style={{ minWidth: 0 }}>
@@ -3580,7 +3267,7 @@ const AdminDashboard = () => {
                                     {/* Analytics stats widgets */}
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                                         <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '15px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                                            <span style={{ fontSize: '1.75rem' }}>🖼️</span>
+                                            <span style={{ fontSize: '1.75rem' }}>⭐</span>
                                             <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', marginTop: '0.5rem' }}>Average KPI Rating</div>
                                             <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b', marginTop: '0.25rem' }}>
                                                 {(() => {
@@ -3592,21 +3279,21 @@ const AdminDashboard = () => {
                                             </div>
                                         </div>
                                         <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '15px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                                            <span style={{ fontSize: '1.75rem' }}>🖼️</span>
+                                            <span style={{ fontSize: '1.75rem' }}>🏖️</span>
                                             <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', marginTop: '0.5rem' }}>Total Leaves Taken</div>
                                             <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#ef4444', marginTop: '0.25rem' }}>
                                                 {allHistoricalPayroll.reduce((acc, curr) => acc + (parseInt(curr.leavesTaken) || 0), 0)} Days
                                             </div>
                                         </div>
                                         <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '15px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                                            <span style={{ fontSize: '1.75rem' }}>🖼️</span>
+                                            <span style={{ fontSize: '1.75rem' }}>📈</span>
                                             <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', marginTop: '0.5rem' }}>Salary Hikes Logged</div>
                                             <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#10b981', marginTop: '0.25rem' }}>
                                                 {staffList.reduce((acc, curr) => acc + (curr.salaryHistory ? curr.salaryHistory.length - 1 : 0), 0)} Processed
                                             </div>
                                         </div>
                                         <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '15px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                                            <span style={{ fontSize: '1.75rem' }}>🖼️</span>
+                                            <span style={{ fontSize: '1.75rem' }}>💸</span>
                                             <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', marginTop: '0.5rem' }}>Total Disbursed</div>
                                             <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#6366f1', marginTop: '0.25rem' }}>
                                                 ₹{allHistoricalPayroll.reduce((acc, curr) => acc + (parseFloat(curr.netSalaryPaid) || 0), 0).toLocaleString('en-IN')}
@@ -3852,7 +3539,7 @@ const AdminDashboard = () => {
                                                         {selectedHrTab === 'salary' && (
                                                             <>
                                                                 <td style={{ padding: '1rem', fontSize: '0.9rem' }}>
-                                                                    {hasBankDetails ? <span style={{ color: '#475569' }}>{staff.bankName}</span> : <span style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 'bold' }}>âš ï¸ Missing Bank Details</span>}
+                                                                    {hasBankDetails ? <span style={{ color: '#475569' }}>{staff.bankName}</span> : <span style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 'bold' }}>⚠️ Missing Bank Details</span>}
                                                                 </td>
                                                                 <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>{staff.accountNumber || '-'}</td>
                                                                 <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>{staff.ifscCode || '-'}</td>
@@ -4571,7 +4258,7 @@ const AdminDashboard = () => {
 
                                             <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', padding: '1.25rem' }}>
                                                 <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1e293b', textTransform: 'uppercase', marginBottom: '0.8rem', letterSpacing: '0.5px' }}>
-                                                    📄 Documents
+                                                    📁 Documents
                                                 </h3>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem' }}>
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -5036,28 +4723,28 @@ const AdminDashboard = () => {
                                         
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', width: '100%' }}>
                                             <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.2rem' }}>
-                                                <div style={{ background: '#dcfce7', width: '48px', height: '48px', borderRadius: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>📍</div>
+                                                <div style={{ background: '#dcfce7', width: '48px', height: '48px', borderRadius: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>💰</div>
                                                 <div>
                                                     <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Total Paid Out ({payrollMonth})</div>
                                                     <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#15803d', marginTop: '2px' }}>₹{totalPaidAmount.toLocaleString('en-IN')}</div>
                                                 </div>
                                             </div>
                                             <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.2rem' }}>
-                                                <div style={{ background: '#fef3c7', width: '48px', height: '48px', borderRadius: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>📍</div>
+                                                <div style={{ background: '#fef3c7', width: '48px', height: '48px', borderRadius: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>⏳</div>
                                                 <div>
                                                     <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Pending Payout</div>
                                                     <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#d97706', marginTop: '2px' }}>₹{totalPendingAmount.toLocaleString('en-IN')}</div>
                                                 </div>
                                             </div>
                                             <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.2rem' }}>
-                                                <div style={{ background: '#e0f2fe', width: '48px', height: '48px', borderRadius: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>📍</div>
+                                                <div style={{ background: '#e0f2fe', width: '48px', height: '48px', borderRadius: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>👥</div>
                                                 <div>
                                                     <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Staff Count</div>
                                                     <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#0369a1', marginTop: '2px' }}>{outletFilteredStaff.length} Employees</div>
                                                 </div>
                                             </div>
                                             <div className={styles.card} style={{ border: '1px solid #e2e8f0', boxShadow: 'none', display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.2rem' }}>
-                                                <div style={{ background: '#fae8ff', width: '48px', height: '48px', borderRadius: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>📍</div>
+                                                <div style={{ background: '#fae8ff', width: '48px', height: '48px', borderRadius: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>✅</div>
                                                 <div>
                                                     <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Paid Count</div>
                                                     <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#a21caf', marginTop: '2px' }}>{paidCount} / {outletFilteredStaff.length} Paid</div>
@@ -5171,7 +4858,7 @@ const AdminDashboard = () => {
                                                                         )}
                                                                     </td>
                                                                     <td style={{ padding: '1rem', color: '#10b981', fontWeight: '600', fontSize: '0.9rem' }}>
-                                                                        {isDailyWage ? <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>🖼️</span> : `₹${displayBonus.toLocaleString('en-IN')}`}
+                                                                        {isDailyWage ? <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>—</span> : `₹${displayBonus.toLocaleString('en-IN')}`}
                                                                     </td>
                                                                     <td style={{ padding: '1rem', color: '#1e293b', fontWeight: '800', fontSize: '0.95rem' }}>
                                                                         ₹{displayNet.toLocaleString('en-IN')}
@@ -5213,7 +4900,7 @@ const AdminDashboard = () => {
                                         <div style={{ display: 'grid', gap: '1.25rem' }}>
                                             <div className={styles.card} style={{ padding: '1.25rem', border: '1px solid #e2e8f0', boxShadow: 'none', background: '#f8fafc' }}>
                                                 <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#1e293b', textTransform: 'uppercase', marginBottom: '0.8rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    â„¹ï¸ KPI & Salary Formula
+                                                    ℹ️ KPI & Salary Formula
                                                 </h3>
                                                 <div style={{ fontSize: '0.82rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '8px', lineHeight: '1.45' }}>
                                                     <div>
@@ -5254,9 +4941,9 @@ const AdminDashboard = () => {
                     })()
                 }
 
-            {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            {/* ══════════════════════════════════════════════════════════
                 VENDORS TAB
-            â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+            ══════════════════════════════════════════════════════════ */}
             {activeTab === 'vendors' && (() => {
                 const VENDOR_CATEGORIES = [
                     'Dairy & Milk', 'Eggs', 'Fruits & Vegetables', 'Dry Fruits & Nuts',
@@ -5289,7 +4976,7 @@ const AdminDashboard = () => {
                         <div style={{ background: 'white', borderRadius: '20px', padding: '2rem', border: '1px solid #e2e8f0', marginBottom: '1.5rem', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                                 <h3 style={{ margin: 0, fontWeight: '800', color: '#0f172a' }}>{title}</h3>
-                                <button onClick={onCancel} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#94a3b8' }}>🗑️</button>
+                                <button onClick={onCancel} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#94a3b8' }}>×</button>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                                 {[['Vendor Name *', 'name', 'text', 'e.g. Suresh Dairy'],
@@ -5354,7 +5041,7 @@ const AdminDashboard = () => {
                                                 <input type="number" placeholder="₹ Price" value={item.price} onChange={e => updateItem(i, 'price', e.target.value)}
                                                     style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }} />
                                                 <button onClick={() => removeItem(i)}
-                                                    style={{ background: '#fee2e2', border: 'none', borderRadius: '8px', padding: '8px 10px', cursor: 'pointer', color: '#ef4444', fontWeight: '900', fontSize: '1rem' }}>🗑️</button>
+                                                    style={{ background: '#fee2e2', border: 'none', borderRadius: '8px', padding: '8px 10px', cursor: 'pointer', color: '#ef4444', fontWeight: '900', fontSize: '1rem' }}>×</button>
                                             </div>
                                         ))}
                                     </div>
@@ -5456,7 +5143,7 @@ const AdminDashboard = () => {
                         {editingVendor && (
                             <VendorForm data={editingVendor} setData={setEditingVendor}
                                 onSave={handleUpdateVendor} onCancel={() => setEditingVendor(null)}
-                                title="âœï¸ Edit Vendor" />
+                                title="✏️ Edit Vendor" />
                         )}
                         <div style={{ display: 'flex', gap: '10px', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
                             <input type="text" placeholder="🔍 Search vendors..." value={vendorSearchQuery} onChange={e => setVendorSearchQuery(e.target.value)}
@@ -5470,7 +5157,7 @@ const AdminDashboard = () => {
                         </div>
                         {filteredVendors.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: '4rem 2rem', color: '#94a3b8' }}>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📍</div>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏪</div>
                                 <div style={{ fontWeight: '700', fontSize: '1.1rem', color: '#475569' }}>No vendors yet</div>
                                 <div style={{ fontSize: '0.85rem', marginTop: '4px' }}>Click "Add Vendor" to add your first supplier.</div>
                             </div>
@@ -5517,9 +5204,9 @@ const AdminDashboard = () => {
                 );
             })()}
 
-            {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            {/* ══════════════════════════════════════════════════════════
                 PURCHASES TAB (Admin read-all view)
-            â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+            ══════════════════════════════════════════════════════════ */}
             {activeTab === 'purchases' && (() => {
                 const CATEGORIES = [
                     'Dairy & Milk', 'Eggs', 'Fruits & Vegetables', 'Dry Fruits & Nuts',
@@ -5904,7 +5591,7 @@ const AdminDashboard = () => {
                                         <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>
                                             Purchaser (Staff) 
                                             {purchaserType === 'select' ? (
-                                                <span onClick={() => { setPurchaserType('manual'); setNewPurchase({ ...newPurchase, purchaserName: '' }); }} style={{ marginLeft: '8px', color: '#0ea5e9', cursor: 'pointer', textTransform: 'none', fontWeight: 'bold' }}>[âœï¸ Enter Manual]</span>
+                                                <span onClick={() => { setPurchaserType('manual'); setNewPurchase({ ...newPurchase, purchaserName: '' }); }} style={{ marginLeft: '8px', color: '#0ea5e9', cursor: 'pointer', textTransform: 'none', fontWeight: 'bold' }}>[✏️ Enter Manual]</span>
                                             ) : (
                                                 <span onClick={() => { setPurchaserType('select'); setNewPurchase({ ...newPurchase, purchaserName: user.name }); }} style={{ marginLeft: '8px', color: '#0ea5e9', cursor: 'pointer', textTransform: 'none', fontWeight: 'bold' }}>[📋 Choose Staff]</span>
                                             )}
@@ -5969,7 +5656,7 @@ const AdminDashboard = () => {
                         {/* Edit Purchase Modal */}
                         {editingPurchase && (
                             <div style={{ background: '#fef3c7', borderRadius: '20px', padding: '1.5rem', border: '1px solid #fde68a', marginBottom: '1.5rem', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-                                <h3 style={{ margin: '0 0 1rem 0', fontWeight: '800', color: '#b45309' }}>âœï¸ Edit Purchase Details</h3>
+                                <h3 style={{ margin: '0 0 1rem 0', fontWeight: '800', color: '#b45309' }}>✏️ Edit Purchase Details</h3>
                                 <form onSubmit={handleUpdatePurchase} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'end' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>Date</label>
@@ -6005,7 +5692,7 @@ const AdminDashboard = () => {
                                         <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', marginBottom: '6px' }}>
                                             Purchaser (Staff) 
                                             {editPurchaserType === 'select' ? (
-                                                <span onClick={() => { setEditPurchaserType('manual'); setEditingPurchase({ ...editingPurchase, purchaserName: '' }); }} style={{ marginLeft: '8px', color: '#b45309', cursor: 'pointer', textTransform: 'none', fontWeight: 'bold' }}>[âœï¸ Enter Manual]</span>
+                                                <span onClick={() => { setEditPurchaserType('manual'); setEditingPurchase({ ...editingPurchase, purchaserName: '' }); }} style={{ marginLeft: '8px', color: '#b45309', cursor: 'pointer', textTransform: 'none', fontWeight: 'bold' }}>[✏️ Enter Manual]</span>
                                             ) : (
                                                 <span onClick={() => { setEditPurchaserType('select'); setEditingPurchase({ ...editingPurchase, purchaserName: user.name }); }} style={{ marginLeft: '8px', color: '#b45309', cursor: 'pointer', textTransform: 'none', fontWeight: 'bold' }}>[📋 Choose Staff]</span>
                                             )}
@@ -6073,10 +5760,10 @@ const AdminDashboard = () => {
                         {/* Aggregate Spend Stats */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                             {[
-                                { label: "Today's Total", value: `₹${todayTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#0ea5e9', icon: '🏦' },
-                                { label: 'Period Total', value: `₹${periodTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#10b981', icon: '🏦' },
-                                { label: 'Cash Payments', value: `₹${cashTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#f59e0b', icon: '🏦' },
-                                { label: 'GPay / Digital', value: `₹${gpayTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#8b5cf6', icon: '🏦' },
+                                { label: "Today's Total", value: `₹${todayTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#0ea5e9', icon: '📅' },
+                                { label: 'Period Total', value: `₹${periodTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#10b981', icon: '💰' },
+                                { label: 'Cash Payments', value: `₹${cashTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#f59e0b', icon: '💵' },
+                                { label: 'GPay / Digital', value: `₹${gpayTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#8b5cf6', icon: '📱' },
                             ].map((s, i) => (
                                 <div key={i} style={{ background: 'white', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '1.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                                     <div style={{ fontSize: '1.4rem', marginBottom: '6px' }}>{s.icon}</div>
@@ -6147,7 +5834,7 @@ const AdminDashboard = () => {
                         {/* List View depending on Period selection */}
                         {filteredPurchases.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: '4rem 2rem', color: '#94a3b8', background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📍</div>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
                                 <div style={{ fontWeight: '700', fontSize: '1.1rem', color: '#475569' }}>No purchase entries found</div>
                                 <div style={{ fontSize: '0.85rem', marginTop: '4px' }}>Entries logged for {currentFilterLoc} will appear here.</div>
                             </div>
@@ -6206,7 +5893,7 @@ const AdminDashboard = () => {
                                         {/* Group Header */}
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '12px 20px', borderBottom: '1px solid #e2e8f0' }}>
                                             <span style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.92rem' }}>
-                                                {purchaseFilterPeriod === 'daily' ? `📅 ${group.date}` : `📍 ${group.label}`}
+                                                {purchaseFilterPeriod === 'daily' ? `📅 ${group.date}` : `📁 ${group.label}`}
                                             </span>
                                             <span style={{ color: '#10b981', fontWeight: '900', fontSize: '1rem' }}>
                                                 Total spent: ₹{group.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -6251,9 +5938,9 @@ const AdminDashboard = () => {
                 );
             })()}
 
-            {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            {/* ══════════════════════════════════════════════════════════
                 FOOD COSTING ERP TAB (raw materials, bundle items, final recipe costings)
-            â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+            ══════════════════════════════════════════════════════════ */}
             {activeTab === 'costing' && (() => {
                 const CATEGORIES = [
                     'Dairy & Milk', 'Eggs', 'Fruits & Vegetables', 'Dry Fruits & Nuts',
@@ -6387,14 +6074,13 @@ const AdminDashboard = () => {
                     }
 
                     // Kitchen Overhead cost calculation
-                    const recipeKitchen = kitchens.find(k => k.id === (recipe.kitchenId || selectedOverheadKitchenId));
-                    const totalKitchenFixedCost = recipeKitchen ? (recipeKitchen.fixedCosts || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) : 0;
-                    const fixedCostPerPiece = parseFloat(monthlyPiecesSold) > 0 ? (totalKitchenFixedCost / parseFloat(monthlyPiecesSold)) : 0;
+                    const chosenOutlet = runningFranchises.find(o => o.id === selectedOverheadOutletId);
+                    const totalOutletFixedCost = chosenOutlet ? (chosenOutlet.fixedCosts || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) : 0;
+                    const fixedCostPerPiece = parseFloat(monthlyPiecesSold) > 0 ? (totalOutletFixedCost / parseFloat(monthlyPiecesSold)) : 0;
 
                     const unitIngCost = ingCost;
                     const unitPkgCost = pkgCost;
-                    // Manual overhead is used only if no kitchen is matched
-                    const unitOverheadCost = (!recipeKitchen && batch > 0) ? (overhead / batch) : 0;
+                    const unitOverheadCost = batch > 0 ? (overhead / batch) : 0;
                     const totalUnitCost = unitIngCost + unitPkgCost + unitOverheadCost + fixedCostPerPiece + toppingCost;
 
                     return {
@@ -6410,7 +6096,7 @@ const AdminDashboard = () => {
                 const handleExportRecipeCosts = () => {
                     try {
                         let csvContent = "data:text/csv;charset=utf-8,";
-                        csvContent += "Product Name,Variant,Base Ingredients Cost,Topping Cost,Packaging Cost,Batch Overhead,Kitchen Fixed Cost,Total Unit Cost,Retail Price,Profit (Rs),Margin (%)\r\n";
+                        csvContent += "Product Name,Variant,Raw Ingredients Cost (Base),Packaging Cost,Batch Overhead,Kitchen Fixed Cost,Total Unit Cost,Retail Price,Profit (Rs),Margin (%)\r\n";
                         
                         products.forEach(prod => {
                             const currentRecipe = recipesList.find(r => r.id === prod.id);
@@ -6418,7 +6104,7 @@ const AdminDashboard = () => {
                             const baseProfit = (parseFloat(prod.price) || 0) - baseAnalysis.totalUnitCost;
                             const baseMargin = (parseFloat(prod.price) || 0) > 0 ? (baseProfit / (parseFloat(prod.price) || 0)) * 100 : 0;
                             
-                            csvContent += `"${prod.name}","Base","${baseAnalysis.ingredientsCost.toFixed(2)}","0.00","${baseAnalysis.packagingCost.toFixed(2)}","${baseAnalysis.overheadCost.toFixed(2)}","${baseAnalysis.fixedCostPerPiece.toFixed(2)}","${baseAnalysis.totalUnitCost.toFixed(2)}","${(parseFloat(prod.price) || 0).toFixed(2)}","${baseProfit.toFixed(2)}","${baseMargin.toFixed(1)}%"\r\n`;
+                            csvContent += `"${prod.name}","Base","${baseAnalysis.ingredientsCost.toFixed(2)}","${baseAnalysis.packagingCost.toFixed(2)}","${baseAnalysis.overheadCost.toFixed(2)}","${baseAnalysis.fixedCostPerPiece.toFixed(2)}","${baseAnalysis.totalUnitCost.toFixed(2)}","${(parseFloat(prod.price) || 0).toFixed(2)}","${baseProfit.toFixed(2)}","${baseMargin.toFixed(1)}%"\r\n`;
                             
                             if (currentRecipe?.toppings && currentRecipe.toppings.length > 0) {
                                 currentRecipe.toppings.forEach((top, tIdx) => {
@@ -6426,7 +6112,7 @@ const AdminDashboard = () => {
                                     const topProfit = (parseFloat(prod.price) || 0) - topAnalysis.totalUnitCost;
                                     const topMargin = (parseFloat(prod.price) || 0) > 0 ? (topProfit / (parseFloat(prod.price) || 0)) * 100 : 0;
                                     
-                                    csvContent += `"${prod.name}","+ Topping: ${top.name}","${baseAnalysis.ingredientsCost.toFixed(2)}","${(topAnalysis.toppingCost || 0).toFixed(2)}","${topAnalysis.packagingCost.toFixed(2)}","${topAnalysis.overheadCost.toFixed(2)}","${topAnalysis.fixedCostPerPiece.toFixed(2)}","${topAnalysis.totalUnitCost.toFixed(2)}","${(parseFloat(prod.price) || 0).toFixed(2)}","${topProfit.toFixed(2)}","${topMargin.toFixed(1)}%"\r\n`;
+                                    csvContent += `"${prod.name}","+ Topping: ${top.name}","${topAnalysis.ingredientsCost.toFixed(2)}","${topAnalysis.packagingCost.toFixed(2)}","${topAnalysis.overheadCost.toFixed(2)}","${topAnalysis.fixedCostPerPiece.toFixed(2)}","${topAnalysis.totalUnitCost.toFixed(2)}","${(parseFloat(prod.price) || 0).toFixed(2)}","${topProfit.toFixed(2)}","${topMargin.toFixed(1)}%"\r\n`;
                                 });
                             }
                         });
@@ -6549,7 +6235,6 @@ const AdminDashboard = () => {
                             packagingCost: parseFloat(editingRecipe.packagingCost) || 0,
                             batchSize: parseFloat(editingRecipe.batchSize) || 1,
                             overheadAllocation: parseFloat(editingRecipe.overheadAllocation) || 0,
-                            kitchenId: editingRecipe.kitchenId || '',
                             toppings: editingRecipe.toppings || [],
                             updatedAt: new Date().toISOString()
                         };
@@ -6584,7 +6269,7 @@ const AdminDashboard = () => {
                             {[
                                 { id: 'raw', label: '🌾 Raw Materials' },
                                 { id: 'bundle', label: '📦 Prep Bundles' },
-                                { id: 'final', label: '🍲 Product Costs' },
+                                { id: 'final', label: '🍨 Product Costs' },
                                 { id: 'sop', label: '📖 SOP Manual' }
                             ].map(tab => (
                                 <button key={tab.id} onClick={() => setCostingSubTab(tab.id)}
@@ -6785,7 +6470,7 @@ const AdminDashboard = () => {
 
                                 {showAddBundleForm && (
                                     <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.25rem', marginBottom: '1.5rem' }}>
-                                        <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>{editingBundle ? 'âœï¸ Edit Prep Sub-Recipe' : '➕ Add New Prep Sub-Recipe'}</h4>
+                                        <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>{editingBundle ? '✏️ Edit Prep Sub-Recipe' : '➕ Add New Prep Sub-Recipe'}</h4>
                                         <form onSubmit={handleSaveBundleItem} style={{ display: 'grid', gap: '1rem' }}>
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                                                 <div>
@@ -6816,7 +6501,7 @@ const AdminDashboard = () => {
                                             {/* Product Usage & Yield Mapping */}
                                             <div style={{ border: '1px solid #bae6fd', borderRadius: '12px', padding: '1rem', background: '#f0f9ff' }}>
                                                 <h5 style={{ margin: '0 0 4px 0', color: '#0369a1', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    🧠 Product Usage & Yield Mapping
+                                                    🧁 Product Usage & Yield Mapping
                                                 </h5>
                                                 <p style={{ margin: '0 0 12px 0', fontSize: '0.78rem', color: '#0369a1' }}>
                                                     Link this prep sub-recipe to final menu products and specify how much goes into each portion. This automatically updates their recipes.
@@ -6894,21 +6579,6 @@ const AdminDashboard = () => {
                                                                 setNewBundle({ ...newBundle, ingredients: updated });
                                                             }} style={{ flex: 1, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
                                                             <span style={{ fontSize: '0.85rem', color: '#64748b', minWidth: '30px' }}>{raw?.unit || ''}</span>
-                                                            
-                                                            {raw?.unit === 'pcs' && (
-                                                                <>
-                                                                    <input type="number" step="0.01" placeholder="g/pc" title="Grams per piece" value={ing.gramsPerPiece || ''} onChange={e => {
-                                                                        const updated = [...newBundle.ingredients];
-                                                                        updated[idx].gramsPerPiece = e.target.value;
-                                                                        setNewBundle({ ...newBundle, ingredients: updated });
-                                                                    }} style={{ width: '80px', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
-                                                                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>g/pc</span>
-                                                                </>
-                                                            )}
-
-                                                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0369a1', minWidth: '50px' }}>
-                                                                {raw && ing.quantity ? `₹${(getRawMaterialUnitPrice(raw) * parseFloat(ing.quantity)).toFixed(2)}` : ''}
-                                                            </span>
                                                             <button type="button" onClick={() => {
                                                                 setNewBundle({ ...newBundle, ingredients: newBundle.ingredients.filter((_, i) => i !== idx) });
                                                             }} style={{ border: 'none', background: '#fee2e2', color: '#ef4444', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>Delete</button>
@@ -6916,7 +6586,7 @@ const AdminDashboard = () => {
                                                     );
                                                 })}
                                                 <button type="button" onClick={() => {
-                                                    setNewBundle({ ...newBundle, ingredients: [...newBundle.ingredients, { materialId: '', quantity: '', gramsPerPiece: '' }] });
+                                                    setNewBundle({ ...newBundle, ingredients: [...newBundle.ingredients, { materialId: '', quantity: '' }] });
                                                 }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', color: '#475569', fontSize: '0.8rem', marginTop: '5px' }}>
                                                     + Add Ingredient
                                                 </button>
@@ -6979,7 +6649,7 @@ const AdminDashboard = () => {
 
                                                     {usedProducts.length > 0 && (
                                                         <p style={{ margin: '0 0 10px', fontSize: '0.72rem', color: '#0ea5e9', fontWeight: '700', background: '#f0f9ff', padding: '4px 8px', borderRadius: '6px' }}>
-                                                            🧠 Used in: {usedProducts.map(p => p.name).join(', ')}
+                                                            🧁 Used in: {usedProducts.map(p => p.name).join(', ')}
                                                         </p>
                                                     )}
                                                     
@@ -7016,26 +6686,21 @@ const AdminDashboard = () => {
                         {/* SUB TAB 3: PRODUCT COSTINGS & MARKUPS */}
                         {costingSubTab === 'final' && (
                             <div>
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <h3 style={{ margin: 0, color: '#1e293b', fontWeight: '800' }}>Final Menu Product Cost Analysis</h3>
+                                </div>
+
                                 {selectedRecipeProduct && (
                                     <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #0ea5e9', padding: '1.25rem', marginBottom: '1.5rem' }}>
-                                        <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontWeight: '800' }}>🧠 Configure Recipe for: {selectedRecipeProduct.name}</h4>
+                                        <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontWeight: '800' }}>🧁 Configure Recipe for: {selectedRecipeProduct.name}</h4>
                                         <form onSubmit={handleSaveProductRecipe} style={{ display: 'grid', gap: '1.2rem' }}>
                                             
                                             {/* Overhead Costs & Yield */}
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', background: '#f0f9ff', padding: '16px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
                                                 <div>
-                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#0369a1', marginBottom: '4px' }}>Allocated Kitchen</label>
-                                                    <select value={editingRecipe.kitchenId || ''} onChange={e => setEditingRecipe({ ...editingRecipe, kitchenId: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }}>
-                                                        <option value="">-- Manual Overhead Allocation --</option>
-                                                        {kitchens.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
-                                                    </select>
-                                                </div>
-                                                {(!editingRecipe.kitchenId) && (
-                                                <div>
-                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#0369a1', marginBottom: '4px' }}>Manual Overhead (₹/Batch)</label>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#0369a1', marginBottom: '4px' }}>Monthly Cost Allocated (₹)</label>
                                                     <input type="number" step="0.01" value={editingRecipe.overheadAllocation} onChange={e => setEditingRecipe({ ...editingRecipe, overheadAllocation: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }} />
                                                 </div>
-                                                )}
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#0369a1', marginBottom: '4px' }}>Batch Yield (Qty)</label>
                                                     <input type="number" value={editingRecipe.batchSize} onChange={e => setEditingRecipe({ ...editingRecipe, batchSize: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }} />
@@ -7087,29 +6752,17 @@ const AdminDashboard = () => {
                                                                 setEditingRecipe({ ...editingRecipe, ingredients: updated });
                                                             }} style={{ flex: 1.5, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
                                                             <span style={{ fontSize: '0.85rem', color: '#64748b', minWidth: '30px' }}>{unitName || ''}</span>
-                                                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0369a1', minWidth: '50px' }}>
-                                                                {matchItem ? `₹${(parseFloat(ing.quantity) ? ((ing.type === 'raw' ? getRawMaterialUnitPrice(matchItem) : getBundleItemUnitCost(matchItem)) * parseFloat(ing.quantity)) : 0).toFixed(2)}` : '₹0.00'}
-                                                            </span>
                                                             <button type="button" onClick={() => {
                                                                 setEditingRecipe({ ...editingRecipe, ingredients: editingRecipe.ingredients.filter((_, i) => i !== idx) });
                                                             }} style={{ border: 'none', background: '#fee2e2', color: '#ef4444', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' }}>Delete</button>
                                                         </div>
                                                     );
                                                 })}
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <button type="button" onClick={() => {
-                                                        setEditingRecipe({ ...editingRecipe, ingredients: [...editingRecipe.ingredients, { type: 'raw', id: '', quantity: '' }] });
-                                                    }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', color: '#475569', fontSize: '0.8rem', marginTop: '5px' }}>
-                                                        + Add Ingredient
-                                                    </button>
-                                                    <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.9rem' }}>
-                                                        Subtotal: ₹{ (editingRecipe.ingredients || []).reduce((acc, i) => {
-                                                            const match = i.type === 'raw' ? rawMaterials.find(r => r.id === i.id) : bundleItems.find(b => b.id === i.id);
-                                                            if(!match || !parseFloat(i.quantity)) return acc;
-                                                            return acc + (i.type === 'raw' ? getRawMaterialUnitPrice(match) : getBundleItemUnitCost(match)) * parseFloat(i.quantity);
-                                                        }, 0).toFixed(2) }
-                                                    </div>
-                                                </div>
+                                                <button type="button" onClick={() => {
+                                                    setEditingRecipe({ ...editingRecipe, ingredients: [...editingRecipe.ingredients, { type: 'raw', id: '', quantity: '' }] });
+                                                }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', color: '#475569', fontSize: '0.8rem', marginTop: '5px' }}>
+                                                    + Add Ingredient
+                                                </button>
                                             </div>
 
                                             {/* Packaging Materials Mapping */}
@@ -7209,14 +6862,11 @@ const AdminDashboard = () => {
                                                                             setEditingRecipe({ ...editingRecipe, toppings: updated });
                                                                         }} style={{ width: '80px', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem' }} />
                                                                         <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{unitName || ''}</span>
-                                                                        <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#0369a1', minWidth: '40px' }}>
-                                                                            {matchItem ? `₹${(parseFloat(ing.quantity) ? ((ing.type === 'raw' ? getRawMaterialUnitPrice(matchItem) : getBundleItemUnitCost(matchItem)) * parseFloat(ing.quantity)) : 0).toFixed(2)}` : '₹0.00'}
-                                                                        </span>
                                                                         <button type="button" onClick={() => {
                                                                             const updated = [...editingRecipe.toppings];
                                                                             updated[tIdx].ingredients = updated[tIdx].ingredients.filter((_, i) => i !== ingIdx);
                                                                             setEditingRecipe({ ...editingRecipe, toppings: updated });
-                                                                        }} style={{ border: 'none', background: 'transparent', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer' }}>🗑️</button>
+                                                                        }} style={{ border: 'none', background: 'transparent', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer' }}>✕</button>
                                                                     </div>
                                                                 );
                                                             })}
@@ -7237,26 +6887,9 @@ const AdminDashboard = () => {
                                                 </button>
                                             </div>
 
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-                                                <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a', background: '#e0f2fe', padding: '8px 16px', borderRadius: '8px' }}>
-                                                    Total Cost: ₹{ (
-                                                        (editingRecipe.ingredients || []).reduce((acc, i) => {
-                                                            const match = i.type === 'raw' ? rawMaterials.find(r => r.id === i.id) : bundleItems.find(b => b.id === i.id);
-                                                            if(!match || !parseFloat(i.quantity)) return acc;
-                                                            return acc + (i.type === 'raw' ? getRawMaterialUnitPrice(match) : getBundleItemUnitCost(match)) * parseFloat(i.quantity);
-                                                        }, 0) +
-                                                        (editingRecipe.packagingIngredients || []).reduce((acc, i) => {
-                                                            const raw = rawMaterials.find(r => r.id === i.materialId);
-                                                            if(!raw || !parseFloat(i.quantity)) return acc;
-                                                            return acc + getRawMaterialUnitPrice(raw) * parseFloat(i.quantity);
-                                                        }, 0) + 
-                                                        parseFloat(editingRecipe.overheadAllocation || 0)
-                                                    ).toFixed(2) }
-                                                </div>
-                                                <div style={{ display: 'flex', gap: '8px' }}>
-                                                    <button type="submit" style={{ background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 24px', fontWeight: '700', cursor: 'pointer' }}>💾 Save Costing Configuration</button>
-                                                    <button type="button" onClick={() => setSelectedRecipeProduct(null)} style={{ background: 'white', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 24px', fontWeight: '700', cursor: 'pointer' }}>Cancel</button>
-                                                </div>
+                                            <div style={{ display: 'flex', gap: '8px', alignSelf: 'flex-end' }}>
+                                                <button type="submit" style={{ background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 24px', fontWeight: '700', cursor: 'pointer' }}>💾 Save Costing Configuration</button>
+                                                <button type="button" onClick={() => setSelectedRecipeProduct(null)} style={{ background: 'white', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 24px', fontWeight: '700', cursor: 'pointer' }}>Cancel</button>
                                             </div>
                                         </form>
                                     </div>
@@ -7264,21 +6897,21 @@ const AdminDashboard = () => {
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '10px' }}>
                                     <h3 style={{ margin: 0, color: '#1e293b', fontWeight: '800' }}>Final Menu Product Cost Analysis</h3>
-                                    <div style={{ display: 'flex', gap: '10px' }}>
-
-                                        <button type="button" onClick={handleExportRecipeCosts} style={{ background: '#10b981', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            📊 Export Pricing CSV
-                                        </button>
-                                    </div>
+                                    <button type="button" onClick={handleExportRecipeCosts} style={{ background: '#10b981', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        📊 Export Pricing CSV
+                                    </button>
                                 </div>
 
                                 {/* Kitchen Fixed Cost Overhead Selector */}
                                 <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '1.5rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>🏭 Select Kitchen Hub</label>
-                                        <select value={selectedOverheadKitchenId} onChange={e => setSelectedOverheadKitchenId(e.target.value)} style={{ padding: '8px 12px', background: 'white', borderRadius: '8px', fontWeight: '700', fontSize: '0.9rem', color: '#334155', border: '1px solid #cbd5e1' }}>
-                                            <option value="">-- Select Kitchen to View Overheads --</option>
-                                            {kitchens.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
+                                        <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>🏪 Select Kitchen/Outlet for Fixed Costs</label>
+                                        <select value={selectedOverheadOutletId} onChange={e => setSelectedOverheadOutletId(e.target.value)} style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white', minWidth: '220px', fontWeight: '700', color: '#0f172a' }}>
+                                            <option value="">-- No Kitchen Selected (₹0) --</option>
+                                            {runningFranchises.map(o => {
+                                                const totalFixed = (o.fixedCosts || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+                                                return <option key={o.id} value={o.id}>{o.outletName} (Monthly Fixed: ₹{totalFixed.toFixed(0)})</option>;
+                                            })}
                                         </select>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -7286,8 +6919,8 @@ const AdminDashboard = () => {
                                         <input type="number" value={monthlyPiecesSold} onChange={e => setMonthlyPiecesSold(e.target.value)} style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white', maxWidth: '180px', fontWeight: '700' }} />
                                     </div>
                                     {(() => {
-                                        const selectedK = kitchens.find(k => k.id === selectedOverheadKitchenId);
-                                        const totalFixed = selectedK ? (selectedK.fixedCosts || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) : 0;
+                                        const chosen = runningFranchises.find(o => o.id === selectedOverheadOutletId);
+                                        const totalFixed = chosen ? (chosen.fixedCosts || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) : 0;
                                         const perPiece = parseFloat(monthlyPiecesSold) > 0 ? (totalFixed / parseFloat(monthlyPiecesSold)) : 0;
                                         return (
                                             <div style={{ marginLeft: 'auto', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '10px 16px', borderRadius: '12px', display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
@@ -7296,7 +6929,7 @@ const AdminDashboard = () => {
                                                     <strong style={{ fontSize: '1.1rem', color: '#047857' }}>₹{totalFixed.toFixed(2)}</strong>
                                                 </div>
                                                 <div style={{ borderLeft: '1px solid #a7f3d0', paddingLeft: '1.5rem' }}>
-                                                    <span style={{ fontSize: '0.68rem', color: '#065f46', textTransform: 'uppercase', display: 'block', fontWeight: '800' }}>Kitchen Overhead Per Piece</span>
+                                                    <span style={{ fontSize: '0.68rem', color: '#065f46', textTransform: 'uppercase', display: 'block', fontWeight: '800' }}>Cost Per Piece</span>
                                                     <strong style={{ fontSize: '1.1rem', color: '#047857' }}>₹{perPiece.toFixed(2)}</strong>
                                                 </div>
                                             </div>
@@ -7403,7 +7036,6 @@ const AdminDashboard = () => {
                                                                         packagingCost: (currentRecipe?.packagingCost || 0).toString(),
                                                                         batchSize: (currentRecipe?.batchSize || 1).toString(),
                                                                         overheadAllocation: (currentRecipe?.overheadAllocation || 0).toString(),
-                                                                        kitchenId: currentRecipe?.kitchenId || '',
                                                                         toppings: recipeToppings
                                                                     });
                                                                 }} style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>
@@ -7418,188 +7050,6 @@ const AdminDashboard = () => {
                                             })}
                                         </tbody>
                                     </table>
-                                </div>
-                            </div>
-                        )}
-
-                        {costingSubTab === 'fixed' && (
-                            <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                    <h3 style={{ margin: 0, color: '#1e293b', fontWeight: '800' }}>Kitchen Fixed Costs</h3>
-                                    <button onClick={async () => {
-                                        const name = window.prompt("Enter new Kitchen Name (e.g. Indiranagar Central Kitchen):");
-                                        if(!name) return;
-                                        const city = window.prompt("Enter Kitchen City (e.g. Bengaluru):");
-                                        if(!city) return;
-                                        try {
-                                            const newK = await db.addKitchen({ name, city, fixedCosts: [] });
-                                            setKitchens([...kitchens, newK]);
-                                            showToast("Kitchen added successfully!");
-                                        } catch(e) {
-                                            showToast("Error adding kitchen", "error");
-                                        }
-                                    }} style={{ background: '#f59e0b', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem' }}>
-                                        + Add New Kitchen
-                                    </button>
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                                    {kitchens.map(kitchen => (
-                                        <div key={kitchen.id} style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                                <div>
-                                                    <h4 style={{ margin: '0', color: '#0f172a', fontSize: '1.1rem' }}>{kitchen.name}</h4>
-                                                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>📍 {kitchen.city}</span>
-                                                </div>
-                                                <button onClick={async () => {
-                                                    if(window.confirm(`Delete ${kitchen.name}?`)) {
-                                                        await db.deleteKitchen(kitchen.id);
-                                                        setKitchens(kitchens.filter(k => k.id !== kitchen.id));
-                                                        showToast("Kitchen deleted");
-                                                    }
-                                                }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>🗑️</button>
-                                            </div>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginBottom: '1rem' }}>
-                                                {(kitchen.fixedCosts || []).map((cost, idx) => (
-                                                    <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                                        <input type="text" placeholder="Expense (e.g. Rent)" value={cost.name} onChange={e => {
-                                                            const updated = kitchens.map(k => {
-                                                                if(k.id === kitchen.id) {
-                                                                    const updatedCosts = [...(k.fixedCosts || [])];
-                                                                    updatedCosts[idx].name = e.target.value;
-                                                                    return { ...k, fixedCosts: updatedCosts };
-                                                                }
-                                                                return k;
-                                                            });
-                                                            setKitchens(updated);
-                                                        }} style={{ flex: 2, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem' }} />
-                                                        
-                                                        <input type="number" placeholder="₹ Amount" value={cost.amount} onChange={e => {
-                                                            const updated = kitchens.map(k => {
-                                                                if(k.id === kitchen.id) {
-                                                                    const updatedCosts = [...(k.fixedCosts || [])];
-                                                                    updatedCosts[idx].amount = e.target.value;
-                                                                    return { ...k, fixedCosts: updatedCosts };
-                                                                }
-                                                                return k;
-                                                            });
-                                                            setKitchens(updated);
-                                                        }} style={{ flex: 1, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem' }} />
-                                                        
-                                                        <button type="button" onClick={() => {
-                                                            const updated = kitchens.map(k => {
-                                                                if(k.id === kitchen.id) {
-                                                                    const updatedCosts = (k.fixedCosts || []).filter((_, i) => i !== idx);
-                                                                    return { ...k, fixedCosts: updatedCosts };
-                                                                }
-                                                                return k;
-                                                            });
-                                                            setKitchens(updated);
-                                                        }} style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700' }}>🗑️</button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <button type="button" onClick={() => {
-                                                    const updated = kitchens.map(k => {
-                                                        if(k.id === kitchen.id) {
-                                                            return { ...k, fixedCosts: [...(k.fixedCosts || []), { name: '', amount: '' }] };
-                                                        }
-                                                        return k;
-                                                    });
-                                                    setKitchens(updated);
-                                                }} style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', padding: '6px 12px', borderRadius: '6px', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' }}>
-                                                    + Add Fixed Cost
-                                                </button>
-                                                
-                                                <button onClick={async () => {
-                                                    try {
-                                                        await db.updateKitchen(kitchen.id, kitchen);
-                                                        showToast(`${kitchen.name} costs saved!`);
-                                                    } catch(e) {
-                                                        showToast("Error saving kitchen costs", "error");
-                                                    }
-                                                }} style={{ background: '#0ea5e9', color: 'white', border: 'none', padding: '6px 16px', borderRadius: '6px', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' }}>
-                                                    💾 Save
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                                
-                                <h3 style={{ margin: '2rem 0 1rem 0', color: '#1e293b', fontWeight: '800' }}>Outlet Fixed Costs</h3>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
-                                    {runningFranchises.map(franchise => (
-                                        <div key={franchise.id} style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                                            <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontSize: '1rem' }}>{franchise.outletName}</h4>
-                                            
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginBottom: '1rem' }}>
-                                                {(franchise.fixedCosts || []).map((cost, idx) => (
-                                                    <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                                        <input type="text" placeholder="Expense (e.g. Rent)" value={cost.name} onChange={e => {
-                                                            const updatedFranchises = runningFranchises.map(f => {
-                                                                if(f.id === franchise.id) {
-                                                                    const updatedCosts = [...(f.fixedCosts || [])];
-                                                                    updatedCosts[idx].name = e.target.value;
-                                                                    return { ...f, fixedCosts: updatedCosts };
-                                                                }
-                                                                return f;
-                                                            });
-                                                            setRunningFranchises(updatedFranchises);
-                                                        }} style={{ flex: 2, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem' }} />
-                                                        
-                                                        <input type="number" placeholder="₹ Amount" value={cost.amount} onChange={e => {
-                                                            const updatedFranchises = runningFranchises.map(f => {
-                                                                if(f.id === franchise.id) {
-                                                                    const updatedCosts = [...(f.fixedCosts || [])];
-                                                                    updatedCosts[idx].amount = e.target.value;
-                                                                    return { ...f, fixedCosts: updatedCosts };
-                                                                }
-                                                                return f;
-                                                            });
-                                                            setRunningFranchises(updatedFranchises);
-                                                        }} style={{ flex: 1, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem' }} />
-                                                        
-                                                        <button type="button" onClick={() => {
-                                                            const updatedFranchises = runningFranchises.map(f => {
-                                                                if(f.id === franchise.id) {
-                                                                    const updatedCosts = (f.fixedCosts || []).filter((_, i) => i !== idx);
-                                                                    return { ...f, fixedCosts: updatedCosts };
-                                                                }
-                                                                return f;
-                                                            });
-                                                            setRunningFranchises(updatedFranchises);
-                                                        }} style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700' }}>🗑️</button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <button type="button" onClick={() => {
-                                                    const updatedFranchises = runningFranchises.map(f => {
-                                                        if(f.id === franchise.id) {
-                                                            return { ...f, fixedCosts: [...(f.fixedCosts || []), { name: '', amount: '' }] };
-                                                        }
-                                                        return f;
-                                                    });
-                                                    setRunningFranchises(updatedFranchises);
-                                                }} style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', padding: '6px 12px', borderRadius: '6px', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' }}>
-                                                    + Add Fixed Cost
-                                                </button>
-                                                
-                                                <button onClick={async () => {
-                                                    try {
-                                                        await db.updateFranchiseOutlet(franchise.id, franchise);
-                                                        showToast(`${franchise.outletName} costs saved!`);
-                                                    } catch(e) {
-                                                        showToast("Error saving outlet costs", "error");
-                                                    }
-                                                }} style={{ background: '#10b981', color: 'white', border: 'none', padding: '6px 16px', borderRadius: '6px', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' }}>
-                                                    💾 Save
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
                                 </div>
                             </div>
                         )}
@@ -7662,7 +7112,7 @@ const AdminDashboard = () => {
 
                                                 {usedProducts.length > 0 && (
                                                     <div style={{ marginBottom: '12px', fontSize: '0.72rem', color: '#0ea5e9', fontWeight: '700', background: '#f0f9ff', padding: '6px 10px', borderRadius: '8px', border: '1px solid #bae6fd' }}>
-                                                        🧠 Used in: {usedProducts.map(p => p.name).join(', ')}
+                                                        🧁 Used in: {usedProducts.map(p => p.name).join(', ')}
                                                     </div>
                                                 )}
 
@@ -8816,15 +8266,6 @@ const AdminDashboard = () => {
                                             <option value="Closed">Closed</option>
                                         </select>
                                     </div>
-                                    <div className={styles.formGroup}>
-                                        <label>Assigned Kitchen *</label>
-                                        <select value={newFranchiseOutlet.assignedKitchenId || ''} onChange={e => setNewFranchiseOutlet({ ...newFranchiseOutlet, assignedKitchenId: e.target.value })} className={styles.input} required>
-                                            <option value="">-- Select Central Kitchen --</option>
-                                            {kitchens.map(k => (
-                                                <option key={k.id} value={k.id}>{k.name} ({k.city})</option>
-                                            ))}
-                                        </select>
-                                    </div>
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
@@ -8972,15 +8413,6 @@ const AdminDashboard = () => {
                                             <option value="Running">Running</option>
                                             <option value="Under Construction">Under Construction</option>
                                             <option value="Closed">Closed</option>
-                                        </select>
-                                    </div>
-                                    <div className={styles.formGroup}>
-                                        <label>Assigned Kitchen *</label>
-                                        <select value={editingFranchiseOutlet.assignedKitchenId || ''} onChange={e => setEditingFranchiseOutlet({ ...editingFranchiseOutlet, assignedKitchenId: e.target.value })} className={styles.input} required>
-                                            <option value="">-- Select Central Kitchen --</option>
-                                            {kitchens.map(k => (
-                                                <option key={k.id} value={k.id}>{k.name} ({k.city})</option>
-                                            ))}
                                         </select>
                                     </div>
                                 </div>
@@ -9134,9 +8566,9 @@ const AdminDashboard = () => {
                                         </div>
                                         <p style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '4px', margin: 0 }}>
                                             {selectedDetailStaff.assignedOutlet ? `📍 Outlet: ${selectedDetailStaff.assignedOutlet}` : '💼 Head Office / Unassigned'}
-                                            <span style={{ margin: '0 8px' }}>🖼️</span>
+                                            <span style={{ margin: '0 8px' }}>•</span>
                                             Joined: {selectedDetailStaff.joinDate || 'N/A'}
-                                            <span style={{ margin: '0 8px' }}>🖼️</span>
+                                            <span style={{ margin: '0 8px' }}>•</span>
                                             Status: <strong style={{ color: selectedDetailStaff.status === 'Terminated' ? '#ef4444' : '#10b981' }}>{selectedDetailStaff.status}</strong>
                                         </p>
                                     </div>
@@ -9148,7 +8580,7 @@ const AdminDashboard = () => {
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                         <div style={{ background: '#fff1f2', border: '1px solid #ffe4e6', padding: '1.5rem', borderRadius: '15px' }}>
                                             <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#be123c', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 1rem 0' }}>
-                                                âš ï¸ Exit & Separation Record
+                                                ⚠️ Exit & Separation Record
                                             </h3>
                                             
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.9rem' }}>
@@ -9258,21 +8690,21 @@ const AdminDashboard = () => {
                                             <h4 style={{ color: '#475569', margin: '0 0 1rem 0', fontSize: '0.85rem', textTransform: 'uppercase', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>✅ Compliance Verification Status</h4>
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', textAlign: 'center' }}>
                                                 <div style={{ padding: '10px', borderRadius: '8px', background: selectedDetailStaff.aadhaarCollected ? '#dcfce7' : '#fee2e2', border: '1px solid #cbd5e1' }}>
-                                                    <span style={{ fontSize: '1.5rem', display: 'block' }}>🖼️</span>
+                                                    <span style={{ fontSize: '1.5rem', display: 'block' }}>🪪</span>
                                                     <strong style={{ fontSize: '0.8rem', color: selectedDetailStaff.aadhaarCollected ? '#15803d' : '#ef4444' }}>
-                                                        Aadhaar Card: {selectedDetailStaff.aadhaarCollected ? 'OK ✅' : 'MISSING âŒ'}
+                                                        Aadhaar Card: {selectedDetailStaff.aadhaarCollected ? 'OK ✅' : 'MISSING ❌'}
                                                     </strong>
                                                 </div>
                                                 <div style={{ padding: '10px', borderRadius: '8px', background: selectedDetailStaff.panCollected ? '#dcfce7' : '#fee2e2', border: '1px solid #cbd5e1' }}>
-                                                    <span style={{ fontSize: '1.5rem', display: 'block' }}>🖼️</span>
+                                                    <span style={{ fontSize: '1.5rem', display: 'block' }}>💳</span>
                                                     <strong style={{ fontSize: '0.8rem', color: selectedDetailStaff.panCollected ? '#15803d' : '#ef4444' }}>
-                                                        PAN Card: {selectedDetailStaff.panCollected ? 'OK ✅' : 'MISSING âŒ'}
+                                                        PAN Card: {selectedDetailStaff.panCollected ? 'OK ✅' : 'MISSING ❌'}
                                                     </strong>
                                                 </div>
                                                 <div style={{ padding: '10px', borderRadius: '8px', background: selectedDetailStaff.medicalCollected ? '#dcfce7' : '#fee2e2', border: '1px solid #cbd5e1' }}>
-                                                    <span style={{ fontSize: '1.5rem', display: 'block' }}>🖼️</span>
+                                                    <span style={{ fontSize: '1.5rem', display: 'block' }}>🩺</span>
                                                     <strong style={{ fontSize: '0.8rem', color: selectedDetailStaff.medicalCollected ? '#15803d' : '#ef4444' }}>
-                                                        Medical Certificate: {selectedDetailStaff.medicalCollected ? 'OK ✅' : 'MISSING âŒ'}
+                                                        Medical Certificate: {selectedDetailStaff.medicalCollected ? 'OK ✅' : 'MISSING ❌'}
                                                     </strong>
                                                 </div>
                                             </div>
@@ -9280,7 +8712,7 @@ const AdminDashboard = () => {
 
                                         <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
                                             <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.75rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
-                                                📄 Compliance Documents Download
+                                                📁 Compliance Documents Download
                                             </h3>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                                 {employeeDocs.length > 0 ? (
@@ -9561,7 +8993,7 @@ const AdminDashboard = () => {
                     fontWeight: '600', fontSize: '0.9rem',
                     animation: 'slideInRight 0.3s ease'
                 }}>
-                    <span style={{ fontSize: '1.2rem' }}>{toast.type === 'error' ? 'âŒ' : '✅'}</span>
+                    <span style={{ fontSize: '1.2rem' }}>{toast.type === 'error' ? '❌' : '✅'}</span>
                     {toast.msg}
                 </div>
             )}
@@ -9574,12 +9006,12 @@ const AdminDashboard = () => {
                         onClick={e => e.stopPropagation()}>
                         {/* Header */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
-                            <div style={{ width: 44, height: 44, borderRadius: '12px', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>📍</div>
+                            <div style={{ width: 44, height: 44, borderRadius: '12px', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>🔴</div>
                             <div>
                                 <div style={{ fontWeight: '800', fontSize: '1.1rem', color: '#0f172a' }}>Exit & Separation</div>
                                 <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>{termModal.staff?.fullName}</div>
                             </div>
-                            <button onClick={() => setTermModal(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#94a3b8', lineHeight: 1 }}>🗑️</button>
+                            <button onClick={() => setTermModal(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#94a3b8', lineHeight: 1 }}>×</button>
                         </div>
 
                         {/* Fields */}
@@ -9641,12 +9073,12 @@ const AdminDashboard = () => {
                     <div style={{ background: 'white', borderRadius: '20px', padding: '2rem', width: '100%', maxWidth: '420px', boxShadow: '0 25px 60px rgba(0,0,0,0.2)' }}
                         onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
-                            <div style={{ width: 44, height: 44, borderRadius: '12px', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>📍</div>
+                            <div style={{ width: 44, height: 44, borderRadius: '12px', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>📎</div>
                             <div>
                                 <div style={{ fontWeight: '800', fontSize: '1.1rem', color: '#0f172a' }}>Name This Document</div>
                                 <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>{docLabelModal.staff?.fullName}</div>
                             </div>
-                            <button onClick={() => setDocLabelModal(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#94a3b8', lineHeight: 1 }}>🗑️</button>
+                            <button onClick={() => setDocLabelModal(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#94a3b8', lineHeight: 1 }}>×</button>
                         </div>
 
                         <div>
@@ -9711,12 +9143,12 @@ const AdminDashboard = () => {
                     <div style={{ background: 'white', borderRadius: '20px', padding: '2rem', width: '100%', maxWidth: '420px', boxShadow: '0 25px 60px rgba(0,0,0,0.2)' }}
                         onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
-                            <div style={{ width: 44, height: 44, borderRadius: '12px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>📍</div>
+                            <div style={{ width: 44, height: 44, borderRadius: '12px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>💰</div>
                             <div>
                                 <div style={{ fontWeight: '800', fontSize: '1.1rem', color: '#0f172a' }}>Daily Wage Payment</div>
                                 <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>{dailyWagePayModal.staff?.fullName} · ₹{dailyWagePayModal.payData?.dailyRate}/day</div>
                             </div>
-                            <button onClick={() => setDailyWagePayModal(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#94a3b8', lineHeight: 1 }}>🗑️</button>
+                            <button onClick={() => setDailyWagePayModal(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#94a3b8', lineHeight: 1 }}>×</button>
                         </div>
 
                         <div style={{ marginBottom: '1.25rem' }}>
