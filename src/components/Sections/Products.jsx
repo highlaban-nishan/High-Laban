@@ -150,19 +150,24 @@ const ProductCard = ({ product, index, isModal = false, onOrderClick }) => {
                     flexDirection: 'column',
                     gap: '4px',
                     marginBottom: '0.75rem',
+                    minWidth: 0,
+                    overflow: 'hidden',
                 }}>
                     <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Toppings:</span>
-                    <div style={{
-                        display: 'flex',
-                        flexWrap: 'nowrap',
-                        gap: '6px',
-                        overflowX: 'auto',
-                        paddingBottom: '4px',
-                        scrollbarWidth: 'none',          /* Firefox */
-                        msOverflowStyle: 'none',         /* IE/Edge */
-                        WebkitOverflowScrolling: 'touch',
-                    }}
-                    className="toppings-slider"
+                    <div
+                        className="toppings-slider"
+                        style={{
+                            display: 'flex',
+                            flexWrap: 'nowrap',
+                            gap: '6px',
+                            overflowX: 'auto',
+                            paddingBottom: '2px',
+                            width: '100%',
+                            minWidth: 0,
+                            scrollbarWidth: 'none',
+                            msOverflowStyle: 'none',
+                            WebkitOverflowScrolling: 'touch',
+                        }}
                     >
                     {(Array.isArray(product.toppings) ? product.toppings : product.toppings.split(',')).map((topping, tIdx) => {
                         const hasMatchingPic = images.some(img => 

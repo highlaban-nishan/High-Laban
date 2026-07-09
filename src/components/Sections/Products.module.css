@@ -72,16 +72,15 @@
 .card {
     background: white;
     border-radius: 30px;
-    /* More rounded as per image */
     padding: 1.5rem;
     position: relative;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
-    /* Soft large shadow */
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     display: flex;
     flex-direction: column;
     border: 1px solid #f0f5fa;
-    /* Very subtle border */
+    min-width: 0;        /* prevent card from growing beyond grid column */
+    overflow: hidden;    /* clip toppings slider to card bounds */
 }
 
 .card:hover {
