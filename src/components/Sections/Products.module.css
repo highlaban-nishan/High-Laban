@@ -513,3 +513,64 @@
         opacity: 1;
     }
 }
+
+/* Dynamic Mobile Grid Overrides (Side-by-side & Featured Layout) */
+@media (max-width: 767px) {
+    .grid, .modalGrid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.75rem !important;
+        padding: 0 0.5rem !important;
+    }
+
+    /* Make the first item, and every 3rd item thereafter span full width */
+    .grid > div:nth-child(3n+1),
+    .modalGrid > div:nth-child(3n+1) {
+        grid-column: span 2 !important;
+    }
+
+    .card {
+        padding: 1rem !important;
+        border-radius: 20px !important;
+    }
+
+    .imageContainer {
+        height: 120px !important;
+        margin-bottom: 0.75rem !important;
+    }
+
+    .productName {
+        font-size: 1rem !important;
+    }
+
+    .price {
+        font-size: 1.3rem !important;
+    }
+
+    .priceCurrency {
+        font-size: 0.9rem !important;
+    }
+
+    .orderButton {
+        padding: 0.4rem 0.8rem !important;
+        font-size: 0.7rem !important;
+        border-radius: 10px !important;
+    }
+
+    /* Restyle the larger featured card to retain standard premium size */
+    .grid > div:nth-child(3n+1) .imageContainer,
+    .modalGrid > div:nth-child(3n+1) .imageContainer {
+        height: 200px !important;
+    }
+
+    .grid > div:nth-child(3n+1) .productName,
+    .modalGrid > div:nth-child(3n+1) .productName {
+        font-size: 1.4rem !important;
+    }
+
+    .grid > div:nth-child(3n+1) .orderButton,
+    .modalGrid > div:nth-child(3n+1) .orderButton {
+        padding: 0.6rem 1.5rem !important;
+        font-size: 0.8rem !important;
+        border-radius: 12px !important;
+    }
+}

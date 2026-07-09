@@ -7,7 +7,7 @@ import db from '../../utils/db';
 import useScrollReveal from '../../hooks/useScrollReveal'; // Import DB
 import { FaTimes } from 'react-icons/fa';
 
-const ProductCard = ({ product, index, isModal = false }) => {
+const ProductCard = ({ product, index, isModal = false, onOrderClick }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [isHovering, setIsHovering] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
@@ -205,7 +205,23 @@ const ProductCard = ({ product, index, isModal = false }) => {
                         <span className={styles.priceCurrency}>₹</span>{product.price}
                     </div>
                 </div>
-
+                <button
+                    className={styles.orderButton}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (isModal && typeof onOrderClick === 'function') {
+                            onOrderClick();
+                        } else {
+                            const element = document.getElementById('locations');
+                            if (element) {
+                                const y = element.getBoundingClientRect().top + window.scrollY - 100;
+                                window.scrollTo({ top: y, behavior: 'smooth' });
+                            }
+                        }
+                    }}
+                >
+                    Order Now
+                </button>
             </div>
         </div>
     );
@@ -252,6 +268,17 @@ export default function Products() {
         fetchProducts();
     }, []);
 
+    const handleOrderClick = () => {
+        setIsFullMenuOpen(false);
+        setTimeout(() => {
+            const element = document.getElementById('locations');
+            if (element) {
+                const y = element.getBoundingClientRect().top + window.scrollY - 100;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+            }
+        }, 150);
+    };
+
     return (
         <section id="products" className={styles.section}>
             <Container>
@@ -265,7 +292,7 @@ export default function Products() {
 
                 <div className={styles.grid}>
                     {products.slice(0, 6).map((product, index) => (
-                        <ProductCard key={product.id} product={product} index={index} />
+                        <ProductCard key={product.id} product={product} index={index} onOrderClick={handleOrderClick} />
                     ))}
                 </div>
 
@@ -287,7 +314,7 @@ export default function Products() {
                         <div className={styles.fullMenuContent}>
                             <div className={styles.modalGrid}>
                                 {products.map((product, index) => (
-                                    <ProductCard key={product.id} product={product} index={index} isModal={true} />
+                                    <ProductCard key={product.id} product={product} index={index} isModal={true} onOrderClick={handleOrderClick} />
                                 ))}
                             </div>
                         </div>
