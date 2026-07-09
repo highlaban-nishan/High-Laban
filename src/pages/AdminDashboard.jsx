@@ -161,7 +161,7 @@ const AdminDashboard = () => {
 
     // Product recipe form state
     const [selectedRecipeProduct, setSelectedRecipeProduct] = useState(null); // product ID for editing recipe
-    const [editingRecipe, setEditingRecipe] = useState({ ingredients: [], containerCost: '0', spoonCost: '0', stickerCost: '0', packagingCost: '0', batchSize: '1', overheadAllocation: '0', toppings: [] }); // ingredients: [{ type: 'raw'/'bundle', id: '', quantity: '' }]
+    const [editingRecipe, setEditingRecipe] = useState({ ingredients: [], packagingIngredients: [], containerCost: '0', spoonCost: '0', stickerCost: '0', packagingCost: '0', batchSize: '1', overheadAllocation: '0', toppings: [] }); // ingredients: [{ type: 'raw'/'bundle', id: '', quantity: '' }]
     const [selectedPurchaseOutlet, setSelectedPurchaseOutlet] = useState(null);
 
     // Vendors State
@@ -242,6 +242,10 @@ const AdminDashboard = () => {
     // New states for Approved Franchises, Payroll, and Document Attachments
     const [franchiseSubTab, setFranchiseSubTab] = useState('pipeline'); // 'pipeline' | 'outlets'
     const [runningFranchises, setRunningFranchises] = useState([]);
+    const [openFixedCostOutletId, setOpenFixedCostOutletId] = useState(null);
+    const [editingFixedCosts, setEditingFixedCosts] = useState({}); // outletId -> [{ name: '', amount: '' }]
+    const [selectedOverheadOutletId, setSelectedOverheadOutletId] = useState('');
+    const [monthlyPiecesSold, setMonthlyPiecesSold] = useState('10000');
     const [showAddFranchiseOutletForm, setShowAddFranchiseOutletForm] = useState(false);
     const [editingFranchiseOutlet, setEditingFranchiseOutlet] = useState(null);
     const [newFranchiseOutlet, setNewFranchiseOutlet] = useState({
@@ -648,6 +652,66 @@ const AdminDashboard = () => {
             } catch (error) {
                 console.error("Failed to delete franchise outlet", error);
             }
+        }
+    };
+
+    const handleSaveOutletFixedCosts = async (outletId) => {
+        if (isReadOnly || isChef) return;
+        const costs = editingFixedCosts[outletId] || [];
+        if (costs.some(c => !c.name.trim() || isNaN(parseFloat(c.amount)))) {
+            showToast("Please ensure all items have a name and a valid numeric cost amount.", "error");
+            return;
+        }
+        try {
+            const outlet = runningFranchises.find(o => o.id === outletId);
+            if (!outlet) return;
+            const updatedCosts = costs.map(c => ({ name: c.name.trim(), amount: parseFloat(c.amount) || 0 }));
+            const updatedOutlet = { ...outlet, fixedCosts: updatedCosts };
+            await db.updateFranchiseOutlet(outletId, updatedOutlet);
+            setRunningFranchises(prev => prev.map(o => o.id === outletId ? updatedOutlet : o));
+            setOpenFixedCostOutletId(null);
+            showToast("Franchise Outlet fixed costs updated successfully! 💰");
+        } catch (error) {
+            console.error("Failed to save franchise outlet fixed costs", error);
+            showToast("Failed to save fixed costs", "error");
+        }
+    };
+
+    const handleExportRecipeCosts = () => {
+        try {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Product Name,Variant,Raw Ingredients Cost (Base),Packaging Cost,Batch Overhead,Kitchen Fixed Cost,Total Unit Cost,Retail Price,Profit (Rs),Margin (%)\r\n";
+            
+            products.forEach(prod => {
+                const currentRecipe = recipesList.find(r => r.id === prod.id);
+                const baseAnalysis = getProductRecipeCost(prod.id, -1);
+                const baseProfit = (parseFloat(prod.price) || 0) - baseAnalysis.totalUnitCost;
+                const baseMargin = (parseFloat(prod.price) || 0) > 0 ? (baseProfit / (parseFloat(prod.price) || 0)) * 100 : 0;
+                
+                csvContent += `"${prod.name}","Base","${baseAnalysis.ingredientsCost.toFixed(2)}","${baseAnalysis.packagingCost.toFixed(2)}","${baseAnalysis.overheadCost.toFixed(2)}","${baseAnalysis.fixedCostPerPiece.toFixed(2)}","${baseAnalysis.totalUnitCost.toFixed(2)}","${(parseFloat(prod.price) || 0).toFixed(2)}","${baseProfit.toFixed(2)}","${baseMargin.toFixed(1)}%"\r\n`;
+                
+                if (currentRecipe?.toppings && currentRecipe.toppings.length > 0) {
+                    currentRecipe.toppings.forEach((top, tIdx) => {
+                        const topAnalysis = getProductRecipeCost(prod.id, tIdx);
+                        const topProfit = (parseFloat(prod.price) || 0) - topAnalysis.totalUnitCost;
+                        const topMargin = (parseFloat(prod.price) || 0) > 0 ? (topProfit / (parseFloat(prod.price) || 0)) * 100 : 0;
+                        
+                        csvContent += `"${prod.name}","+ Topping: ${top.name}","${topAnalysis.ingredientsCost.toFixed(2)}","${topAnalysis.packagingCost.toFixed(2)}","${topAnalysis.overheadCost.toFixed(2)}","${topAnalysis.fixedCostPerPiece.toFixed(2)}","${topAnalysis.totalUnitCost.toFixed(2)}","${(parseFloat(prod.price) || 0).toFixed(2)}","${topProfit.toFixed(2)}","${topMargin.toFixed(1)}%"\r\n`;
+                    });
+                }
+            });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `recipe_cost_analysis_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("Recipe costing analysis exported successfully! 📊");
+        } catch (err) {
+            console.error("Failed to export recipe costing", err);
+            showToast("Export failed", "error");
         }
     };
 
@@ -2511,6 +2575,115 @@ const AdminDashboard = () => {
                                                                     <a key={idx} href={doc.url} target="_blank" rel="noreferrer" style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', textDecoration: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold' }}>{doc.name} 📥</a>
                                                                 ))}
                                                             </div>
+                                                        </div>
+
+                                                        {/* Franchise Fixed Costs Collapsible Section */}
+                                                        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.8rem', marginTop: '0.8rem' }}>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    if (openFixedCostOutletId === outlet.id) {
+                                                                        setOpenFixedCostOutletId(null);
+                                                                    } else {
+                                                                        setOpenFixedCostOutletId(outlet.id);
+                                                                        setEditingFixedCosts({
+                                                                            ...editingFixedCosts,
+                                                                            [outlet.id]: outlet.fixedCosts ? [...outlet.fixedCosts.map(c => ({ ...c }))] : [{ name: '', amount: '' }]
+                                                                        });
+                                                                    }
+                                                                }}
+                                                                style={{
+                                                                    width: '100%',
+                                                                    display: 'flex',
+                                                                    justifyContent: 'space-between',
+                                                                    alignItems: 'center',
+                                                                    padding: '8px 12px',
+                                                                    background: openFixedCostOutletId === outlet.id ? '#f0f9ff' : '#f8fafc',
+                                                                    border: openFixedCostOutletId === outlet.id ? '1px solid #bae6fd' : '1px solid #e2e8f0',
+                                                                    borderRadius: '8px',
+                                                                    cursor: 'pointer',
+                                                                    fontWeight: '700',
+                                                                    fontSize: '0.8rem',
+                                                                    color: openFixedCostOutletId === outlet.id ? '#0369a1' : '#475569',
+                                                                    transition: 'all 0.2s'
+                                                                }}
+                                                            >
+                                                                <span>💰 Monthly Fixed Costs</span>
+                                                                <span style={{ background: openFixedCostOutletId === outlet.id ? '#0ea5e9' : '#e2e8f0', color: openFixedCostOutletId === outlet.id ? 'white' : '#475569', padding: '2px 8px', borderRadius: '20px', fontSize: '0.75rem' }}>
+                                                                    ₹{((outlet.fixedCosts || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)).toFixed(2)}
+                                                                </span>
+                                                            </button>
+                                                            
+                                                            {openFixedCostOutletId === outlet.id && (
+                                                                <div style={{ marginTop: '0.75rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }}>
+                                                                    <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.5rem' }}>Edit Cost Items</div>
+                                                                    
+                                                                    {(editingFixedCosts[outlet.id] || []).map((cost, idx) => (
+                                                                        <div key={idx} style={{ display: 'flex', gap: '6px', marginBottom: '6px', alignItems: 'center' }}>
+                                                                            <input 
+                                                                                type="text" 
+                                                                                placeholder="e.g. Rent, Staff" 
+                                                                                value={cost.name} 
+                                                                                onChange={e => {
+                                                                                    const updated = [...(editingFixedCosts[outlet.id] || [])];
+                                                                                    updated[idx].name = e.target.value;
+                                                                                    setEditingFixedCosts({ ...editingFixedCosts, [outlet.id]: updated });
+                                                                                }} 
+                                                                                style={{ flex: 2, padding: '6px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                                                                            />
+                                                                            <input 
+                                                                                type="number" 
+                                                                                placeholder="Amount" 
+                                                                                value={cost.amount} 
+                                                                                onChange={e => {
+                                                                                    const updated = [...(editingFixedCosts[outlet.id] || [])];
+                                                                                    updated[idx].amount = e.target.value;
+                                                                                    setEditingFixedCosts({ ...editingFixedCosts, [outlet.id]: updated });
+                                                                                }} 
+                                                                                style={{ flex: 1, padding: '6px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem', width: '70px' }}
+                                                                            />
+                                                                            <button 
+                                                                                type="button" 
+                                                                                onClick={() => {
+                                                                                    const updated = (editingFixedCosts[outlet.id] || []).filter((_, i) => i !== idx);
+                                                                                    setEditingFixedCosts({ ...editingFixedCosts, [outlet.id]: updated });
+                                                                                }} 
+                                                                                style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.9rem', padding: '4px' }}
+                                                                            >
+                                                                                ✕
+                                                                            </button>
+                                                                        </div>
+                                                                    ))}
+                                                                    
+                                                                    <button 
+                                                                        type="button" 
+                                                                        onClick={() => {
+                                                                            const updated = [...(editingFixedCosts[outlet.id] || []), { name: '', amount: '' }];
+                                                                            setEditingFixedCosts({ ...editingFixedCosts, [outlet.id]: updated });
+                                                                        }} 
+                                                                        style={{ width: '100%', background: 'white', border: '1px dashed #cbd5e1', padding: '6px', borderRadius: '6px', cursor: 'pointer', color: '#64748b', fontSize: '0.75rem', fontWeight: '700', marginBottom: '8px' }}
+                                                                    >
+                                                                        + Add Item
+                                                                    </button>
+                                                                    
+                                                                    <div style={{ display: 'flex', gap: '6px' }}>
+                                                                        <button 
+                                                                            type="button" 
+                                                                            onClick={() => handleSaveOutletFixedCosts(outlet.id)}
+                                                                            style={{ flex: 1, background: '#0284c7', color: 'white', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '0.75rem' }}
+                                                                        >
+                                                                            Save Costs
+                                                                        </button>
+                                                                        <button 
+                                                                            type="button" 
+                                                                            onClick={() => setOpenFixedCostOutletId(null)}
+                                                                            style={{ background: 'white', border: '1px solid #cbd5e1', color: '#64748b', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '0.75rem' }}
+                                                                        >
+                                                                            Cancel
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 ))
@@ -5909,7 +6082,16 @@ const AdminDashboard = () => {
                         }
                     });
 
-                    const pkg = parseFloat(recipe.packagingCost) || 0;
+                    let pkgCost = 0;
+                    if (recipe.packagingIngredients && recipe.packagingIngredients.length > 0) {
+                        recipe.packagingIngredients.forEach(pIng => {
+                            const raw = rawMaterials.find(r => r.id === pIng.materialId);
+                            if (raw) pkgCost += getRawMaterialUnitPrice(raw) * (parseFloat(pIng.quantity) || 0);
+                        });
+                    } else {
+                        pkgCost = parseFloat(recipe.packagingCost) || 0;
+                    }
+
                     const batch = parseFloat(recipe.batchSize) || 1;
                     const overhead = parseFloat(recipe.overheadAllocation) || 0;
 
@@ -5925,18 +6107,23 @@ const AdminDashboard = () => {
                                 if (bundle) toppingCost += getBundleItemUnitCost(bundle) * (parseFloat(ing.quantity) || 0);
                             }
                         });
-                        toppingCost += parseFloat(topping.packagingCost) || 0;
                     }
 
+                    // Kitchen Overhead cost calculation
+                    const chosenOutlet = runningFranchises.find(o => o.id === selectedOverheadOutletId);
+                    const totalOutletFixedCost = chosenOutlet ? (chosenOutlet.fixedCosts || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) : 0;
+                    const fixedCostPerPiece = parseFloat(monthlyPiecesSold) > 0 ? (totalOutletFixedCost / parseFloat(monthlyPiecesSold)) : 0;
+
                     const unitIngCost = ingCost;
-                    const unitPkgCost = pkg;
+                    const unitPkgCost = pkgCost;
                     const unitOverheadCost = batch > 0 ? (overhead / batch) : 0;
-                    const totalUnitCost = unitIngCost + unitPkgCost + unitOverheadCost + toppingCost;
+                    const totalUnitCost = unitIngCost + unitPkgCost + unitOverheadCost + fixedCostPerPiece + toppingCost;
 
                     return {
                         ingredientsCost: unitIngCost,
                         packagingCost: unitPkgCost,
                         overheadCost: unitOverheadCost,
+                        fixedCostPerPiece: fixedCostPerPiece,
                         toppingCost: toppingCost,
                         totalUnitCost: totalUnitCost
                     };
@@ -6042,6 +6229,7 @@ const AdminDashboard = () => {
                     try {
                         const payload = {
                             ingredients: editingRecipe.ingredients,
+                            packagingIngredients: editingRecipe.packagingIngredients || [],
                             packagingCost: parseFloat(editingRecipe.packagingCost) || 0,
                             batchSize: parseFloat(editingRecipe.batchSize) || 1,
                             overheadAllocation: parseFloat(editingRecipe.overheadAllocation) || 0,
@@ -6505,26 +6693,8 @@ const AdminDashboard = () => {
                                         <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontWeight: '800' }}>🧁 Configure Recipe for: {selectedRecipeProduct.name}</h4>
                                         <form onSubmit={handleSaveProductRecipe} style={{ display: 'grid', gap: '1.2rem' }}>
                                             
-                                            {/* Overhead & Split Packaging Costs */}
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', background: '#f0f9ff', padding: '16px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
-                                                <div>
-                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#0369a1', marginBottom: '4px' }}>Container Cost (₹)</label>
-                                                    <input type="number" step="0.01" value={editingRecipe.containerCost || '0'} onChange={e => setEditingRecipe({ ...editingRecipe, containerCost: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }} />
-                                                </div>
-                                                <div>
-                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#0369a1', marginBottom: '4px' }}>Spoon / Cutlery (₹)</label>
-                                                    <input type="number" step="0.01" value={editingRecipe.spoonCost || '0'} onChange={e => setEditingRecipe({ ...editingRecipe, spoonCost: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }} />
-                                                </div>
-                                                <div>
-                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#0369a1', marginBottom: '4px' }}>Sticker / Label (₹)</label>
-                                                    <input type="number" step="0.01" value={editingRecipe.stickerCost || '0'} onChange={e => setEditingRecipe({ ...editingRecipe, stickerCost: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }} />
-                                                </div>
-                                                <div>
-                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', marginBottom: '4px' }}>Total Packing</label>
-                                                    <div style={{ padding: '8px 12px', background: '#e2e8f0', borderRadius: '8px', fontWeight: '700', fontSize: '0.9rem', color: '#334155', border: '1px solid #cbd5e1', textAlign: 'center' }}>
-                                                        ₹{((parseFloat(editingRecipe.containerCost) || 0) + (parseFloat(editingRecipe.spoonCost) || 0) + (parseFloat(editingRecipe.stickerCost) || 0)).toFixed(2)}
-                                                    </div>
-                                                </div>
+                                            {/* Overhead Costs & Yield */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', background: '#f0f9ff', padding: '16px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#0369a1', marginBottom: '4px' }}>Monthly Cost Allocated (₹)</label>
                                                     <input type="number" step="0.01" value={editingRecipe.overheadAllocation} onChange={e => setEditingRecipe({ ...editingRecipe, overheadAllocation: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }} />
@@ -6532,6 +6702,15 @@ const AdminDashboard = () => {
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#0369a1', marginBottom: '4px' }}>Batch Yield (Qty)</label>
                                                     <input type="number" value={editingRecipe.batchSize} onChange={e => setEditingRecipe({ ...editingRecipe, batchSize: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white' }} />
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', marginBottom: '4px' }}>Total Packing Cost (Auto-calculated)</label>
+                                                    <div style={{ padding: '8px 12px', background: '#e2e8f0', borderRadius: '8px', fontWeight: '700', fontSize: '0.9rem', color: '#334155', border: '1px solid #cbd5e1', textAlign: 'center' }}>
+                                                        ₹{((editingRecipe.packagingIngredients || []).reduce((sum, ing) => {
+                                                            const raw = rawMaterials.find(r => r.id === ing.materialId);
+                                                            return sum + (raw ? getRawMaterialUnitPrice(raw) * (parseFloat(ing.quantity) || 0) : 0);
+                                                        }, 0)).toFixed(2)}
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -6568,7 +6747,6 @@ const AdminDashboard = () => {
                                                             <input type="number" step="0.001" placeholder="Qty used" value={ing.quantity} onChange={e => {
                                                                 const updated = [...editingRecipe.ingredients];
                                                                 updated[idx].quantity = e.target.value;
-                                                                setNewBundle({ ...newBundle, ingredients: updated });
                                                                 setEditingRecipe({ ...editingRecipe, ingredients: updated });
                                                             }} style={{ flex: 1.5, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
                                                             <span style={{ fontSize: '0.85rem', color: '#64748b', minWidth: '30px' }}>{unitName || ''}</span>
@@ -6582,6 +6760,49 @@ const AdminDashboard = () => {
                                                     setEditingRecipe({ ...editingRecipe, ingredients: [...editingRecipe.ingredients, { type: 'raw', id: '', quantity: '' }] });
                                                 }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', color: '#475569', fontSize: '0.8rem', marginTop: '5px' }}>
                                                     + Add Ingredient
+                                                </button>
+                                            </div>
+
+                                            {/* Packaging Materials Mapping */}
+                                            <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '1rem', background: '#f8fafc' }}>
+                                                <h5 style={{ margin: '0 0 10px 0', fontWeight: '700' }}>📦 Packaging Materials</h5>
+                                                {(editingRecipe.packagingIngredients || []).map((ing, idx) => {
+                                                    const raw = rawMaterials.find(r => r.id === ing.materialId);
+                                                    return (
+                                                        <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px' }}>
+                                                            <select value={ing.materialId} onChange={e => {
+                                                                const updated = [...(editingRecipe.packagingIngredients || [])];
+                                                                updated[idx].materialId = e.target.value;
+                                                                setEditingRecipe({ ...editingRecipe, packagingIngredients: updated });
+                                                            }} style={{ flex: 3, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white' }}>
+                                                                <option value="">-- Choose Packaging Material --</option>
+                                                                {rawMaterials.map(r => (
+                                                                    <option key={r.id} value={r.id}>
+                                                                        {r.name} (₹{getRawMaterialUnitPrice(r).toFixed(3)}/{r.unit})
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                            <input type="number" step="0.001" placeholder="Qty used" value={ing.quantity} onChange={e => {
+                                                                const updated = [...(editingRecipe.packagingIngredients || [])];
+                                                                updated[idx].quantity = e.target.value;
+                                                                setEditingRecipe({ ...editingRecipe, packagingIngredients: updated });
+                                                            }} style={{ flex: 1.5, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
+                                                            <span style={{ fontSize: '0.85rem', color: '#64748b', minWidth: '30px' }}>{raw?.unit || ''}</span>
+                                                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0369a1', minWidth: '60px' }}>
+                                                                ₹{(raw ? getRawMaterialUnitPrice(raw) * (parseFloat(ing.quantity) || 0) : 0).toFixed(2)}
+                                                            </span>
+                                                            <button type="button" onClick={() => {
+                                                                const updated = (editingRecipe.packagingIngredients || []).filter((_, i) => i !== idx);
+                                                                setEditingRecipe({ ...editingRecipe, packagingIngredients: updated });
+                                                            }} style={{ border: 'none', background: '#fee2e2', color: '#ef4444', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' }}>Delete</button>
+                                                        </div>
+                                                    );
+                                                })}
+                                                <button type="button" onClick={() => {
+                                                    const updated = [...(editingRecipe.packagingIngredients || []), { materialId: '', quantity: '' }];
+                                                    setEditingRecipe({ ...editingRecipe, packagingIngredients: updated });
+                                                }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', color: '#475569', fontSize: '0.8rem', marginTop: '5px' }}>
+                                                    + Add Packaging Material
                                                 </button>
                                             </div>
  
@@ -6672,6 +6893,48 @@ const AdminDashboard = () => {
                                     </div>
                                 )}
 
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '10px' }}>
+                                    <h3 style={{ margin: 0, color: '#1e293b', fontWeight: '800' }}>Final Menu Product Cost Analysis</h3>
+                                    <button type="button" onClick={handleExportRecipeCosts} style={{ background: '#10b981', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        📊 Export Pricing CSV
+                                    </button>
+                                </div>
+
+                                {/* Kitchen Fixed Cost Overhead Selector */}
+                                <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '1.5rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>🏪 Select Kitchen/Outlet for Fixed Costs</label>
+                                        <select value={selectedOverheadOutletId} onChange={e => setSelectedOverheadOutletId(e.target.value)} style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white', minWidth: '220px', fontWeight: '700', color: '#0f172a' }}>
+                                            <option value="">-- No Kitchen Selected (₹0) --</option>
+                                            {runningFranchises.map(o => {
+                                                const totalFixed = (o.fixedCosts || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+                                                return <option key={o.id} value={o.id}>{o.outletName} (Monthly Fixed: ₹{totalFixed.toFixed(0)})</option>;
+                                            })}
+                                        </select>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>📦 Estimated Pieces Sold / Month</label>
+                                        <input type="number" value={monthlyPiecesSold} onChange={e => setMonthlyPiecesSold(e.target.value)} style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white', maxWidth: '180px', fontWeight: '700' }} />
+                                    </div>
+                                    {(() => {
+                                        const chosen = runningFranchises.find(o => o.id === selectedOverheadOutletId);
+                                        const totalFixed = chosen ? (chosen.fixedCosts || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) : 0;
+                                        const perPiece = parseFloat(monthlyPiecesSold) > 0 ? (totalFixed / parseFloat(monthlyPiecesSold)) : 0;
+                                        return (
+                                            <div style={{ marginLeft: 'auto', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '10px 16px', borderRadius: '12px', display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                                                <div>
+                                                    <span style={{ fontSize: '0.68rem', color: '#065f46', textTransform: 'uppercase', display: 'block', fontWeight: '800' }}>Monthly Fixed Cost</span>
+                                                    <strong style={{ fontSize: '1.1rem', color: '#047857' }}>₹{totalFixed.toFixed(2)}</strong>
+                                                </div>
+                                                <div style={{ borderLeft: '1px solid #a7f3d0', paddingLeft: '1.5rem' }}>
+                                                    <span style={{ fontSize: '0.68rem', color: '#065f46', textTransform: 'uppercase', display: 'block', fontWeight: '800' }}>Cost Per Piece</span>
+                                                    <strong style={{ fontSize: '1.1rem', color: '#047857' }}>₹{perPiece.toFixed(2)}</strong>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+
                                 <div style={{ overflowX: 'auto', background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.01)' }}>
                                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
                                         <thead>
@@ -6680,6 +6943,7 @@ const AdminDashboard = () => {
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>Raw Cost</th>
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>Packing Cost</th>
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>Overhead Allocation</th>
+                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>Kitchen Overhead</th>
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#16a34a', fontSize: '0.85rem' }}>Total Cost</th>
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0284c7', fontSize: '0.85rem' }}>Suggested Price (2x)</th>
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#e11d48', fontSize: '0.85rem' }}>Retail Price</th>
@@ -6714,9 +6978,12 @@ const AdminDashboard = () => {
                                                         <td style={{ padding: '14px 20px', color: '#475569' }}>₹{analysis.ingredientsCost.toFixed(2)}</td>
                                                         <td style={{ padding: '14px 20px', color: '#475569' }}>
                                                              ₹{analysis.packagingCost.toFixed(2)}
-                                                             {currentRecipe && (
-                                                                 <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block' }}>
-                                                                     (Cont: ₹{currentRecipe.containerCost || 0} + Spn: ₹{currentRecipe.spoonCost || 0} + Stk: ₹{currentRecipe.stickerCost || 0})
+                                                             {currentRecipe?.packagingIngredients && currentRecipe.packagingIngredients.length > 0 && (
+                                                                 <span style={{ fontSize: '0.65rem', color: '#64748b', display: 'block' }}>
+                                                                     ({currentRecipe.packagingIngredients.map(ing => {
+                                                                         const raw = rawMaterials.find(r => r.id === ing.materialId);
+                                                                         return raw ? `${raw.name.slice(0, 8)}:${ing.quantity}` : '';
+                                                                     }).filter(Boolean).join(', ')})
                                                                  </span>
                                                              )}
                                                          </td>
@@ -6724,6 +6991,7 @@ const AdminDashboard = () => {
                                                             ₹{analysis.overheadCost.toFixed(2)}
                                                             <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>(batch: {currentRecipe?.batchSize || 1})</span>
                                                         </td>
+                                                        <td style={{ padding: '14px 20px', color: '#475569' }}>₹{analysis.fixedCostPerPiece.toFixed(2)}</td>
                                                         <td style={{ padding: '14px 20px', fontWeight: '800', color: '#16a34a' }}>
                                                             ₹{analysis.totalUnitCost.toFixed(2)}
                                                             {analysis.toppingCost > 0 && (
@@ -6762,6 +7030,7 @@ const AdminDashboard = () => {
                                                                     setSelectedRecipeProduct(prod);
                                                                     setEditingRecipe({
                                                                         ingredients: currentRecipe?.ingredients || [],
+                                                                        packagingIngredients: currentRecipe?.packagingIngredients || [],
                                                                         packagingCost: (currentRecipe?.packagingCost || 0).toString(),
                                                                         batchSize: (currentRecipe?.batchSize || 1).toString(),
                                                                         overheadAllocation: (currentRecipe?.overheadAllocation || 0).toString(),
