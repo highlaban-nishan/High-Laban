@@ -86,21 +86,6 @@ export default function VideoSection() {
                         </div>
                     </div>
 
-                    {/* Card 5 - Dessert Experience (White) */}
-                    <div className={`${styles.card} ${styles.whiteCard} ${styles.card5}`}>
-                        <div className={styles.cardContent}>
-                            <span style={{ fontSize: '12px', uppercase: true, fontWeight: '700', letterSpacing: '1.5px', color: '#27AAE1', display: 'block', marginBottom: '8px' }}>
-                                THE EXPERIENCE
-                            </span>
-                            <h2 style={{ fontSize: '34px', fontWeight: '800', color: '#17324A', margin: '0 0 12px 0', lineHeight: '1.2' }}>
-                                Every Bite Tells A Story
-                            </h2>
-                            <p style={{ fontSize: '16px', color: '#5F7285', lineHeight: '1.7', margin: 0 }}>
-                                Every dessert is crafted to deliver rich flavours, beautiful presentation and memorable moments worth sharing with friends and family.
-                            </p>
-                        </div>
-                    </div>
-
                     {/* Card 6 - Story Video One (Floating text layout) */}
                     <div className={`${styles.card} ${styles.imageCard} ${styles.card6}`} style={{ position: 'relative' }}>
                         <video
@@ -163,15 +148,6 @@ export default function VideoSection() {
                                 Crafted<br/>Every Day
                             </h3>
                         </div>
-                    </div>
-
-                    {/* Card 8 - Dessert Photography (Food Hero Kunafa Image) */}
-                    <div className={`${styles.card} ${styles.imageCard} ${styles.card8}`} style={{ overflow: 'hidden' }}>
-                        <img 
-                            src={cheesePullKunafa} 
-                            alt="Cheese Pull Kunafa" 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                        />
                     </div>
                 </div>
             </Container>
