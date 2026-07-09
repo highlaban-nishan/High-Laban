@@ -17,9 +17,33 @@ export default function VideoSection() {
                     {/* 1. Title Card */}
                     <div className={`${styles.card} ${styles.whiteCard} ${styles.card1}`}>
                         <div className={styles.cardContent}>
-                            <h2 style={{ fontSize: '1.45rem', fontWeight: '900', color: 'var(--color-bg-dark, #0f172a)', margin: '0 0 4px 0' }}>The Heart of High Laban</h2>
-                            <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#0ea5e9', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Where Egypt Meets Every Bite</span>
-                            <p style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.5', margin: 0 }}>High Laban was born to introduce India to the true world of Egyptian desserts. We blend authentic recipes, premium ingredients, and modern creativity to create unforgettable dessert experiences.</p>
+                            <h2 style={{ 
+                                fontSize: '1.95rem', 
+                                fontWeight: '950', 
+                                background: 'linear-gradient(135deg, #0f172a 20%, #27AAE1 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                margin: '0 0 6px 0', 
+                                lineHeight: '1.15',
+                                letterSpacing: '-0.8px'
+                            }}>
+                                The Heart of High Laban
+                            </h2>
+                            <span style={{ 
+                                fontSize: '0.78rem', 
+                                fontWeight: '900', 
+                                color: '#27AAE1', 
+                                textTransform: 'uppercase', 
+                                display: 'block', 
+                                marginBottom: '12px',
+                                letterSpacing: '1.5px',
+                                textShadow: '0 1px 2px rgba(39, 170, 225, 0.05)'
+                            }}>
+                                Where Egypt Meets Every Bite
+                            </span>
+                            <p style={{ fontSize: '0.88rem', color: '#475569', lineHeight: '1.6', margin: 0, fontWeight: '500' }}>
+                                High Laban was born to introduce India to the true world of Egyptian desserts. We blend authentic recipes, premium ingredients, and modern creativity to create unforgettable dessert experiences.
+                            </p>
                         </div>
                     </div>
 
