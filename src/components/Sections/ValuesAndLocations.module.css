@@ -193,28 +193,34 @@
 
 @media (max-width: 768px) {
     .statsWrapper {
-        flex-direction: column;
-        /* Stack on mobile */
-        gap: 3rem;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 1rem !important;
+        justify-content: space-around !important;
+        margin-bottom: 4rem;
+    }
 
+    .statValue {
+        font-size: 2rem !important;
+    }
+
+    .statLabel {
+        font-size: 0.65rem !important;
+        letter-spacing: 0.5px !important;
+    }
+
+    .separator {
+        height: 40px !important;
+        width: 1px !important;
     }
 
     .locationsGrid {
-        display: flex;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        gap: 1.5rem;
-        padding-bottom: 2rem;
-        justify-content: center;
-        /* Align start for scrolling */
-
-        /* Hide scrollbar */
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-    }
-
-    .locationsGrid::-webkit-scrollbar {
-        display: none;
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+        gap: 1.5rem !important;
+        justify-content: center !important;
+        padding-bottom: 2rem !important;
+        overflow-x: visible !important;
     }
 
     .locationCard {
