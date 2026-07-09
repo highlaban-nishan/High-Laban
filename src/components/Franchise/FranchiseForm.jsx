@@ -61,10 +61,10 @@ export default function FranchiseForm({ isOpen, onClose, isModal = true }) {
         setStatusMsg(null);
     };
 
-    const doSendEmail = (data) => {
-        const subject = `Franchise Inquiry from ${data.name}`;
-        const body = `Name: ${data.name}%0D%0AEmail: ${data.email}%0D%0APhone: ${data.phone}%0D%0ACity: ${data.city}%0D%0AState: ${data.state}%0D%0ATarget Locations: ${(data.targetLocations || []).map(l => `${l.city} (${l.state})`).join(', ')}`;
-        window.location.href = `mailto:wazeert13@gmail.com?subject=${subject}&body=${body}`;
+    const sendWhatsAppRedirect = (data) => {
+        const textTemplate = `Hi High Laban Team,%0A%0AI would like to apply for a franchise outlet. Here are my details:%0A%0A• *Name:* ${data.name}%0A• *Phone:* ${data.phone}%0A• *Email:* ${data.email}%0A• *City:* ${data.city || 'N/A'}%0A• *State:* ${data.state || 'N/A'}%0A• *Current Job/Business:* ${data.currentJob || 'N/A'}%0A• *Owned Business Before:* ${data.ownedBusiness || 'no'}%0A• *Been a Franchisee:* ${data.franchisee || 'no'}%0A• *Type:* ${data.franchiseType || 'N/A'}%0A• *Target Locations:* ${(data.targetLocations || []).map(l => `${l.city} (${l.state})`).join(', ') || 'N/A'}`;
+        const whatsappNumber = '919539352999'; // Nishan's WhatsApp
+        window.open(`https://wa.me/${whatsappNumber}?text=${textTemplate}`, '_blank');
     };
 
     const handleSubmit = async (e) => {
@@ -87,8 +87,8 @@ export default function FranchiseForm({ isOpen, onClose, isModal = true }) {
 
             // No duplicate — proceed
             await db.addFranchiseInquiry(formData);
-            doSendEmail(formData);
-            showStatus('Thank you! Your franchise inquiry has been submitted. Our team will contact you within 48 hours.', 'success');
+            sendWhatsAppRedirect(formData);
+            showStatus('Thank you! Redirecting to WhatsApp to complete your application...', 'success');
             resetAll();
             if (onClose) setTimeout(onClose, 2500);
         } catch (error) {
@@ -104,8 +104,8 @@ export default function FranchiseForm({ isOpen, onClose, isModal = true }) {
         setIsSubmitting(true);
         try {
             await db.mergeFranchiseInquiry(duplicateRecord.id, pendingFormData);
-            doSendEmail(pendingFormData);
-            showStatus('Your application has been updated with the new information!', 'success');
+            sendWhatsAppRedirect(pendingFormData);
+            showStatus('Application updated! Redirecting to WhatsApp to complete...', 'success');
             resetAll();
             if (onClose) setTimeout(onClose, 2500);
         } catch (err) {
@@ -120,8 +120,8 @@ export default function FranchiseForm({ isOpen, onClose, isModal = true }) {
         setIsSubmitting(true);
         try {
             await db.addFranchiseInquiry(pendingFormData);
-            doSendEmail(pendingFormData);
-            showStatus('New inquiry submitted successfully!', 'success');
+            sendWhatsAppRedirect(pendingFormData);
+            showStatus('Inquiry submitted! Redirecting to WhatsApp...', 'success');
             resetAll();
             if (onClose) setTimeout(onClose, 2500);
         } catch (err) {
@@ -303,28 +303,16 @@ export default function FranchiseForm({ isOpen, onClose, isModal = true }) {
                             </div>
                             <div className={styles.row}>
                                 <div className={styles.formGroup}>
-                                    <label className={styles.label}>Street</label>
-                                    <input type="text" className={styles.input} placeholder="Street Address"
-                                        value={form.street} onChange={e => setField('street', e.target.value)} />
-                                </div>
-                                <div className={styles.formGroup}>
                                     <label className={styles.label}>City</label>
                                     <input type="text" className={styles.input} placeholder="City"
                                         value={form.city} onChange={e => setField('city', e.target.value)} />
                                 </div>
-                            </div>
-                            <div className={styles.row}>
                                 <div className={styles.formGroup}>
                                     <label className={styles.label}>State</label>
                                     <select className={styles.select} value={form.state} onChange={e => setField('state', e.target.value)}>
                                         <option value="">Select State</option>
                                         {INDIA_STATES.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}
                                     </select>
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label className={styles.label}>Pincode</label>
-                                    <input type="text" className={styles.input} placeholder="110001"
-                                        value={form.pincode} onChange={e => setField('pincode', e.target.value)} />
                                 </div>
                             </div>
 
