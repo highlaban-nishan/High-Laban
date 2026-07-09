@@ -53,8 +53,8 @@ function App() {
         <Route path="/purchases" element={user ? <PurchaserDashboard /> : <Navigate to="/login" replace />} />
         <Route path="/admin" element={<Navigate to="/login" replace />} />
       </Routes>
-      {!isDashboardRoute && location.pathname !== '/login' && location.pathname !== '/franchise-inquiry' && <Footer />}
-      {!isDashboardRoute && location.pathname !== '/login' && location.pathname !== '/franchise-inquiry' && (
+      {!isDashboardRoute && location.pathname !== '/login' && <Footer />}
+      {!isDashboardRoute && location.pathname !== '/login' && (
         <MobileNavbar onOpenFranchise={openFranchise} />
       )}
       <FranchiseForm isOpen={franchiseOpen} onClose={closeFranchise} isModal={true} />

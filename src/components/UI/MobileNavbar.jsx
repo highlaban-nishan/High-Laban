@@ -25,6 +25,8 @@ export default function MobileNavbar({ onOpenFranchise }) {
             else setActiveIndex(0);
         } else if (location.pathname === '/about-us') {
             setActiveIndex(3);
+        } else if (location.pathname === '/franchise-inquiry') {
+            setActiveIndex(2);
         }
     }, [location, onOpenFranchise]);
 

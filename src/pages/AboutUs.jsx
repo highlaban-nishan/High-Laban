@@ -1,16 +1,27 @@
-import React, { useLayoutEffect } from 'react';
+import React, { useLayoutEffect, useState, useEffect } from 'react';
 import SEO from '../components/SEO/SEO';
+import db from '../utils/db';
 
 export default function AboutUs() {
+    const [founders, setFounders] = useState([
+        { name: 'Mohammed Nishan P', role: 'Co-Founder', imageUrl: '' },
+        { name: 'Muhammed Marshad PPTK', role: 'Co-Founder & Director', imageUrl: '' },
+        { name: 'Muhammed Nufoor MK', role: 'Co-Founder & Chief Product Officer', imageUrl: '' }
+    ]);
+
     useLayoutEffect(() => {
         window.scrollTo(0, 0);
     }, []);
 
-    const founders = [
-        { name: 'Mohammed Nishan P', role: 'Co-Founder' },
-        { name: 'Muhammed Marshad PPTK', role: 'Co-Founder & Director' },
-        { name: 'Muhammed Nufoor MK', role: 'Co-Founder & Chief Product Officer' }
-    ];
+    useEffect(() => {
+        // Load dynamically from site content highlights or customizable table
+        const unsubscribe = db.subscribeToSiteContent('about_founders', (data) => {
+            if (data && Array.isArray(data.foundersList)) {
+                setFounders(data.foundersList);
+            }
+        });
+        return () => unsubscribe && unsubscribe();
+    }, []);
 
     return (
         <>
@@ -24,17 +35,37 @@ export default function AboutUs() {
                 color: '#fff',
                 fontFamily: "'Outfit', sans-serif",
                 minHeight: '100vh',
-                padding: '4rem 1.5rem 4rem', // Reduced top padding on mobile
+                padding: '1.5rem 1.25rem 4rem', // Highly reduced top padding to remove empty space on mobile
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center'
             }}>
                 <div style={{ maxWidth: '800px', width: '100%' }}>
                     {/* Header */}
-                    <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0ea5e9', letterSpacing: '3px', textTransform: 'uppercase' }}>ABOUT US</span>
-                        <h1 style={{ fontSize: '3rem', fontWeight: '900', color: 'white', margin: '10px 0 0 0' }}>About High Laban</h1>
-                        <div style={{ width: '60px', height: '4px', background: '#0ea5e9', margin: '20px auto 0', borderRadius: '2px' }}></div>
+                    <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                        <span style={{ 
+                            fontSize: '0.85rem', 
+                            fontWeight: '900', 
+                            background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', 
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            letterSpacing: '3px', 
+                            textTransform: 'uppercase' 
+                        }}>
+                            ABOUT US
+                        </span>
+                        <h1 style={{ 
+                            fontSize: '2.5rem', 
+                            fontWeight: '950', 
+                            background: 'linear-gradient(135deg, #ffffff 40%, #bae6fd 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            margin: '8px 0 0 0',
+                            letterSpacing: '-1px'
+                        }}>
+                            About High Laban
+                        </h1>
+                        <div style={{ width: '50px', height: '4px', background: '#0ea5e9', margin: '12px auto 0', borderRadius: '2px' }}></div>
                     </div>
 
                     {/* About section */}
@@ -86,21 +117,36 @@ export default function AboutUs() {
                                 onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-5px)'}
                                 onMouseLeave={e => e.currentTarget.style.transform = 'none'}
                                 >
-                                    <div style={{
-                                        width: '60px',
-                                        height: '60px',
-                                        background: '#0ea5e9',
-                                        borderRadius: '50%',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        margin: '0 auto 1.25rem',
-                                        fontSize: '1.5rem',
-                                        fontWeight: '800',
-                                        color: 'white'
-                                    }}>
-                                        {f.name.split(' ').filter(n => n.length > 0).map(n => n[0]).join('').slice(0, 2)}
-                                    </div>
+                                    {f.imageUrl ? (
+                                        <div style={{
+                                            width: '80px',
+                                            height: '80px',
+                                            borderRadius: '50%',
+                                            overflow: 'hidden',
+                                            margin: '0 auto 1.25rem',
+                                            border: '2px solid #0ea5e9',
+                                            boxShadow: '0 4px 10px rgba(14,165,233,0.2)'
+                                        }}>
+                                            <img src={f.imageUrl} alt={f.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        </div>
+                                    ) : (
+                                        <div style={{
+                                            width: '80px',
+                                            height: '80px',
+                                            background: '#0ea5e9',
+                                            borderRadius: '50%',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            margin: '0 auto 1.25rem',
+                                            fontSize: '1.75rem',
+                                            fontWeight: '800',
+                                            color: 'white',
+                                            boxShadow: '0 4px 10px rgba(14,165,233,0.2)'
+                                        }}>
+                                            {f.name.split(' ').filter(n => n.length > 0).map(n => n[0]).join('').slice(0, 2)}
+                                        </div>
+                                    )}
                                     <h4 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: '800', color: 'white' }}>{f.name}</h4>
                                     <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: '600' }}>{f.role}</span>
                                 </div>

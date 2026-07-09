@@ -273,141 +273,155 @@ export default function FranchiseForm({ isOpen, onClose, isModal = true }) {
                     </div>
                 )}
 
-                <form ref={formRef} className={styles.formContent} onSubmit={handleSubmit}>
-                    {/* General Information */}
-                    <div>
-                        <h3 className={styles.sectionTitle}>General Information</h3>
-                        <div className={styles.row}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Your Name</label>
-                                <input type="text" className={styles.input} placeholder="Enter your full name"
-                                    value={form.name} onChange={e => setField('name', e.target.value)} required />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Your Email</label>
-                                <input type="email" className={styles.input} placeholder="Enter your email address"
-                                    value={form.email} onChange={e => setField('email', e.target.value)} required />
-                            </div>
-                        </div>
-                        <div className={styles.fullWidth}>
-                            <label className={styles.label}>Your Phone</label>
-                            <input 
-                                type="tel" 
-                                className={styles.input} 
-                                placeholder="e.g. 9876543210"
-                                value={form.phone} 
-                                onChange={e => setField('phone', e.target.value.replace(/[^0-9+\s-]/g, ''))} 
-                                required 
-                            />
-                        </div>
-                        <div className={styles.row}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Street</label>
-                                <input type="text" className={styles.input} placeholder="Street Address"
-                                    value={form.street} onChange={e => setField('street', e.target.value)} />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>City</label>
-                                <input type="text" className={styles.input} placeholder="City"
-                                    value={form.city} onChange={e => setField('city', e.target.value)} />
-                            </div>
-                        </div>
-                        <div className={styles.row}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>State</label>
-                                <select className={styles.select} value={form.state} onChange={e => setField('state', e.target.value)}>
-                                    <option value="">Select State</option>
-                                    {INDIA_STATES.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}
-                                </select>
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Pincode</label>
-                                <input type="text" className={styles.input} placeholder="110001"
-                                    value={form.pincode} onChange={e => setField('pincode', e.target.value)} />
-                            </div>
-                        </div>
-
-                        {/* Target Locations */}
-                        <div style={{ marginTop: '1.25rem', padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                            <h4 style={{ color: '#fff', fontSize: '0.85rem', marginBottom: '8px', fontWeight: 'bold' }}>📍 Target Locations for Franchise</h4>
-                            <p style={{ color: '#94a3b8', fontSize: '0.75rem', marginBottom: '12px' }}>
-                                Add the cities or states where you are interested in opening the franchise outlet.
-                            </p>
-                            {targetLocations.length > 0 && (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
-                                    {targetLocations.map((loc, idx) => (
-                                        <div key={idx} style={{ background: '#0ea5e9', color: '#fff', padding: '4px 10px', borderRadius: '50px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
-                                            <span>{loc.city}, {loc.state}</span>
-                                            <button type="button" onClick={() => setTargetLocations(prev => prev.filter((_, i) => i !== idx))}
-                                                style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '0', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center' }}>×</button>
-                                        </div>
-                                    ))}
+                <div className={styles.formContent} style={{ padding: '1.5rem', flex: 1, overflowY: 'auto' }}>
+                    <form ref={formRef} onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+                        {/* General Information */}
+                        <div>
+                            <h3 className={styles.sectionTitle}>General Information</h3>
+                            <div className={styles.row}>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Your Name</label>
+                                    <input type="text" className={styles.input} placeholder="Enter your full name"
+                                        value={form.name} onChange={e => setField('name', e.target.value)} required />
                                 </div>
-                            )}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'end' }}>
-                                <div className={styles.formGroup} style={{ margin: 0 }}>
-                                    <label className={styles.label} style={{ fontSize: '0.7rem' }}>City</label>
-                                    <input type="text" value={tempCity} onChange={e => setTempCity(e.target.value)}
-                                        placeholder="e.g. Bangalore" className={styles.input} style={{ height: '36px', fontSize: '0.85rem', margin: 0 }} />
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Your Email</label>
+                                    <input type="email" className={styles.input} placeholder="Enter your email address"
+                                        value={form.email} onChange={e => setField('email', e.target.value)} required />
                                 </div>
-                                <div className={styles.formGroup} style={{ margin: 0 }}>
-                                    <label className={styles.label} style={{ fontSize: '0.7rem' }}>State</label>
-                                    <select value={tempState} onChange={e => setTempState(e.target.value)}
-                                        className={styles.select} style={{ height: '36px', padding: '0 8px', fontSize: '0.85rem', margin: 0 }}>
+                            </div>
+                            <div className={styles.fullWidth}>
+                                <label className={styles.label}>Your Phone</label>
+                                <input 
+                                    type="tel" 
+                                    className={styles.input} 
+                                    placeholder="e.g. 9876543210"
+                                    value={form.phone} 
+                                    onChange={e => setField('phone', e.target.value.replace(/[^0-9+\s-]/g, ''))} 
+                                    required 
+                                />
+                            </div>
+                            <div className={styles.row}>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Street</label>
+                                    <input type="text" className={styles.input} placeholder="Street Address"
+                                        value={form.street} onChange={e => setField('street', e.target.value)} />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>City</label>
+                                    <input type="text" className={styles.input} placeholder="City"
+                                        value={form.city} onChange={e => setField('city', e.target.value)} />
+                                </div>
+                            </div>
+                            <div className={styles.row}>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>State</label>
+                                    <select className={styles.select} value={form.state} onChange={e => setField('state', e.target.value)}>
                                         <option value="">Select State</option>
                                         {INDIA_STATES.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}
                                     </select>
                                 </div>
-                                <button type="button" onClick={() => {
-                                    if (tempCity.trim() && tempState) {
-                                        setTargetLocations(prev => [...prev, { city: tempCity.trim(), state: tempState }]);
-                                        setTempCity(''); setTempState('');
-                                    }
-                                }} style={{ background: '#25d366', color: '#fff', border: 'none', height: '36px', padding: '0 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem' }}>
-                                    + Add
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Business Experience */}
-                    <div>
-                        <h3 className={styles.sectionTitle}>Business / Work Experience</h3>
-                        <div className={styles.fullWidth}>
-                            <label className={styles.label}>Current Job / Business</label>
-                            <input type="text" className={styles.input} placeholder="Describe your current role"
-                                value={form.currentJob} onChange={e => setField('currentJob', e.target.value)} />
-                        </div>
-                        <div className={styles.row}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label} style={{ marginBottom: '0.5rem' }}>Have You Ever Owned A Business?</label>
-                                <div className={styles.radioGroup}>
-                                    <label className={styles.radioLabel}><input type="radio" name="ownedBusiness" value="yes" checked={form.ownedBusiness === 'yes'} onChange={() => setField('ownedBusiness', 'yes')} /> Yes</label>
-                                    <label className={styles.radioLabel}><input type="radio" name="ownedBusiness" value="no" checked={form.ownedBusiness === 'no'} onChange={() => setField('ownedBusiness', 'no')} /> No</label>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Pincode</label>
+                                    <input type="text" className={styles.input} placeholder="110001"
+                                        value={form.pincode} onChange={e => setField('pincode', e.target.value)} />
                                 </div>
                             </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label} style={{ marginBottom: '0.5rem' }}>Have You Ever Been A Franchisee?</label>
-                                <div className={styles.radioGroup}>
-                                    <label className={styles.radioLabel}><input type="radio" name="franchisee" value="yes" checked={form.franchisee === 'yes'} onChange={() => setField('franchisee', 'yes')} /> Yes</label>
-                                    <label className={styles.radioLabel}><input type="radio" name="franchisee" value="no" checked={form.franchisee === 'no'} onChange={() => setField('franchisee', 'no')} /> No</label>
+
+                            {/* Target Locations */}
+                            <div style={{ marginTop: '1.25rem', padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                <h4 style={{ color: '#000', fontSize: '0.85rem', marginBottom: '8px', fontWeight: 'bold' }}>📍 Target Locations for Franchise</h4>
+                                <p style={{ color: '#64748b', fontSize: '0.75rem', marginBottom: '12px' }}>
+                                    Add the cities or states where you are interested in opening the franchise outlet.
+                                </p>
+                                {targetLocations.length > 0 && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
+                                        {targetLocations.map((loc, idx) => (
+                                            <div key={idx} style={{ background: '#0ea5e9', color: '#fff', padding: '4px 10px', borderRadius: '50px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
+                                                <span>{loc.city}, {loc.state}</span>
+                                                <button type="button" onClick={() => setTargetLocations(prev => prev.filter((_, i) => i !== idx))}
+                                                    style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '0', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center' }}>×</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'end' }}>
+                                    <div className={styles.formGroup} style={{ margin: 0 }}>
+                                        <label className={styles.label} style={{ fontSize: '0.7rem' }}>City</label>
+                                        <input type="text" value={tempCity} onChange={e => setTempCity(e.target.value)}
+                                            placeholder="e.g. Bangalore" className={styles.input} style={{ height: '36px', fontSize: '0.85rem', margin: 0 }} />
+                                    </div>
+                                    <div className={styles.formGroup} style={{ margin: 0 }}>
+                                        <label className={styles.label} style={{ fontSize: '0.7rem' }}>State</label>
+                                        <select value={tempState} onChange={e => setTempState(e.target.value)}
+                                            className={styles.select} style={{ height: '36px', padding: '0 8px', fontSize: '0.85rem', margin: 0 }}>
+                                            <option value="">Select State</option>
+                                            {INDIA_STATES.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <button type="button" onClick={() => {
+                                        if (tempCity.trim() && tempState) {
+                                            setTargetLocations(prev => [...prev, { city: tempCity.trim(), state: tempState }]);
+                                            setTempCity(''); setTempState('');
+                                        }
+                                    }} style={{ background: '#25d366', color: '#fff', border: 'none', height: '36px', padding: '0 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                                        + Add
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                        <div className={styles.fullWidth}>
-                            <label className={styles.label}>If Yes, What Type?</label>
-                            <input type="text" className={styles.input} placeholder="e.g. Food & Beverage"
-                                value={form.franchiseType} onChange={e => setField('franchiseType', e.target.value)} />
-                        </div>
-                    </div>
 
-                    <div className={styles.actions}>
-                        <button type="button" className={styles.resetBtn} onClick={resetAll}>Reset</button>
-                        <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
-                            {isSubmitting ? 'Checking...' : 'Submit'}
-                        </button>
-                    </div>
-                </form>
+                        {/* Business Experience */}
+                        <div>
+                            <h3 className={styles.sectionTitle}>Business / Work Experience</h3>
+                            <div className={styles.fullWidth}>
+                                <label className={styles.label}>Current Job / Business</label>
+                                <input type="text" className={styles.input} placeholder="Describe your current role"
+                                    value={form.currentJob} onChange={e => setField('currentJob', e.target.value)} />
+                            </div>
+                            <div className={styles.row}>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label} style={{ marginBottom: '0.5rem' }}>Have You Ever Owned A Business?</label>
+                                    <div className={styles.radioGroup}>
+                                        <label className={styles.radioLabel}><input type="radio" name="ownedBusiness" value="yes" checked={form.ownedBusiness === 'yes'} onChange={() => setField('ownedBusiness', 'yes')} /> Yes</label>
+                                        <label className={styles.radioLabel}><input type="radio" name="ownedBusiness" value="no" checked={form.ownedBusiness === 'no'} onChange={() => setField('ownedBusiness', 'no')} /> No</label>
+                                    </div>
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label} style={{ marginBottom: '0.5rem' }}>Have You Ever Been A Franchisee?</label>
+                                    <div className={styles.radioGroup}>
+                                        <label className={styles.radioLabel}><input type="radio" name="franchisee" value="yes" checked={form.franchisee === 'yes'} onChange={() => setField('franchisee', 'yes')} /> Yes</label>
+                                        <label className={styles.radioLabel}><input type="radio" name="franchisee" value="no" checked={form.franchisee === 'no'} onChange={() => setField('franchisee', 'no')} /> No</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className={styles.fullWidth}>
+                                <label className={styles.label}>If Yes, What Type?</label>
+                                <input type="text" className={styles.input} placeholder="e.g. Food & Beverage"
+                                    value={form.franchiseType} onChange={e => setField('franchiseType', e.target.value)} />
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div className={styles.actions} style={{ 
+                    padding: '0.8rem 1.5rem', 
+                    borderTop: '1px solid #f1f5f9', 
+                    background: '#f8fafc',
+                    display: 'flex',
+                    gap: '8px',
+                    justifyContent: 'flex-end',
+                    alignItems: 'center',
+                    flexShrink: 0
+                }}>
+                    <button type="button" className={styles.resetBtn} style={{ fontSize: '0.82rem', padding: '0.5rem 1rem' }} onClick={resetAll}>Reset</button>
+                    {onClose && (
+                        <button type="button" className={styles.resetBtn} style={{ border: '1px solid #cbd5e1', padding: '0.5rem 0.9rem', fontSize: '0.9rem', fontWeight: 'bold' }} onClick={onClose} title="Close Form">✕</button>
+                    )}
+                    <button type="button" className={styles.submitBtn} style={{ padding: '0.6rem 1.8rem', fontSize: '0.88rem' }} disabled={isSubmitting} onClick={handleSubmit}>
+                        {isSubmitting ? 'Checking...' : 'Submit'}
+                    </button>
+                </div>
             </div>
         </>
     );

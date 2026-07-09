@@ -61,13 +61,13 @@ export default function VideoSection() {
                         {/* 9. Finest Quality Ingredients (White) */}
                         <div className={`${styles.card} ${styles.whiteCard} ${styles.card9}`}>
                             <div className={styles.cardContent}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                                    <div className={styles.cardIcon} style={{ margin: 0 }}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                                    <div className={styles.cardIcon} style={{ margin: 0, width: '38px', height: '38px', padding: '8px' }}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '22px', height: '22px' }}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                         </svg>
                                     </div>
-                                    <h3 className={styles.cardTitle} style={{ margin: 0, fontSize: '1.25rem' }}>Finest Quality Ingredients</h3>
+                                    <h3 className={styles.cardTitle} style={{ margin: 0, fontSize: '1.25rem', display: 'inline-flex', alignItems: 'center' }}>Finest Quality Ingredients</h3>
                                 </div>
                                 <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#0ea5e9', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Only the Finest, Nothing Less</span>
                                 <p className={styles.cardText} style={{ margin: 0 }}>Every dessert begins with carefully selected dairy, nuts, chocolate, and premium ingredients to deliver exceptional taste, texture, and freshness.</p>
@@ -77,13 +77,13 @@ export default function VideoSection() {
                         {/* 3. Expertly Crafted (Blue) */}
                         <div className={`${styles.card} ${styles.blueCard} ${styles.card3}`}>
                             <div className={styles.cardContent}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                                    <div className={styles.cardIcon} style={{ margin: 0 }}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                                    <div className={styles.cardIcon} style={{ margin: 0, width: '38px', height: '38px', padding: '8px' }}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '22px', height: '22px' }}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
                                         </svg>
                                     </div>
-                                    <h3 className={styles.cardTitle} style={{ margin: 0, fontSize: '1.25rem' }}>Expertly Crafted</h3>
+                                    <h3 className={styles.cardTitle} style={{ margin: 0, fontSize: '1.25rem', display: 'inline-flex', alignItems: 'center' }}>Expertly Crafted</h3>
                                 </div>
                                 <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#e0f2fe', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Handcrafted with Passion</span>
                                 <p className={styles.cardText} style={{ margin: 0 }}>Every dessert is prepared fresh by skilled chefs who combine authentic Egyptian techniques with modern presentation to create something truly unforgettable.</p>
@@ -94,14 +94,14 @@ export default function VideoSection() {
                     {/* 4. True Egyptian Flavors (Blue) */}
                     <div className={`${styles.card} ${styles.blueCard} ${styles.card4}`}>
                         <div className={styles.cardContent}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                                <div className={styles.cardIcon} style={{ margin: 0 }}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                                <div className={styles.cardIcon} style={{ margin: 0, width: '38px', height: '38px', padding: '8px' }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '22px', height: '22px' }}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z" />
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" />
                                     </svg>
                                 </div>
-                                <h3 className={styles.cardTitle} style={{ margin: 0, fontSize: '1.25rem' }}>True Egyptian Flavors</h3>
+                                <h3 className={styles.cardTitle} style={{ margin: 0, fontSize: '1.25rem', display: 'inline-flex', alignItems: 'center' }}>True Egyptian Flavors</h3>
                             </div>
                             <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#e0f2fe', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Beyond Kunafa & Baklava</span>
                             <p className={styles.cardText} style={{ margin: 0 }}>Middle Eastern desserts are far more than what most people know. From Umm Ali, Heba Cake, Qashtoota, Salankatia, Roz Bel Laban and more, we're bringing Egypt's most loved desserts to India for the very first time.</p>
@@ -111,13 +111,13 @@ export default function VideoSection() {
                     {/* 5. Celebrating Tradition (White) */}
                     <div className={`${styles.card} ${styles.whiteCard} ${styles.card5}`}>
                         <div className={styles.cardContent}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                                <div className={styles.cardIcon} style={{ margin: 0 }}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                                <div className={styles.cardIcon} style={{ margin: 0, width: '38px', height: '38px', padding: '8px' }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '22px', height: '22px' }}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12" />
                                     </svg>
                                 </div>
-                                <h3 className={styles.cardTitle} style={{ margin: 0, fontSize: '1.25rem' }}>Celebrating Tradition</h3>
+                                <h3 className={styles.cardTitle} style={{ margin: 0, fontSize: '1.25rem', display: 'inline-flex', alignItems: 'center' }}>Celebrating Tradition</h3>
                             </div>
                             <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#0ea5e9', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Honouring Heritage, Inspiring Innovation</span>
                             <p className={styles.cardText} style={{ margin: 0 }}>We preserve the soul of traditional Egyptian recipes while adding modern flavors and creative twists that today's dessert lovers will fall in love with.</p>
