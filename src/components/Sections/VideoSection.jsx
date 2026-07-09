@@ -1,131 +1,102 @@
 import React from 'react';
 import Container from '../UI/Container';
 import styles from './VideoSection.module.css';
-
-// Placeholder Assets - You can replace these with real imports or URIs later
-import project1 from '../../assets/project_preview_1.png'; // Using as placeholder
-import project2 from '../../assets/project_preview_2.png';
-import alwaysFreshBg from '../../assets/box.png';
-
+import cheesePullKunafa from '../../assets/cheese_pull_kunafa.png';
 
 export default function VideoSection() {
     return (
-        <section id="video-features-section" className={styles.section}>
+        <section id="video-features-section" className={styles.section} style={{ background: '#0f172a' }}>
             <Container>
                 <div className={styles.grid}>
-                    {/* 1. Title Card */}
-                    {/* 1. Title Card */}
+                    {/* Card 1 - Brand Story (White) */}
                     <div className={`${styles.card} ${styles.whiteCard} ${styles.card1}`}>
                         <div className={styles.cardContent}>
-                            <h2 style={{ 
-                                fontSize: '1.95rem', 
-                                fontWeight: '950', 
-                                background: 'linear-gradient(135deg, #0f172a 20%, #27AAE1 100%)',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                                margin: '0 0 6px 0', 
-                                lineHeight: '1.15',
-                                letterSpacing: '-0.8px'
-                            }}>
-                                The Heart of High Laban
-                            </h2>
-                            <span style={{ 
-                                fontSize: '0.78rem', 
-                                fontWeight: '900', 
-                                color: '#27AAE1', 
-                                textTransform: 'uppercase', 
-                                display: 'block', 
-                                marginBottom: '12px',
-                                letterSpacing: '1.5px',
-                                textShadow: '0 1px 2px rgba(39, 170, 225, 0.05)'
-                            }}>
-                                Where Egypt Meets Every Bite
+                            <span style={{ fontSize: '12px', uppercase: true, fontWeight: '700', letterSpacing: '1.5px', color: '#27AAE1', display: 'block', marginBottom: '8px' }}>
+                                OUR STORY
                             </span>
-                            <p style={{ fontSize: '0.88rem', color: '#475569', lineHeight: '1.6', margin: 0, fontWeight: '500' }}>
-                                High Laban was born to introduce India to the true world of Egyptian desserts. We blend authentic recipes, premium ingredients, and modern creativity to create unforgettable dessert experiences.
+                            <h2 style={{ fontSize: '34px', fontWeight: '800', color: '#17324A', margin: '0 0 12px 0', lineHeight: '1.2' }}>
+                                Egypt's Sweet Legacy
+                            </h2>
+                            <p style={{ fontSize: '16px', color: '#5F7285', lineHeight: '1.7', margin: 0 }}>
+                                High Laban brings Egypt's most loved desserts to India, blending authentic recipes, premium craftsmanship and a modern dessert experience inspired by Egyptian culture.
                             </p>
                         </div>
                     </div>
 
-                    {/* 2. Bangalore Launch Card */}
-                    <div className={`${styles.card} ${styles.blueCard} ${styles.card2}`} style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white' }}>
+                    {/* Card 2 - Hero Feature (Brand Blue) */}
+                    <div className={`${styles.card} ${styles.blueCard} ${styles.card2}`}>
                         <div className={styles.cardContent}>
-                            <h2 style={{ fontSize: '1.45rem', fontWeight: '900', color: 'white', margin: '0 0 4px 0' }}>Hey Bangalore...</h2>
-                            <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#e0f2fe', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>A New Dessert Journey Begins</span>
-                            <p style={{ fontSize: '0.85rem', color: '#f0f9ff', lineHeight: '1.5', margin: 0 }}>Bangalore, you're the first to experience Egypt beyond Kunafa and Baklava. Discover iconic desserts like Umm Ali, Heba Cake, Qashtoota, Salankatia, and many more, crafted to surprise every dessert lover.</p>
+                            <span style={{ fontSize: '12px', uppercase: true, fontWeight: '700', letterSpacing: '1.5px', color: 'rgba(255,255,255,.75)', display: 'block', marginBottom: '8px' }}>
+                                EGYPTIAN HERITAGE
+                            </span>
+                            <h2 style={{ fontSize: '34px', fontWeight: '800', color: '#FFFFFF', margin: '0 0 12px 0', lineHeight: '1.2' }}>
+                                Beyond Kunafa
+                            </h2>
+                            <p style={{ fontSize: '16px', color: 'rgba(255,255,255,.90)', lineHeight: '1.7', margin: 0 }}>
+                                Egyptian desserts are much more than Kunafa. Explore timeless favourites like Umm Ali, Roz Bel Laban, Basbousa, Ash Ali and Salankati, each carrying generations of flavour and culture.
+                            </p>
                         </div>
                     </div>
 
-                    {/* Stack: Finest Quality Ingredients + Expertly Crafted */}
+                    {/* Stack: Ingredients (Card 9) + Experience (Card 3) */}
                     <div className={styles.col1Stack}>
-                        {/* 9. Finest Quality Ingredients (White) */}
-                        <div className={`${styles.card} ${styles.whiteCard} ${styles.card9}`}>
+                        {/* Card 9 - Ingredients (Soft Blue) */}
+                        <div className={`${styles.card} ${styles.card9}`} style={{ background: '#F5FAFD', color: '#17324A', border: '1px solid #EAECEF' }}>
                             <div className={styles.cardContent}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                                    <div className={styles.cardIcon} style={{ margin: 0, width: '38px', height: '38px', padding: '8px' }}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '22px', height: '22px' }}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                        </svg>
-                                    </div>
-                                    <h3 className={styles.cardTitle} style={{ margin: 0, fontSize: '1.25rem', display: 'inline-flex', alignItems: 'center' }}>Finest Quality Ingredients</h3>
-                                </div>
-                                <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#0ea5e9', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Only the Finest, Nothing Less</span>
-                                <p className={styles.cardText} style={{ margin: 0 }}>Every dessert begins with carefully selected dairy, nuts, chocolate, and premium ingredients to deliver exceptional taste, texture, and freshness.</p>
+                                <span style={{ fontSize: '12px', uppercase: true, fontWeight: '700', letterSpacing: '1.5px', color: '#27AAE1', display: 'block', marginBottom: '8px' }}>
+                                    QUALITY FIRST
+                                </span>
+                                <h2 style={{ fontSize: '34px', fontWeight: '800', color: '#17324A', margin: '0 0 12px 0', lineHeight: '1.2' }}>
+                                    Every Ingredient Matters
+                                </h2>
+                                <p style={{ fontSize: '16px', color: '#5F7285', lineHeight: '1.7', margin: 0 }}>
+                                    From premium dairy to carefully selected nuts, chocolate and butter, every ingredient is chosen to deliver exceptional taste and texture.
+                                </p>
                             </div>
                         </div>
 
-                        {/* 3. Expertly Crafted (Blue) */}
-                        <div className={`${styles.card} ${styles.blueCard} ${styles.card3}`}>
-                            <div className={styles.cardContent}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                                    <div className={styles.cardIcon} style={{ margin: 0, width: '38px', height: '38px', padding: '8px' }}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '22px', height: '22px' }}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
-                                        </svg>
-                                    </div>
-                                    <h3 className={styles.cardTitle} style={{ margin: 0, fontSize: '1.25rem', display: 'inline-flex', alignItems: 'center' }}>Expertly Crafted</h3>
-                                </div>
-                                <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#e0f2fe', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Handcrafted with Passion</span>
-                                <p className={styles.cardText} style={{ margin: 0 }}>Every dessert is prepared fresh by skilled chefs who combine authentic Egyptian techniques with modern presentation to create something truly unforgettable.</p>
-                            </div>
+                        {/* Card 3 - Dessert Photography (Food Hero) */}
+                        <div className={`${styles.card} ${styles.imageCard} ${styles.card3}`} style={{ overflow: 'hidden' }}>
+                            <img 
+                                src={cheesePullKunafa} 
+                                alt="Cheese Pull Kunafa" 
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                            />
                         </div>
                     </div>
 
-                    {/* 4. True Egyptian Flavors (Blue) */}
-                    <div className={`${styles.card} ${styles.blueCard} ${styles.card4}`}>
+                    {/* Card 4 - Bangalore Story (Warm Neutral) */}
+                    <div className={`${styles.card} ${styles.card4}`} style={{ background: '#F7F7F5', color: '#17324A', border: '1px solid #EAECEF' }}>
                         <div className={styles.cardContent}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                                <div className={styles.cardIcon} style={{ margin: 0, width: '38px', height: '38px', padding: '8px' }}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '22px', height: '22px' }}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" />
-                                    </svg>
-                                </div>
-                                <h3 className={styles.cardTitle} style={{ margin: 0, fontSize: '1.25rem', display: 'inline-flex', alignItems: 'center' }}>True Egyptian Flavors</h3>
-                            </div>
-                            <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#e0f2fe', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Beyond Kunafa & Baklava</span>
-                            <p className={styles.cardText} style={{ margin: 0 }}>Middle Eastern desserts are far more than what most people know. From Umm Ali, Heba Cake, Qashtoota, Salankatia, Roz Bel Laban and more, we're bringing Egypt's most loved desserts to India for the very first time.</p>
+                            <span style={{ fontSize: '12px', uppercase: true, fontWeight: '700', letterSpacing: '1.5px', color: '#27AAE1', display: 'block', marginBottom: '8px' }}>
+                                FIRST CITY
+                            </span>
+                            <h2 style={{ fontSize: '34px', fontWeight: '800', color: '#17324A', margin: '0 0 12px 0', lineHeight: '1.2' }}>
+                                Hello Bangalore
+                            </h2>
+                            <p style={{ fontSize: '16px', color: '#5F7285', lineHeight: '1.7', margin: 0 }}>
+                                Our journey begins in Bangalore, introducing authentic Egyptian dessert culture to a city that loves discovering unforgettable food experiences.
+                            </p>
                         </div>
                     </div>
 
-                    {/* 5. Celebrating Tradition (White) */}
+                    {/* Card 5 - Dessert Experience (White) */}
                     <div className={`${styles.card} ${styles.whiteCard} ${styles.card5}`}>
                         <div className={styles.cardContent}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                                <div className={styles.cardIcon} style={{ margin: 0, width: '38px', height: '38px', padding: '8px' }}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '22px', height: '22px' }}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12" />
-                                    </svg>
-                                </div>
-                                <h3 className={styles.cardTitle} style={{ margin: 0, fontSize: '1.25rem', display: 'inline-flex', alignItems: 'center' }}>Celebrating Tradition</h3>
-                            </div>
-                            <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#0ea5e9', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Honouring Heritage, Inspiring Innovation</span>
-                            <p className={styles.cardText} style={{ margin: 0 }}>We preserve the soul of traditional Egyptian recipes while adding modern flavors and creative twists that today's dessert lovers will fall in love with.</p>
+                            <span style={{ fontSize: '12px', uppercase: true, fontWeight: '700', letterSpacing: '1.5px', color: '#27AAE1', display: 'block', marginBottom: '8px' }}>
+                                THE EXPERIENCE
+                            </span>
+                            <h2 style={{ fontSize: '34px', fontWeight: '800', color: '#17324A', margin: '0 0 12px 0', lineHeight: '1.2' }}>
+                                Every Bite Tells A Story
+                            </h2>
+                            <p style={{ fontSize: '16px', color: '#5F7285', lineHeight: '1.7', margin: 0 }}>
+                                Every dessert is crafted to deliver rich flavours, beautiful presentation and memorable moments worth sharing with friends and family.
+                            </p>
                         </div>
                     </div>
 
-                    {/* 6. Pouring Video / Image (Tall/Square) */}
-                    <div className={`${styles.card} ${styles.imageCard} ${styles.card6}`}>
+                    {/* Card 6 - Story Video One (Floating text layout) */}
+                    <div className={`${styles.card} ${styles.imageCard} ${styles.card6}`} style={{ position: 'relative' }}>
                         <video
                             src="/video/story_card_6.mp4"
                             autoPlay
@@ -134,10 +105,30 @@ export default function VideoSection() {
                             playsInline
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
+                        <div style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            background: 'rgba(0,0,0,0.25)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'flex-end',
+                            padding: '24px',
+                            zIndex: 3
+                        }}>
+                            <span style={{ fontSize: '11px', fontWeight: '800', letterSpacing: '1.5px', color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                AUTHENTIC EGYPTIAN DESSERTS
+                            </span>
+                            <h3 style={{ fontSize: '28px', fontWeight: '800', color: 'white', margin: 0, lineHeight: '1.2' }}>
+                                From Egypt<br/>to Bangalore
+                            </h3>
+                        </div>
                     </div>
 
-                    {/* 7. Box Image (Tall) */}
-                    <div className={`${styles.card} ${styles.imageCard} ${styles.card7}`}>
+                    {/* Card 7 - Story Video Two (Floating text layout) */}
+                    <div className={`${styles.card} ${styles.imageCard} ${styles.card7}`} style={{ position: 'relative' }}>
                         <video
                             src="/video/story_card_7.mp4"
                             autoPlay
@@ -146,40 +137,42 @@ export default function VideoSection() {
                             playsInline
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
-                    </div>
-
-                    {/* 8. Always Fresh (Blue) */}
-                    <div className={`${styles.card} ${styles.blueCard} ${styles.card8}`} style={{ position: 'relative', overflow: 'hidden' }}>
                         <div style={{
                             position: 'absolute',
                             top: 0,
                             left: 0,
                             width: '100%',
                             height: '100%',
-                            backgroundImage: `url('${alwaysFreshBg}')`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            filter: 'blur(4px) brightness(0.6)',
-                            zIndex: 0
-                        }}></div>
-                        <div className={styles.cardContent} style={{ position: 'relative', zIndex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                                <div className={styles.cardIcon} style={{ margin: 0 }}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                    </svg>
-                                </div>
-                                <h3 className={styles.cardTitle} style={{ margin: 0, fontSize: '1.25rem' }}>Always Fresh</h3>
-                            </div>
-                            <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#e0f2fe', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Freshly Made, Every Day</span>
-                            <p className={styles.cardText} style={{ margin: 0 }}>Every dessert is prepared fresh in small batches to ensure the perfect balance of flavour, texture, and quality in every bite.</p>
+                            background: 'rgba(0,0,0,0.25)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'flex-end',
+                            padding: '24px',
+                            zIndex: 3
+                        }}>
+                            <span style={{ fontSize: '11px', fontWeight: '800', letterSpacing: '1.5px', color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                MADE FRESH DAILY
+                            </span>
+                            <h3 style={{ fontSize: '28px', fontWeight: '800', color: 'white', margin: 0, lineHeight: '1.2' }}>
+                                Crafted<br/>Every Day
+                            </h3>
                         </div>
                     </div>
 
-
-
-
-
+                    {/* Card 8 - Fresh Daily (Dark Navy) */}
+                    <div className={`${styles.card} ${styles.card8}`} style={{ background: '#17324A', color: '#FFFFFF', border: '1px solid #EAECEF' }}>
+                        <div className={styles.cardContent}>
+                            <span style={{ fontSize: '12px', uppercase: true, fontWeight: '700', letterSpacing: '1.5px', color: '#8AD7FF', display: 'block', marginBottom: '8px' }}>
+                                MADE FRESH DAILY
+                            </span>
+                            <h2 style={{ fontSize: '34px', fontWeight: '800', color: '#FFFFFF', margin: '0 0 12px 0', lineHeight: '1.2' }}>
+                                Prepared Throughout The Day
+                            </h2>
+                            <p style={{ fontSize: '16px', color: 'rgba(255,255,255,.85)', lineHeight: '1.7', margin: 0 }}>
+                                Every dessert is freshly prepared in small batches to ensure perfect warmth, texture and consistency in every serving.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </Container>
         </section>
