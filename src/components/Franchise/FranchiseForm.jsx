@@ -22,8 +22,8 @@ const INDIA_STATES = [
 ];
 
 const INITIAL_FORM = {
-    name: '', email: '', phone: '', street: '', city: '', state: '',
-    pincode: '', currentJob: '', ownedBusiness: 'no', franchisee: 'no', franchiseType: '',
+    name: '', email: '', phone: '', city: '', state: '',
+    currentJob: '', ownedBusiness: 'no', franchisee: 'no', franchiseType: '',
 };
 
 export default function FranchiseForm({ isOpen, onClose, isModal = true }) {
@@ -62,14 +62,20 @@ export default function FranchiseForm({ isOpen, onClose, isModal = true }) {
     };
 
     const sendWhatsAppRedirect = (data) => {
-        const textTemplate = `Hi High Laban Team,%0A%0AI would like to apply for a franchise outlet. Here are my details:%0A%0A• *Name:* ${data.name}%0A• *Phone:* ${data.phone}%0A• *Email:* ${data.email}%0A• *City:* ${data.city || 'N/A'}%0A• *State:* ${data.state || 'N/A'}%0A• *Current Job/Business:* ${data.currentJob || 'N/A'}%0A• *Owned Business Before:* ${data.ownedBusiness || 'no'}%0A• *Been a Franchisee:* ${data.franchisee || 'no'}%0A• *Type:* ${data.franchiseType || 'N/A'}%0A• *Target Locations:* ${(data.targetLocations || []).map(l => `${l.city} (${l.state})`).join(', ') || 'N/A'}`;
-        const whatsappNumber = '919539352999'; // Nishan's WhatsApp
+        const textTemplate = `Hey I like to enquire about franchise.%0A%0AHere are my details:%0A• *Name:* ${data.name}%0A• *Phone:* ${data.phone}%0A• *Email:* ${data.email}%0A• *City:* ${data.city || 'N/A'}%0A• *State:* ${data.state || 'N/A'}%0A• *Current Job/Business:* ${data.currentJob || 'N/A'}%0A• *Owned Business Before:* ${data.ownedBusiness || 'no'}%0A• *Been a Franchisee:* ${data.franchisee || 'no'}%0A• *Type:* ${data.franchiseType || 'N/A'}%0A• *Target Locations:* ${(data.targetLocations || []).map(l => `${l.city} (${l.state})`).join(', ') || 'N/A'}`;
+        const whatsappNumber = '917353100100'; // Updated WhatsApp
         window.open(`https://wa.me/${whatsappNumber}?text=${textTemplate}`, '_blank');
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (isSubmitting) return;
+
+        // Manual validation since button might be outside form or type="button"
+        if (!form.name || !form.email || !form.phone) {
+            showStatus('Please fill in all mandatory fields (Name, Email, Phone).', 'error');
+            return;
+        }
 
         const formData = { ...form, targetLocations };
 
