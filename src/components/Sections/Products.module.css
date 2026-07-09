@@ -523,17 +523,23 @@
 
 /* Dynamic Mobile Grid Overrides (Side-by-side & Featured Layout) */
 @media (max-width: 767px) {
-    .grid, .modalGrid {
+    .grid {
         grid-template-columns: repeat(2, 1fr) !important;
         gap: 0.75rem !important;
         padding: 0 0.5rem !important;
     }
 
-    /* Make the first item, and every 3rd item thereafter span full width */
-    .grid > div:nth-child(3n+1),
-    .modalGrid > div:nth-child(3n+1) {
+    .modalGrid {
+        grid-template-columns: 1fr !important;
+        gap: 1.25rem !important;
+        padding: 0 0.5rem !important;
+    }
+
+    /* Make the first item, and every 3rd item thereafter span full width on home grid */
+    .grid > div:nth-child(3n+1) {
         grid-column: span 2 !important;
     }
+
 
     .card {
         padding: 1rem !important;
@@ -567,21 +573,31 @@
     }
 
 
-    /* Restyle the larger featured card to retain standard premium size */
-    .grid > div:nth-child(3n+1) .imageContainer,
-    .modalGrid > div:nth-child(3n+1) .imageContainer {
+    /* Restyle the larger featured card to retain standard premium size on homepage grid */
+    .grid > div:nth-child(3n+1) .imageContainer {
         height: 200px !important;
     }
 
-    .grid > div:nth-child(3n+1) .productName,
-    .modalGrid > div:nth-child(3n+1) .productName {
+    .grid > div:nth-child(3n+1) .productName {
         font-size: 1.4rem !important;
     }
 
-    .grid > div:nth-child(3n+1) .orderButton,
-    .modalGrid > div:nth-child(3n+1) .orderButton {
+    .grid > div:nth-child(3n+1) .orderButton {
         padding: 0.6rem 1.5rem !important;
         font-size: 0.8rem !important;
         border-radius: 12px !important;
+    }
+
+    /* Modal Grid card overrides to make them scrollable, vertical, and look spacious */
+    .modalGrid .card {
+        padding: 1.25rem !important;
+    }
+
+    .modalGrid .imageContainer {
+        height: 180px !important;
+    }
+
+    .modalGrid .productName {
+        font-size: 1.3rem !important;
     }
 }
