@@ -73,6 +73,7 @@ export default function Footer() {
                     {/* Explore Column */}
                     <div className={styles.linkList}>
                         <h4 className={styles.columnTitle}>EXPLORE</h4>
+                        <a href="/about-us" className={styles.link} onClick={(e) => { e.preventDefault(); navigate('/about-us'); }}>About Us</a>
                         <a href="#story-section" className={styles.link} onClick={(e) => scrollToSection(e, 'story-section')}>Our Story</a>
                         <a href="#products" className={styles.link}>Menu</a>
                         <a href="/franchise-inquiry" className={styles.link} onClick={(e) => { e.preventDefault(); navigate('/franchise-inquiry'); }}>Franchise</a>

@@ -677,43 +677,7 @@ const AdminDashboard = () => {
         }
     };
 
-    const handleExportRecipeCosts = () => {
-        try {
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Product Name,Variant,Raw Ingredients Cost (Base),Packaging Cost,Batch Overhead,Kitchen Fixed Cost,Total Unit Cost,Retail Price,Profit (Rs),Margin (%)\r\n";
-            
-            products.forEach(prod => {
-                const currentRecipe = recipesList.find(r => r.id === prod.id);
-                const baseAnalysis = getProductRecipeCost(prod.id, -1);
-                const baseProfit = (parseFloat(prod.price) || 0) - baseAnalysis.totalUnitCost;
-                const baseMargin = (parseFloat(prod.price) || 0) > 0 ? (baseProfit / (parseFloat(prod.price) || 0)) * 100 : 0;
-                
-                csvContent += `"${prod.name}","Base","${baseAnalysis.ingredientsCost.toFixed(2)}","${baseAnalysis.packagingCost.toFixed(2)}","${baseAnalysis.overheadCost.toFixed(2)}","${baseAnalysis.fixedCostPerPiece.toFixed(2)}","${baseAnalysis.totalUnitCost.toFixed(2)}","${(parseFloat(prod.price) || 0).toFixed(2)}","${baseProfit.toFixed(2)}","${baseMargin.toFixed(1)}%"\r\n`;
-                
-                if (currentRecipe?.toppings && currentRecipe.toppings.length > 0) {
-                    currentRecipe.toppings.forEach((top, tIdx) => {
-                        const topAnalysis = getProductRecipeCost(prod.id, tIdx);
-                        const topProfit = (parseFloat(prod.price) || 0) - topAnalysis.totalUnitCost;
-                        const topMargin = (parseFloat(prod.price) || 0) > 0 ? (topProfit / (parseFloat(prod.price) || 0)) * 100 : 0;
-                        
-                        csvContent += `"${prod.name}","+ Topping: ${top.name}","${topAnalysis.ingredientsCost.toFixed(2)}","${topAnalysis.packagingCost.toFixed(2)}","${topAnalysis.overheadCost.toFixed(2)}","${topAnalysis.fixedCostPerPiece.toFixed(2)}","${topAnalysis.totalUnitCost.toFixed(2)}","${(parseFloat(prod.price) || 0).toFixed(2)}","${topProfit.toFixed(2)}","${topMargin.toFixed(1)}%"\r\n`;
-                    });
-                }
-            });
-            
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `recipe_cost_analysis_${new Date().toISOString().slice(0,10)}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            showToast("Recipe costing analysis exported successfully! 📊");
-        } catch (err) {
-            console.error("Failed to export recipe costing", err);
-            showToast("Export failed", "error");
-        }
-    };
+
 
     const handleStaffDocUpload = async (e, fieldType, isEdit = false) => {
         const file = e.target.files[0];
@@ -6127,6 +6091,44 @@ const AdminDashboard = () => {
                         toppingCost: toppingCost,
                         totalUnitCost: totalUnitCost
                     };
+                };
+
+                const handleExportRecipeCosts = () => {
+                    try {
+                        let csvContent = "data:text/csv;charset=utf-8,";
+                        csvContent += "Product Name,Variant,Raw Ingredients Cost (Base),Packaging Cost,Batch Overhead,Kitchen Fixed Cost,Total Unit Cost,Retail Price,Profit (Rs),Margin (%)\r\n";
+                        
+                        products.forEach(prod => {
+                            const currentRecipe = recipesList.find(r => r.id === prod.id);
+                            const baseAnalysis = getProductRecipeCost(prod.id, -1);
+                            const baseProfit = (parseFloat(prod.price) || 0) - baseAnalysis.totalUnitCost;
+                            const baseMargin = (parseFloat(prod.price) || 0) > 0 ? (baseProfit / (parseFloat(prod.price) || 0)) * 100 : 0;
+                            
+                            csvContent += `"${prod.name}","Base","${baseAnalysis.ingredientsCost.toFixed(2)}","${baseAnalysis.packagingCost.toFixed(2)}","${baseAnalysis.overheadCost.toFixed(2)}","${baseAnalysis.fixedCostPerPiece.toFixed(2)}","${baseAnalysis.totalUnitCost.toFixed(2)}","${(parseFloat(prod.price) || 0).toFixed(2)}","${baseProfit.toFixed(2)}","${baseMargin.toFixed(1)}%"\r\n`;
+                            
+                            if (currentRecipe?.toppings && currentRecipe.toppings.length > 0) {
+                                currentRecipe.toppings.forEach((top, tIdx) => {
+                                    const topAnalysis = getProductRecipeCost(prod.id, tIdx);
+                                    const topProfit = (parseFloat(prod.price) || 0) - topAnalysis.totalUnitCost;
+                                    const topMargin = (parseFloat(prod.price) || 0) > 0 ? (topProfit / (parseFloat(prod.price) || 0)) * 100 : 0;
+                                    
+                                    csvContent += `"${prod.name}","+ Topping: ${top.name}","${topAnalysis.ingredientsCost.toFixed(2)}","${topAnalysis.packagingCost.toFixed(2)}","${topAnalysis.overheadCost.toFixed(2)}","${topAnalysis.fixedCostPerPiece.toFixed(2)}","${topAnalysis.totalUnitCost.toFixed(2)}","${(parseFloat(prod.price) || 0).toFixed(2)}","${topProfit.toFixed(2)}","${topMargin.toFixed(1)}%"\r\n`;
+                                });
+                            }
+                        });
+                        
+                        const encodedUri = encodeURI(csvContent);
+                        const link = document.createElement("a");
+                        link.setAttribute("href", encodedUri);
+                        link.setAttribute("download", `recipe_cost_analysis_${new Date().toISOString().slice(0,10)}.csv`);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        showToast("Recipe costing analysis exported successfully! 📊");
+                    } catch (err) {
+                        console.error("Failed to export recipe costing", err);
+                        showToast("Export failed", "error");
+                    }
                 };
 
                 const handleSaveRawMaterial = async (e) => {

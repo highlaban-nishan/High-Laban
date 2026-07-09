@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaHome, FaUtensils, FaUser } from 'react-icons/fa';
+import { FaHome, FaUtensils, FaUser, FaInfoCircle } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './MobileNavbar.module.css';
 import logo from '../../assets/logo.png';
@@ -15,6 +15,8 @@ export default function MobileNavbar({ onOpenFranchise }) {
             if (location.state?.scrollTo === 'products' || location.hash === '#products') setActiveIndex(1);
             else if (onOpenFranchise && location.state?.openForm) setActiveIndex(2);
             else setActiveIndex(0);
+        } else if (location.pathname === '/about-us') {
+            setActiveIndex(3);
         }
     }, [location, onOpenFranchise]);
 
@@ -22,6 +24,7 @@ export default function MobileNavbar({ onOpenFranchise }) {
         { icon: <FaHome />, label: 'Home', id: 'home' },
         { icon: <FaUtensils />, label: 'Menu', id: 'menu' },
         { icon: <FaUser />, label: 'FRANCHISE', id: 'franchise' },
+        { icon: <FaInfoCircle />, label: 'About', id: 'about' },
     ];
 
     const handleNavigation = (index, id) => {
@@ -34,6 +37,8 @@ export default function MobileNavbar({ onOpenFranchise }) {
             scrollToSection('products');
         } else if (id === 'franchise') {
             navigate('/franchise-inquiry');
+        } else if (id === 'about') {
+            navigate('/about-us');
         }
     };
 

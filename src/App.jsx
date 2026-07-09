@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import PurchaserDashboard from './pages/PurchaserDashboard';
 import FranchiseInquiry from './pages/FranchiseInquiry';
+import AboutUs from './pages/AboutUs';
 import db from './utils/db';
 import FranchiseForm from './components/Franchise/FranchiseForm';
 
@@ -45,6 +46,7 @@ function App() {
       )}
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/about-us" element={<AboutUs />} />
         <Route path="/login" element={<Login />} />
         <Route path="/franchise-inquiry" element={<FranchiseInquiry />} />
         <Route path="/dashboard" element={<DashboardRoute />} />

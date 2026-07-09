@@ -34,6 +34,7 @@ export default function Navbar({ onOpenFranchise }) {
                 </Link>
 
                 <div className={`${styles.links} ${menuOpen ? styles.menuOpen : ''}`}>
+                    <Link to="/about-us" onClick={() => setMenuOpen(false)}>ABOUT US</Link>
                     <a href="#story" onClick={(e) => {
                         e.preventDefault();
                         setMenuOpen(false);
