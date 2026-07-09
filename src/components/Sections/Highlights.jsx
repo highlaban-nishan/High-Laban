@@ -78,10 +78,17 @@ export default function Highlights({ manualContent }) {
             <Container>
                 <div className={`${styles.storyRight} ${isVisible ? styles.visible : styles.hiddenRight}`}>
                     <span className={styles.labelSmall} style={{
-                        color: '#0ea5e9', fontWeight: '800',
-                        letterSpacing: '2px', display: 'block', marginBottom: '10px'
+                        background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        fontWeight: '900',
+                        fontSize: '0.8rem',
+                        letterSpacing: '3px', 
+                        display: 'block', 
+                        marginBottom: '6px',
+                        textTransform: 'uppercase'
                     }}>
-                        OUR STORY
+                        CREATING THE VIRAL SENSATION
                     </span>
 
                     <h2 className={styles.storyHeadline} style={{

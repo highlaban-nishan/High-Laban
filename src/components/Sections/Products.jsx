@@ -275,7 +275,7 @@ const ProductCard = ({ product, index, isModal = false, onOrderClick }) => {
                         if (isModal && typeof onOrderClick === 'function') {
                             onOrderClick();
                         } else {
-                            const element = document.getElementById('story-section');
+                            const element = document.getElementById('locations');
                             if (element) {
                                 const y = element.getBoundingClientRect().top + window.scrollY - 100;
                                 window.scrollTo({ top: y, behavior: 'smooth' });

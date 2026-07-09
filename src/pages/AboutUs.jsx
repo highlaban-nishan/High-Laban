@@ -24,15 +24,15 @@ export default function AboutUs() {
                 color: '#fff',
                 fontFamily: "'Outfit', sans-serif",
                 minHeight: '100vh',
-                padding: '8rem 2rem 4rem',
+                padding: '4rem 1.5rem 4rem', // Reduced top padding on mobile
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center'
             }}>
                 <div style={{ maxWidth: '800px', width: '100%' }}>
                     {/* Header */}
-                    <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0ea5e9', letterSpacing: '3px', textTransform: 'uppercase' }}>Our Story</span>
+                    <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0ea5e9', letterSpacing: '3px', textTransform: 'uppercase' }}>ABOUT US</span>
                         <h1 style={{ fontSize: '3rem', fontWeight: '900', color: 'white', margin: '10px 0 0 0' }}>About High Laban</h1>
                         <div style={{ width: '60px', height: '4px', background: '#0ea5e9', margin: '20px auto 0', borderRadius: '2px' }}></div>
                     </div>
