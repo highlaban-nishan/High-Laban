@@ -25,25 +25,16 @@ export default function Navbar({ onOpenFranchise }) {
 
     return (
         <nav className={styles.navbar}>
-            <div className={`${styles.navPill} ${isScrolled ? styles.scrolled : ''}`}>
-                <Link to="/" className={styles.logo} onClick={(e) => {
-                    e.preventDefault();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}>
-                    <img src={logo} alt="High Laban" />
-                </Link>
+            <Link to="/" className={styles.logoOutside} onClick={(e) => {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}>
+                <img src={logo} alt="High Laban" />
+            </Link>
 
+            <div className={`${styles.navPill} ${isScrolled ? styles.scrolled : ''}`}>
                 <div className={`${styles.links} ${menuOpen ? styles.menuOpen : ''}`}>
                     <Link to="/about-us" onClick={() => setMenuOpen(false)}>ABOUT US</Link>
-                    <a href="#story" onClick={(e) => {
-                        e.preventDefault();
-                        setMenuOpen(false);
-                        const element = document.getElementById('story-section');
-                        if (element) {
-                            const y = element.getBoundingClientRect().top + window.scrollY - 100; // Offset for navbar
-                            window.scrollTo({ top: y, behavior: 'smooth' });
-                        }
-                    }}>OUR STORY</a>
                     <a href="#products" onClick={(e) => {
                         e.preventDefault();
                         setMenuOpen(false);
@@ -53,12 +44,6 @@ export default function Navbar({ onOpenFranchise }) {
                             window.scrollTo({ top: y, behavior: 'smooth' });
                         }
                     }}>MENU</a>
-                    <a href="/franchise-inquiry" className={styles.mobileOnly} onClick={(e) => {
-                        e.preventDefault();
-                        setMenuOpen(false);
-                        navigate('/franchise-inquiry');
-                    }}>FRANCHISE</a>
-
                 </div>
 
                 <div className={styles.actionButtons}>
@@ -68,7 +53,6 @@ export default function Navbar({ onOpenFranchise }) {
                     }}>
                         FRANCHISE
                     </a>
-
                 </div>
 
                 <button

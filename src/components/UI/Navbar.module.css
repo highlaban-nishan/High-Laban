@@ -36,22 +36,30 @@
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-.logo {
+.logoOutside {
+    position: absolute;
+    top: 1.25rem;
+    left: 4rem;
+    pointer-events: auto;
     display: flex;
-    /* Ensure logo container behaves correctly */
     align-items: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.logo img {
-    height: 48px;
+.logoOutside img {
+    height: 52px;
     object-fit: contain;
+}
+
+.logoOutside:hover {
+    transform: scale(1.05);
 }
 
 .links {
     display: flex;
-    gap: 3rem;
-    margin-left: auto;
-    margin-right: auto;
+    gap: 3.5rem;
+    margin-right: 2.5rem;
+    align-items: center;
 }
 
 .links a {
