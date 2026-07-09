@@ -67,6 +67,11 @@ html {
     }
 }
 
+/* Hide scrollbar on toppings horizontal slider (Chrome/Safari) */
+.toppings-slider::-webkit-scrollbar {
+    display: none;
+}
+
 h1 {
     font-size: 3.2em;
     line-height: 1.1;

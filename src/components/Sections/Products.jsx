@@ -145,8 +145,25 @@ const ProductCard = ({ product, index, isModal = false, onOrderClick }) => {
             )}
 
             {product.toppings && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '0.75rem', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>✨ Toppings:</span>
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    marginBottom: '0.75rem',
+                }}>
+                    <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Toppings:</span>
+                    <div style={{
+                        display: 'flex',
+                        flexWrap: 'nowrap',
+                        gap: '6px',
+                        overflowX: 'auto',
+                        paddingBottom: '4px',
+                        scrollbarWidth: 'none',          /* Firefox */
+                        msOverflowStyle: 'none',         /* IE/Edge */
+                        WebkitOverflowScrolling: 'touch',
+                    }}
+                    className="toppings-slider"
+                    >
                     {(Array.isArray(product.toppings) ? product.toppings : product.toppings.split(',')).map((topping, tIdx) => {
                         const hasMatchingPic = images.some(img => 
                             img.tag && img.tag.toLowerCase().trim() === topping.trim().toLowerCase()
@@ -177,14 +194,17 @@ const ProductCard = ({ product, index, isModal = false, onOrderClick }) => {
                                     cursor: hasMatchingPic ? 'pointer' : 'default',
                                     transition: 'all 0.2s ease',
                                     transform: isActive ? 'scale(1.08)' : 'scale(1)',
-                                    boxShadow: isActive ? '0 2px 8px rgba(0, 156, 235, 0.4)' : 'none'
+                                    boxShadow: isActive ? '0 2px 8px rgba(0, 156, 235, 0.4)' : 'none',
+                                    flexShrink: 0,
+                                    whiteSpace: 'nowrap',
                                 }}
                                 title={hasMatchingPic ? "Click to view photo" : ""}
                             >
-                                {topping.trim()} {hasMatchingPic && '📷'}
+                                {topping.trim()}
                             </span>
                         );
                     })}
+                    </div>{/* end horizontal scroll row */}
                 </div>
             )}
 

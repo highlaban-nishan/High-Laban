@@ -70,7 +70,7 @@ const Home = () => {
             <Hero />
             <main style={{ position: 'relative', zIndex: 10, background: 'var(--color-bg-dark)' }}>
                 <Marquee />
-
+                <About />
                 <Products />
                 <VideoSection />
                 <Highlights />
