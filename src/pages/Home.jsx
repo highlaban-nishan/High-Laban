@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect } from 'react';
 import Hero from '../components/Hero/Hero';
-import About from '../components/Sections/About'; // Import About
+
 import Highlights from '../components/Sections/Highlights';
 import VideoSection from '../components/Sections/VideoSection';
 import Products from '../components/Sections/Products';
@@ -70,7 +70,7 @@ const Home = () => {
             <Hero />
             <main style={{ position: 'relative', zIndex: 10, background: 'var(--color-bg-dark)' }}>
                 <Marquee />
-                <About /> {/* Added Static About Section */}
+
                 <Products />
                 <VideoSection />
                 <Highlights />
