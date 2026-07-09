@@ -191,12 +191,14 @@ const AdminDashboard = () => {
     const [purchaseSearchQuery, setPurchaseSearchQuery] = useState('');
     const [showAddPurchaseForm, setShowAddPurchaseForm] = useState(false);
     const [editingPurchase, setEditingPurchase] = useState(null);
+    const [isPurchaseCustom, setIsPurchaseCustom] = useState(false);
+    const [purchaserType, setPurchaserType] = useState('select');
+    const [editPurchaserType, setEditPurchaserType] = useState('select');
     const [newPurchase, setNewPurchase] = useState({
         date: new Date().toISOString().split('T')[0], item: '', category: 'Dairy & Milk',
         vendorId: '', amount: '', paymentMode: 'Cash', notes: '', billUrl: '', location: 'Main Kitchen',
         purchaserName: ''
     });
-    const [isPurchaseCustom, setIsPurchaseCustom] = useState(false);
     const [isEditPurchaseCustom, setIsEditPurchaseCustom] = useState(false);
     const [isRawCustom, setIsRawCustom] = useState(false);
 
