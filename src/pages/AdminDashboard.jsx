@@ -6033,7 +6033,7 @@ const AdminDashboard = () => {
 
                 const getProductRecipeCost = (productId, selectedToppingIndex = -1) => {
                     const recipe = recipesList.find(r => r.id === productId);
-                    if (!recipe) return { ingredientsCost: 0, packagingCost: 0, overheadCost: 0, toppingCost: 0, totalUnitCost: 0 };
+                    if (!recipe) return { ingredientsCost: 0, packagingCost: 0, overheadCost: 0, fixedCostPerPiece: 0, toppingCost: 0, totalUnitCost: 0 };
 
                     let ingCost = 0;
                     (recipe.ingredients || []).forEach(ing => {
