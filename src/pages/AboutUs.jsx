@@ -50,7 +50,7 @@ export default function AboutUs() {
                         {/* Mission */}
                         <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', padding: '2.5rem', borderRadius: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                             <div>
-                                <h3 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0ea5e9', margin: '0 0 1rem 0' }}>🎯 Our Mission</h3>
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0ea5e9', margin: '0 0 1rem 0' }}>Our Mission</h3>
                                 <p style={{ fontSize: '1rem', lineHeight: '1.7', color: '#cbd5e1', margin: 0 }}>
                                     Our mission is to create desserts that celebrate Egypt’s rich heritage while connecting with modern global tastes. We stay rooted in authentic techniques and ingredients, yet continue to explore new flavour combinations and textures. High Laban stands for quality, passion, and the joy of cultural food experiences. We aim to share the beauty of Egyptian dessert culture across the world and make it a part of every dessert lover’s story.
                                 </p>
@@ -60,7 +60,7 @@ export default function AboutUs() {
                         {/* Vision */}
                         <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', padding: '2.5rem', borderRadius: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                             <div>
-                                <h3 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0ea5e9', margin: '0 0 1rem 0' }}>👁️ Our Vision</h3>
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0ea5e9', margin: '0 0 1rem 0' }}>Our Vision</h3>
                                 <p style={{ fontSize: '1rem', lineHeight: '1.7', color: '#cbd5e1', margin: 0 }}>
                                     To redefine how Indian dessert lovers experience Egyptian and Middle Eastern sweets — by blending authenticity, creativity, and global inspiration in every bite.
                                 </p>
@@ -71,7 +71,7 @@ export default function AboutUs() {
 
                     {/* Founders */}
                     <div>
-                        <h2 style={{ fontSize: '2rem', fontWeight: '900', color: 'white', textAlign: 'center', marginBottom: '2.5rem' }}>👥 Meet Our Founders</h2>
+                        <h2 style={{ fontSize: '2rem', fontWeight: '900', color: 'white', textAlign: 'center', marginBottom: '2.5rem' }}>Meet Our Founders</h2>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
                             {founders.map((f, i) => (
                                 <div key={i} style={{

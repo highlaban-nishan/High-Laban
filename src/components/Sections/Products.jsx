@@ -139,7 +139,7 @@ const ProductCard = ({ product, index, isModal = false, onOrderClick }) => {
             {product.ingredients && (
                 <div style={{ marginBottom: '0.5rem' }}>
                     <span className={styles.ingredientsTag}>
-                        🍰 Layers: {product.ingredients.split(/[-•,]/).map(s => s.trim()).filter(Boolean).join(' • ')}
+                        Layers: {product.ingredients.split(/[-•,]/).map(s => s.trim()).filter(Boolean).join(' • ')}
                     </span>
                 </div>
             )}

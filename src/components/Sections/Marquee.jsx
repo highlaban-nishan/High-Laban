@@ -2,12 +2,12 @@ import React from 'react';
 import styles from './Marquee.module.css';
 
 const items = [
-    "✨ Authentic Egyptian Flavors",
-    "🥛 Premium Ingredients",
-    "👨‍🍳 Freshly Crafted Daily",
-    "🩵 Hygienically Prepared",
-    "🌍 Globally Inspired",
-    "💙 Get High on Bites",
+    "Authentic Egyptian Flavors",
+    "Premium Ingredients",
+    "Freshly Crafted Daily",
+    "Hygienically Prepared",
+    "Globally Inspired",
+    "Get High on Bites",
 ];
 
 const Marquee = () => {
