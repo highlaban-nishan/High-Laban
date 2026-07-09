@@ -5,7 +5,7 @@ import cheesePullKunafa from '../../assets/cheese_pull_kunafa.png';
 
 export default function VideoSection() {
     return (
-        <section id="video-features-section" className={styles.section} style={{ background: '#0f172a' }}>
+        <section id="video-features-section" className={styles.section}>
             <Container>
                 <div className={styles.grid}>
                     {/* Card 1 - Brand Story (White) */}
@@ -38,7 +38,7 @@ export default function VideoSection() {
                         </div>
                     </div>
 
-                    {/* Stack: Ingredients (Card 9) + Experience (Card 3) */}
+                    {/* Stack: Ingredients (Card 9) + Prepared Fresh Daily (Card 3) */}
                     <div className={styles.col1Stack}>
                         {/* Card 9 - Ingredients (Soft Blue) */}
                         <div className={`${styles.card} ${styles.card9}`} style={{ background: '#F5FAFD', color: '#17324A', border: '1px solid #EAECEF' }}>
@@ -55,13 +55,19 @@ export default function VideoSection() {
                             </div>
                         </div>
 
-                        {/* Card 3 - Dessert Photography (Food Hero) */}
-                        <div className={`${styles.card} ${styles.imageCard} ${styles.card3}`} style={{ overflow: 'hidden' }}>
-                            <img 
-                                src={cheesePullKunafa} 
-                                alt="Cheese Pull Kunafa" 
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                            />
+                        {/* Card 3 - Prepared Fresh Daily (Small Card) */}
+                        <div className={`${styles.card} ${styles.card3}`} style={{ background: '#17324A', color: '#FFFFFF', border: '1px solid #EAECEF' }}>
+                            <div className={styles.cardContent}>
+                                <span style={{ fontSize: '12px', uppercase: true, fontWeight: '700', letterSpacing: '1.5px', color: '#8AD7FF', display: 'block', marginBottom: '8px' }}>
+                                    MADE FRESH DAILY
+                                </span>
+                                <h2 style={{ fontSize: '34px', fontWeight: '800', color: '#FFFFFF', margin: '0 0 12px 0', lineHeight: '1.2' }}>
+                                    Prepared Throughout The Day
+                                </h2>
+                                <p style={{ fontSize: '16px', color: 'rgba(255,255,255,.85)', lineHeight: '1.7', margin: 0 }}>
+                                    Every dessert is freshly prepared in small batches to ensure perfect warmth, texture and consistency in every serving.
+                                </p>
+                            </div>
                         </div>
                     </div>
 
@@ -159,19 +165,13 @@ export default function VideoSection() {
                         </div>
                     </div>
 
-                    {/* Card 8 - Fresh Daily (Dark Navy) */}
-                    <div className={`${styles.card} ${styles.card8}`} style={{ background: '#17324A', color: '#FFFFFF', border: '1px solid #EAECEF' }}>
-                        <div className={styles.cardContent}>
-                            <span style={{ fontSize: '12px', uppercase: true, fontWeight: '700', letterSpacing: '1.5px', color: '#8AD7FF', display: 'block', marginBottom: '8px' }}>
-                                MADE FRESH DAILY
-                            </span>
-                            <h2 style={{ fontSize: '34px', fontWeight: '800', color: '#FFFFFF', margin: '0 0 12px 0', lineHeight: '1.2' }}>
-                                Prepared Throughout The Day
-                            </h2>
-                            <p style={{ fontSize: '16px', color: 'rgba(255,255,255,.85)', lineHeight: '1.7', margin: 0 }}>
-                                Every dessert is freshly prepared in small batches to ensure perfect warmth, texture and consistency in every serving.
-                            </p>
-                        </div>
+                    {/* Card 8 - Dessert Photography (Food Hero Kunafa Image) */}
+                    <div className={`${styles.card} ${styles.imageCard} ${styles.card8}`} style={{ overflow: 'hidden' }}>
+                        <img 
+                            src={cheesePullKunafa} 
+                            alt="Cheese Pull Kunafa" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
                     </div>
                 </div>
             </Container>
