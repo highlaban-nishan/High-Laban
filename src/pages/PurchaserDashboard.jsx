@@ -49,12 +49,13 @@ export default function PurchaserDashboard() {
     const [uploadingBill, setUploadingBill] = useState(false);
     const [toast, setToast] = useState(null);
     const [uploadingTransaction, setUploadingTransaction] = useState(false);
+    const [currentStep, setCurrentStep] = useState(1);
 
     // Form state
     const [form, setForm] = useState({
         date: TODAY(), item: '', category: CATEGORIES[0],
         vendorId: '', amount: '', paymentMode: 'Cash',
-        notes: '', billUrl: '', transactionUrl: '', location: 'Main Kitchen'
+        notes: '', billUrl: '', transactionUrl: '', location: ''
     });
 
     // Filters (for admin/accounts view)
@@ -125,6 +126,7 @@ export default function PurchaserDashboard() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!form.location) { showToast('Please select a location first', 'error'); return; }
         if (!form.item.trim()) { showToast('Item name is required', 'error'); return; }
         if (!form.amount || parseFloat(form.amount) <= 0) { showToast('Enter a valid amount', 'error'); return; }
 
@@ -164,10 +166,12 @@ export default function PurchaserDashboard() {
                 setVendors(prev => prev.map(v => v.id === selectedVendor.id ? updatedVendor : v));
             }
 
-            setForm({ date: TODAY(), item: '', category: CATEGORIES[0], vendorId: '', amount: '', paymentMode: 'Cash', notes: '', billUrl: '', transactionUrl: '', location: 'Main Kitchen' });
+            // Keep location, reset the rest for fast entry
+            setForm(f => ({ ...f, item: '', vendorId: '', amount: '', notes: '', billUrl: '', transactionUrl: '' }));
             if (billInputRef.current) billInputRef.current.value = '';
             if (transactionInputRef.current) transactionInputRef.current.value = '';
-            showToast('Purchase logged and vendor price synced successfully! ✅');
+            setCurrentStep(2); // Loop back to step 2
+            showToast('Purchase logged successfully! ✅');
         } catch {
             showToast('Failed to log purchase', 'error');
         } finally {
@@ -311,119 +315,166 @@ export default function PurchaserDashboard() {
                                 ➕ Log a Purchase
                             </h2>
                             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-
-                                {/* Date */}
-                                <div>
-                                    <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Date</label>
-                                    <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-                                        style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', color: 'white', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+                                {/* Step Progress Indicator */}
+                                <div style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
+                                    {[1,2,3,4].map(s => (
+                                        <div key={s} style={{ height: '4px', flex: 1, borderRadius: '2px', background: s <= currentStep ? '#0ea5e9' : 'rgba(255,255,255,0.1)' }} />
+                                    ))}
                                 </div>
 
-                                {/* Item */}
-                                <div>
-                                    <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Item Purchased *</label>
-                                    <input type="text" placeholder="e.g. Eggs, Milk, Pistachio..." value={form.item} onChange={e => setForm(f => ({ ...f, item: e.target.value }))} required list="prev-items"
-                                        style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', color: 'white', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-                                </div>
-
-                                {/* Category */}
-                                <div>
-                                    <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Category</label>
-                                    <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                                        style={{ width: '100%', padding: '10px 12px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', color: 'white', fontSize: '0.9rem', boxSizing: 'border-box' }}>
-                                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                    </select>
-                                </div>
-
-                                {/* Location */}
-                                <div>
-                                    <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Location / Outlet</label>
-                                    <select value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                                        style={{ width: '100%', padding: '10px 12px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', color: 'white', fontSize: '0.9rem', boxSizing: 'border-box' }}>
-                                        <option value="Main Kitchen">🍳 Main Kitchen (Default)</option>
+                                {currentStep === 1 && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase', marginBottom: '10px' }}>Where is this purchase for?</label>
+                                        
+                                        <div 
+                                            onClick={() => { setForm(f => ({ ...f, location: 'Main Kitchen' })); setCurrentStep(2); }}
+                                            style={{ background: form.location === 'Main Kitchen' ? 'rgba(14,165,233,0.2)' : 'rgba(255,255,255,0.05)', border: form.location === 'Main Kitchen' ? '1px solid #0ea5e9' : '1px solid rgba(255,255,255,0.1)', padding: '15px', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', transition: 'all 0.2s' }}>
+                                            <span style={{ fontSize: '1.5rem' }}>🍳</span>
+                                            <span style={{ color: 'white', fontWeight: '700' }}>Main Kitchen</span>
+                                        </div>
+                                        
                                         {runningOutlets.map(o => (
-                                            <option key={o.id} value={o.outletName}>🏪 {o.outletName.replace('High Laban - ', '')}</option>
+                                            <div 
+                                                key={o.id}
+                                                onClick={() => { setForm(f => ({ ...f, location: o.outletName })); setCurrentStep(2); }}
+                                                style={{ background: form.location === o.outletName ? 'rgba(14,165,233,0.2)' : 'rgba(255,255,255,0.05)', border: form.location === o.outletName ? '1px solid #0ea5e9' : '1px solid rgba(255,255,255,0.1)', padding: '15px', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', transition: 'all 0.2s' }}>
+                                                <span style={{ fontSize: '1.5rem' }}>🏪</span>
+                                                <span style={{ color: 'white', fontWeight: '700' }}>{o.outletName.replace('High Laban - ', '')}</span>
+                                            </div>
                                         ))}
-                                    </select>
-                                </div>
-
-                                {/* Vendor */}
-                                <div>
-                                    <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Vendor (Optional)</label>
-                                    <select value={form.vendorId} onChange={e => setForm(f => ({ ...f, vendorId: e.target.value }))}
-                                        style={{ width: '100%', padding: '10px 12px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', color: 'white', fontSize: '0.9rem', boxSizing: 'border-box' }}>
-                                        <option value="">-- Select Vendor --</option>
-                                        {vendors.map(v => <option key={v.id} value={v.id}>{v.name} ({v.category})</option>)}
-                                    </select>
-                                </div>
-
-                                {/* Amount + Payment */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                                    <div>
-                                        <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Amount (₹) *</label>
-                                        <input type="number" min="0" step="0.01" placeholder="0.00" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} required
-                                            style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', color: 'white', fontSize: '0.9rem', boxSizing: 'border-box' }} />
                                     </div>
-                                    <div>
-                                        <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Payment</label>
-                                        <select value={form.paymentMode} onChange={e => setForm(f => ({ ...f, paymentMode: e.target.value }))}
-                                            style={{ width: '100%', padding: '10px 12px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', color: 'white', fontSize: '0.9rem', boxSizing: 'border-box' }}>
-                                            <option value="Cash">💵 Cash</option>
-                                            <option value="GPay">📱 GPay</option>
-                                            <option value="Bank Transfer">🏦 Bank Transfer</option>
-                                        </select>
-                                    </div>
-                                </div>
+                                )}
 
-                                {/* Notes */}
-                                <div>
-                                    <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Notes (Optional)</label>
-                                    <textarea rows={2} placeholder="Any extra details..." value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                                        style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', color: 'white', fontSize: '0.9rem', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
-                                </div>
+                                {currentStep === 2 && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        <div style={{ background: 'rgba(14,165,233,0.1)', padding: '10px', borderRadius: '8px', color: '#0ea5e9', fontSize: '0.8rem', fontWeight: '700', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span>📍 {form.location}</span>
+                                            <span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setCurrentStep(1)}>Change</span>
+                                        </div>
+                                        
+                                        <div>
+                                            <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Item Purchased *</label>
+                                            <input type="text" placeholder="e.g. Eggs, Milk, Pistachio..." value={form.item} onChange={e => setForm(f => ({ ...f, item: e.target.value }))} autoFocus list="prev-items"
+                                                style={{ width: '100%', padding: '15px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', color: 'white', fontSize: '1.1rem', boxSizing: 'border-box' }} />
+                                        </div>
 
-                                {/* Bill Upload */}
-                                <div>
-                                    <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>🧾 Upload Invoice / Bill</label>
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                        <button type="button" onClick={() => billInputRef.current?.click()}
-                                            style={{ background: 'rgba(255,255,255,0.08)', color: '#94a3b8', border: '1px dashed rgba(255,255,255,0.2)', borderRadius: '10px', padding: '10px 16px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600', flex: 1 }}>
-                                            {uploadingBill ? 'Uploading...' : form.billUrl ? '✅ Invoice Attached' : '📷 Choose Invoice'}
+                                        <div>
+                                            <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Category</label>
+                                            <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                                                style={{ width: '100%', padding: '15px 12px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', color: 'white', fontSize: '1rem', boxSizing: 'border-box' }}>
+                                                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Vendor (Optional)</label>
+                                            <select value={form.vendorId} onChange={e => setForm(f => ({ ...f, vendorId: e.target.value }))}
+                                                style={{ width: '100%', padding: '15px 12px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', color: 'white', fontSize: '1rem', boxSizing: 'border-box' }}>
+                                                <option value="">-- Select Vendor --</option>
+                                                {vendors.map(v => <option key={v.id} value={v.id}>{v.name} ({v.category})</option>)}
+                                            </select>
+                                        </div>
+                                        
+                                        <button type="button" onClick={() => { if(!form.item) showToast('Item name required','error'); else setCurrentStep(3); }}
+                                            style={{ background: 'white', color: '#0f172a', border: 'none', borderRadius: '12px', padding: '15px', fontSize: '1rem', fontWeight: '800', cursor: 'pointer', marginTop: '10px' }}>
+                                            Next ➡️
                                         </button>
-                                        {form.billUrl && (
-                                            <a href={form.billUrl} target="_blank" rel="noopener noreferrer"
-                                                style={{ color: '#0ea5e9', fontSize: '0.75rem', fontWeight: '700', textDecoration: 'none' }}>View</a>
-                                        )}
                                     </div>
-                                    <input ref={billInputRef} type="file" accept="image/*,application/pdf" onChange={handleBillUpload} style={{ display: 'none' }} />
-                                </div>
+                                )}
 
-                                {/* Transaction Screenshot Upload */}
-                                <div>
-                                    <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>📱 Upload Transaction screenshot</label>
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                        <button type="button" onClick={() => transactionInputRef.current?.click()}
-                                            style={{ background: 'rgba(255,255,255,0.08)', color: '#94a3b8', border: '1px dashed rgba(255,255,255,0.2)', borderRadius: '10px', padding: '10px 16px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600', flex: 1 }}>
-                                            {uploadingTransaction ? 'Uploading...' : form.transactionUrl ? '✅ Proof Attached' : '📷 Choose Proof'}
+                                {currentStep === 3 && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                            <span style={{ color: 'white', fontWeight: '700' }}>{form.item}</span>
+                                            <span style={{ cursor: 'pointer', color: '#94a3b8', textDecoration: 'underline', fontSize: '0.8rem' }} onClick={() => setCurrentStep(2)}>Back</span>
+                                        </div>
+                                        
+                                        <div>
+                                            <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Amount (₹) *</label>
+                                            <input type="number" min="0" step="0.01" placeholder="0.00" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} autoFocus
+                                                style={{ width: '100%', padding: '20px 15px', background: 'rgba(255,255,255,0.06)', border: '2px solid #0ea5e9', borderRadius: '10px', color: 'white', fontSize: '1.5rem', fontWeight: '800', boxSizing: 'border-box' }} />
+                                        </div>
+                                        
+                                        <div>
+                                            <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Payment Mode</label>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                                {['Cash', 'GPay'].map(mode => (
+                                                    <div key={mode} onClick={() => setForm(f => ({ ...f, paymentMode: mode }))}
+                                                        style={{ background: form.paymentMode === mode ? 'rgba(14,165,233,0.2)' : 'rgba(255,255,255,0.05)', border: form.paymentMode === mode ? '1px solid #0ea5e9' : '1px solid rgba(255,255,255,0.1)', padding: '15px', borderRadius: '10px', textAlign: 'center', cursor: 'pointer', color: 'white', fontWeight: '700' }}>
+                                                        {mode === 'Cash' ? '💵' : '📱'} {mode}
+                                                    </div>
+                                                ))}
+                                                <div onClick={() => setForm(f => ({ ...f, paymentMode: 'Bank Transfer' }))}
+                                                    style={{ gridColumn: '1 / -1', background: form.paymentMode === 'Bank Transfer' ? 'rgba(14,165,233,0.2)' : 'rgba(255,255,255,0.05)', border: form.paymentMode === 'Bank Transfer' ? '1px solid #0ea5e9' : '1px solid rgba(255,255,255,0.1)', padding: '15px', borderRadius: '10px', textAlign: 'center', cursor: 'pointer', color: 'white', fontWeight: '700' }}>
+                                                    🏦 Bank Transfer
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Notes (Optional)</label>
+                                            <textarea rows={2} placeholder="Any extra details..." value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                                                style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', color: 'white', fontSize: '0.9rem', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                                        </div>
+                                        
+                                        <button type="button" onClick={() => { if(!form.amount || form.amount <= 0) showToast('Enter valid amount','error'); else setCurrentStep(4); }}
+                                            style={{ background: 'white', color: '#0f172a', border: 'none', borderRadius: '12px', padding: '15px', fontSize: '1rem', fontWeight: '800', cursor: 'pointer', marginTop: '10px' }}>
+                                            Next ➡️
                                         </button>
-                                        {form.transactionUrl && (
-                                            <a href={form.transactionUrl} target="_blank" rel="noopener noreferrer"
-                                                style={{ color: '#22c55e', fontSize: '0.75rem', fontWeight: '700', textDecoration: 'none' }}>View</a>
-                                        )}
                                     </div>
-                                    <input ref={transactionInputRef} type="file" accept="image/*,application/pdf" onChange={handleTransactionUpload} style={{ display: 'none' }} />
-                                </div>
+                                )}
 
-                                <button type="submit" disabled={submitting}
-                                    style={{
-                                        background: submitting ? '#334155' : 'linear-gradient(135deg, #0ea5e9, #0284c7)',
-                                        color: 'white', border: 'none', borderRadius: '12px',
-                                        padding: '14px', fontSize: '1rem', fontWeight: '800',
-                                        cursor: submitting ? 'not-allowed' : 'pointer', marginTop: '4px',
-                                        transition: 'all 0.2s ease'
-                                    }}>
-                                    {submitting ? 'Logging...' : '✅ Log Purchase'}
-                                </button>
+                                {currentStep === 4 && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                            <span style={{ color: 'white', fontWeight: '700' }}>Attachments</span>
+                                            <span style={{ cursor: 'pointer', color: '#94a3b8', textDecoration: 'underline', fontSize: '0.8rem' }} onClick={() => setCurrentStep(3)}>Back</span>
+                                        </div>
+
+                                        {/* Bill Upload */}
+                                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '15px', borderRadius: '12px', border: '1px dashed rgba(255,255,255,0.2)' }}>
+                                            <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '10px' }}>🧾 Upload Invoice / Bill</label>
+                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                <button type="button" onClick={() => billInputRef.current?.click()}
+                                                    style={{ background: form.billUrl ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.08)', color: form.billUrl ? '#22c55e' : 'white', border: 'none', borderRadius: '8px', padding: '12px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '700', flex: 1 }}>
+                                                    {uploadingBill ? 'Uploading...' : form.billUrl ? '✅ Invoice Attached' : '📷 Choose Invoice'}
+                                                </button>
+                                                {form.billUrl && (
+                                                    <a href={form.billUrl} target="_blank" rel="noopener noreferrer"
+                                                        style={{ color: '#0ea5e9', fontSize: '0.8rem', fontWeight: '700', textDecoration: 'none' }}>View</a>
+                                                )}
+                                            </div>
+                                            <input ref={billInputRef} type="file" accept="image/*,application/pdf" onChange={handleBillUpload} style={{ display: 'none' }} />
+                                        </div>
+
+                                        {/* Transaction Screenshot Upload */}
+                                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '15px', borderRadius: '12px', border: '1px dashed rgba(255,255,255,0.2)' }}>
+                                            <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '10px' }}>📱 Transaction Proof</label>
+                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                <button type="button" onClick={() => transactionInputRef.current?.click()}
+                                                    style={{ background: form.transactionUrl ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.08)', color: form.transactionUrl ? '#22c55e' : 'white', border: 'none', borderRadius: '8px', padding: '12px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '700', flex: 1 }}>
+                                                    {uploadingTransaction ? 'Uploading...' : form.transactionUrl ? '✅ Proof Attached' : '📷 Choose Proof'}
+                                                </button>
+                                                {form.transactionUrl && (
+                                                    <a href={form.transactionUrl} target="_blank" rel="noopener noreferrer"
+                                                        style={{ color: '#0ea5e9', fontSize: '0.8rem', fontWeight: '700', textDecoration: 'none' }}>View</a>
+                                                )}
+                                            </div>
+                                            <input ref={transactionInputRef} type="file" accept="image/*,application/pdf" onChange={handleTransactionUpload} style={{ display: 'none' }} />
+                                        </div>
+
+                                        <button type="submit" disabled={submitting}
+                                            style={{
+                                                background: submitting ? '#334155' : 'linear-gradient(135deg, #0ea5e9, #0284c7)',
+                                                color: 'white', border: 'none', borderRadius: '12px',
+                                                padding: '16px', fontSize: '1.1rem', fontWeight: '800',
+                                                cursor: submitting ? 'not-allowed' : 'pointer', marginTop: '10px',
+                                                transition: 'all 0.2s ease', boxShadow: '0 4px 15px rgba(14,165,233,0.4)'
+                                            }}>
+                                            {submitting ? 'Logging...' : '✅ Submit Purchase'}
+                                        </button>
+                                    </div>
+                                )}
                             </form>
                         </div>
                     )}

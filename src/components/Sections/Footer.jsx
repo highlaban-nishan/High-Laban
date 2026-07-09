@@ -77,6 +77,8 @@ export default function Footer() {
                         <a href="#story-section" className={styles.link} onClick={(e) => scrollToSection(e, 'story-section')}>Our Story</a>
                         <a href="#products" className={styles.link}>Menu</a>
                         <a href="/franchise-inquiry" className={styles.link} onClick={(e) => { e.preventDefault(); navigate('/franchise-inquiry'); }}>Franchise</a>
+                        <a href="/blog" className={styles.link} onClick={(e) => { e.preventDefault(); navigate('/blog'); }}>Blog</a>
+                        <a href="/connect" className={styles.link} onClick={(e) => { e.preventDefault(); navigate('/connect'); }}>Social Profile</a>
                         <a href="https://www.google.com/maps/search/High+Laban" target="_blank" rel="noopener noreferrer" className={styles.link}>Find Us</a>
                     </div>
 

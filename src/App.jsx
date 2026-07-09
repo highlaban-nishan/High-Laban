@@ -13,6 +13,9 @@ import AboutUs from './pages/AboutUs';
 import db from './utils/db';
 import FranchiseForm from './components/Franchise/FranchiseForm';
 
+import Connect from './pages/Connect';
+import Blog from './pages/Blog';
+
 function App() {
   const [loading, setLoading] = useState(true);
   const [franchiseOpen, setFranchiseOpen] = useState(false);
@@ -30,6 +33,7 @@ function App() {
 
   const user = db.getUser();
   const isDashboardRoute = location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/admin') || location.pathname.startsWith('/purchases');
+  const isConnectRoute = location.pathname === '/connect' || location.pathname === '/links';
 
   const DashboardRoute = () => {
     if (!user) return <Navigate to="/login" replace />;
@@ -41,7 +45,7 @@ function App() {
   return (
     <div className="app-container">
       <Preloader loading={loading} />
-      {!isDashboardRoute && location.pathname !== '/login' && location.pathname !== '/franchise-inquiry' && (
+      {!isDashboardRoute && location.pathname !== '/login' && location.pathname !== '/franchise-inquiry' && !isConnectRoute && (
         <Navbar onOpenFranchise={openFranchise} />
       )}
       <Routes>
@@ -49,12 +53,15 @@ function App() {
         <Route path="/about-us" element={<AboutUs />} />
         <Route path="/login" element={<Login />} />
         <Route path="/franchise-inquiry" element={<FranchiseInquiry />} />
+        <Route path="/connect" element={<Connect />} />
+        <Route path="/links" element={<Navigate to="/connect" replace />} />
+        <Route path="/blog" element={<Blog />} />
         <Route path="/dashboard" element={<DashboardRoute />} />
         <Route path="/purchases" element={user ? <PurchaserDashboard /> : <Navigate to="/login" replace />} />
         <Route path="/admin" element={<Navigate to="/login" replace />} />
       </Routes>
-      {!isDashboardRoute && location.pathname !== '/login' && <Footer />}
-      {!isDashboardRoute && location.pathname !== '/login' && (
+      {!isDashboardRoute && location.pathname !== '/login' && !isConnectRoute && <Footer />}
+      {!isDashboardRoute && location.pathname !== '/login' && !isConnectRoute && (
         <MobileNavbar onOpenFranchise={openFranchise} />
       )}
       <FranchiseForm isOpen={franchiseOpen} onClose={closeFranchise} isModal={true} />

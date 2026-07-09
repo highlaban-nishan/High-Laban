@@ -8,7 +8,8 @@ import logo from '../assets/logo.png';
 import ImageCropper from '../components/UI/ImageCropper';
 import Highlights from '../components/Sections/Highlights'; // For Live Preview
 import SEO from '../components/SEO/SEO';
-import { FiShoppingBag, FiFileText, FiMapPin, FiUsers, FiBriefcase, FiUserCheck, FiDollarSign, FiTruck, FiShoppingCart, FiPieChart } from 'react-icons/fi';
+import { FiShoppingBag, FiFileText, FiMapPin, FiUsers, FiBriefcase, FiUserCheck, FiDollarSign, FiTruck, FiShoppingCart, FiPieChart, FiGlobe, FiDownload } from 'react-icons/fi';
+import { QRCodeCanvas } from 'qrcode.react';
 // import SalesChart from '../components/Dashboard/SalesChart'; // Removed as per request
 // import POS from '../components/Dashboard/POS'; // Removed as per user request
 
@@ -375,6 +376,19 @@ const AdminDashboard = () => {
         features: ['Authentic Recipes', 'Premium Ingredients', 'Freshly Made Daily', 'Zero Preservatives', 'Innovative Fusions', 'Pure Passion']
     };
     const [siteContent, setSiteContent] = useState(defaultSiteContent);
+    const [isProductCustom, setIsProductCustom] = useState(false);
+    
+    // NEW STATES
+    const [blogs, setBlogs] = useState([]);
+    const [socialLinks, setSocialLinks] = useState({
+        instagram: '', whatsapp: '', linkedin: '', website: '', menu: '',
+        orderZomato: '', orderSwiggy: '', orderMagicPin: '', orderOwnly: ''
+    });
+    const [showAddBlogForm, setShowAddBlogForm] = useState(false);
+    const [editingBlog, setEditingBlog] = useState(null);
+    const [newBlog, setNewBlog] = useState({ title: '', content: '', author: 'Admin', tags: '', image: '' });
+    
+    // Filter & Search states
     const [isSavingContent, setIsSavingContent] = useState(false);
 
     // Header Dropdown State
@@ -450,6 +464,12 @@ const AdminDashboard = () => {
             setPurchases(p);
             setVendors(v);
             setRunningFranchises(f);
+        } else if (activeTab === 'blogs') {
+            const b = await db.getBlogs();
+            setBlogs(b);
+        } else if (activeTab === 'connect') {
+            const s = await db.getSocialLinks();
+            if (s) setSocialLinks(s);
         } else if (activeTab === 'costing') {
             const [raws, bunds, recs, prods, p, kitch] = await Promise.all([
                 db.getRawMaterials(),
@@ -1438,6 +1458,19 @@ const AdminDashboard = () => {
                             <FiPieChart style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Food Costing
                             {activeTab === 'costing' && <div className={styles.activeDot}></div>}
                         </div>
+                    )}
+
+                    {(user?.role === 'admin' || user?.role === 'partner') && (
+                        <>
+                            <div className={`${styles.navItem} ${activeTab === 'blogs' ? styles.active : ''}`} onClick={() => { setActiveTab('blogs'); setIsMobileOpen(false); }}>
+                                <FiFileText style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Blogs
+                                {activeTab === 'blogs' && <div className={styles.activeDot}></div>}
+                            </div>
+                            <div className={`${styles.navItem} ${activeTab === 'connect' ? styles.active : ''}`} onClick={() => { setActiveTab('connect'); setIsMobileOpen(false); }}>
+                                <FiGlobe style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Social Links & QR
+                                {activeTab === 'connect' && <div className={styles.activeDot}></div>}
+                            </div>
+                        </>
                     )}
                 </nav>
 
@@ -7723,6 +7756,152 @@ const AdminDashboard = () => {
                                 </div>
                             </div>
                         )}
+                    </div>
+                );
+            })()}
+
+            {activeTab === 'blogs' && (() => {
+                const handleBlogSave = async () => {
+                    try {
+                        if (editingBlog) {
+                            await db.updateBlog(editingBlog.id, newBlog);
+                            setBlogs(blogs.map(b => b.id === editingBlog.id ? { ...newBlog, id: editingBlog.id } : b));
+                        } else {
+                            const created = await db.addBlog(newBlog);
+                            setBlogs([created, ...blogs]);
+                        }
+                        setShowAddBlogForm(false);
+                        setEditingBlog(null);
+                        setNewBlog({ title: '', content: '', author: 'Admin', tags: '', image: '' });
+                        alert('Blog saved successfully');
+                    } catch (err) {
+                        console.error(err);
+                        alert('Error saving blog');
+                    }
+                };
+
+                const handleDeleteBlog = async (id) => {
+                    if (window.confirm('Delete this blog?')) {
+                        await db.deleteBlog(id);
+                        setBlogs(blogs.filter(b => b.id !== id));
+                    }
+                };
+
+                return (
+                    <div className={styles.tabContent}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                            <h2 className={styles.tabTitle}>Blog Management</h2>
+                            <button className={styles.addButton} onClick={() => { setShowAddBlogForm(true); setEditingBlog(null); setNewBlog({ title: '', content: '', author: 'Admin', tags: '', image: '' }); }}>+ Add Blog</button>
+                        </div>
+                        
+                        {showAddBlogForm ? (
+                            <div className={styles.formCard}>
+                                <h3>{editingBlog ? 'Edit Blog' : 'Add New Blog'}</h3>
+                                <div className={styles.formGroup}>
+                                    <label>Title</label>
+                                    <input className={styles.input} type="text" value={newBlog.title} onChange={e => setNewBlog({...newBlog, title: e.target.value})} />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Image URL</label>
+                                    <input className={styles.input} type="text" value={newBlog.image} onChange={e => setNewBlog({...newBlog, image: e.target.value})} placeholder="https://..." />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Author</label>
+                                    <input className={styles.input} type="text" value={newBlog.author} onChange={e => setNewBlog({...newBlog, author: e.target.value})} />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Tags</label>
+                                    <input className={styles.input} type="text" value={newBlog.tags} onChange={e => setNewBlog({...newBlog, tags: e.target.value})} placeholder="e.g. Recipes, News" />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Content</label>
+                                    <textarea className={styles.input} style={{minHeight: '200px'}} value={newBlog.content} onChange={e => setNewBlog({...newBlog, content: e.target.value})} />
+                                </div>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button className={styles.saveButton} onClick={handleBlogSave}>Save Blog</button>
+                                    <button className={styles.cancelButton} onClick={() => setShowAddBlogForm(false)}>Cancel</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className={styles.tableWrapper}>
+                                <table className={styles.table}>
+                                    <thead><tr><th>Title</th><th>Author</th><th>Date</th><th>Actions</th></tr></thead>
+                                    <tbody>
+                                        {blogs.map(blog => (
+                                            <tr key={blog.id}>
+                                                <td>{blog.title}</td>
+                                                <td>{blog.author}</td>
+                                                <td>{new Date(blog.date).toLocaleDateString()}</td>
+                                                <td>
+                                                    <button onClick={() => { setEditingBlog(blog); setNewBlog(blog); setShowAddBlogForm(true); }} className={styles.actionBtn} style={{background: '#e0f2fe', color: '#0284c7', padding: '6px 12px', border: 'none', borderRadius: '4px', cursor: 'pointer', marginRight: '8px'}}>Edit</button>
+                                                    <button onClick={() => handleDeleteBlog(blog.id)} className={styles.actionBtn} style={{background: '#fee2e2', color: '#dc2626', padding: '6px 12px', border: 'none', borderRadius: '4px', cursor: 'pointer'}}>Delete</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
+
+            {activeTab === 'connect' && (() => {
+                const downloadQR = () => {
+                    const canvas = document.getElementById('qr-canvas');
+                    if (canvas) {
+                        const pngUrl = canvas.toDataURL('image/png').replace('image/png', 'image/octet-stream');
+                        let downloadLink = document.createElement('a');
+                        downloadLink.href = pngUrl;
+                        downloadLink.download = 'highlaban-connect-qr.png';
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click();
+                        document.body.removeChild(downloadLink);
+                    }
+                };
+
+                const handleLinksSave = async () => {
+                    try {
+                        const saved = await db.saveSocialLinks(socialLinks);
+                        setSocialLinks(saved);
+                        alert('Social links saved successfully!');
+                    } catch (error) {
+                        alert('Error saving links.');
+                    }
+                };
+
+                return (
+                    <div className={styles.tabContent}>
+                        <h2 className={styles.tabTitle}>Social Links & Connect Page</h2>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '30px' }}>
+                            <div className={styles.formCard}>
+                                <h3>Manage Links</h3>
+                                <p style={{color: '#64748b', marginBottom: '20px', fontSize: '0.9rem'}}>These links power your public <a href="/connect" target="_blank" style={{color: '#0ea5e9'}}>Connect Page</a>.</p>
+                                
+                                {['instagram', 'whatsapp', 'linkedin', 'website', 'menu', 'orderZomato', 'orderSwiggy', 'orderMagicPin', 'orderOwnly'].map(field => (
+                                    <div className={styles.formGroup} key={field}>
+                                        <label style={{textTransform: 'capitalize'}}>{field.replace('order', 'Order ')} URL</label>
+                                        <input className={styles.input} type="text" value={socialLinks[field] || ''} onChange={e => setSocialLinks({...socialLinks, [field]: e.target.value})} placeholder={`Enter ${field} link...`} />
+                                    </div>
+                                ))}
+                                
+                                <button className={styles.saveButton} onClick={handleLinksSave}>Save All Links</button>
+                            </div>
+
+                            <div className={styles.formCard} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', height: 'fit-content' }}>
+                                <h3>Permanent QR Code</h3>
+                                <p style={{color: '#64748b', marginBottom: '20px', fontSize: '0.9rem'}}>This QR directly links to <strong>highlaban.web.app/connect</strong> and never expires.</p>
+                                
+                                <div style={{ background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+                                    <QRCodeCanvas id="qr-canvas" value="https://highlaban.web.app/connect" size={200} level="H" />
+                                </div>
+
+                                <button onClick={downloadQR} className={styles.saveButton} style={{width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}>
+                                    <FiDownload /> Download QR PNG
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 );
             })()}

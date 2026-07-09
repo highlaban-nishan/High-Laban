@@ -1013,6 +1013,86 @@ const db = {
     logout: () => localStorage.removeItem('highlaban_user'),
     getUser: () => {
         try { return JSON.parse(localStorage.getItem('highlaban_user')); } catch (e) { return null; }
+    },
+
+    // --- Blogs ---
+    getBlogs: async () => {
+        try {
+            const querySnapshot = await getDocs(collection(firestore, 'blogs'));
+            const list = [];
+            querySnapshot.forEach((doc) => list.push({ id: doc.id, ...doc.data() }));
+            return list.sort((a, b) => new Date(b.date) - new Date(a.date));
+        } catch (error) {
+            console.error('Error getting blogs:', error);
+            return [];
+        }
+    },
+    addBlog: async (data) => {
+        try {
+            const finalData = { ...data, date: new Date().toISOString() };
+            const docRef = await addDoc(collection(firestore, 'blogs'), finalData);
+            return { id: docRef.id, ...finalData };
+        } catch (error) {
+            console.error('Error adding blog:', error);
+            throw error;
+        }
+    },
+    updateBlog: async (id, data) => {
+        try {
+            const docRef = doc(firestore, 'blogs', id);
+            await updateDoc(docRef, data);
+            return { id, ...data };
+        } catch (error) {
+            console.error('Error updating blog:', error);
+            throw error;
+        }
+    },
+    deleteBlog: async (id) => {
+        try {
+            await deleteDoc(doc(firestore, 'blogs', id));
+            return id;
+        } catch (error) {
+            console.error('Error deleting blog:', error);
+            throw error;
+        }
+    },
+
+    // --- Social Links (For Connect Page) ---
+    getSocialLinks: async () => {
+        try {
+            const docRef = doc(firestore, 'settings', 'socialLinks');
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                return docSnap.data();
+            } else {
+                const defaultLinks = {
+                    instagram: 'https://instagram.com/highlaban',
+                    whatsapp: 'https://wa.me/917483837201',
+                    linkedin: 'https://linkedin.com/company/highlaban',
+                    website: 'https://highlaban.web.app',
+                    menu: 'https://highlaban.web.app/menu',
+                    orderZomato: '',
+                    orderSwiggy: '',
+                    orderMagicPin: '',
+                    orderOwnly: ''
+                };
+                await setDoc(docRef, defaultLinks);
+                return defaultLinks;
+            }
+        } catch (error) {
+            console.error('Error getting social links:', error);
+            return null;
+        }
+    },
+    saveSocialLinks: async (data) => {
+        try {
+            const docRef = doc(firestore, 'settings', 'socialLinks');
+            await setDoc(docRef, data, { merge: true });
+            return data;
+        } catch (error) {
+            console.error('Error saving social links:', error);
+            throw error;
+        }
     }
 };
 
