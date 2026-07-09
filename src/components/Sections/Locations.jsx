@@ -58,38 +58,35 @@ export default function Locations() {
                                 key={loc.id} 
                                 className={styles.card}
                                 onClick={() => setSelectedLoc(loc)}
-                                style={{ cursor: 'pointer', overflow: 'hidden', padding: '0', display: 'flex', flexDirection: 'column', height: '100%', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', borderRadius: '15px' }}
+                                style={{ cursor: 'pointer', overflow: 'hidden', padding: '0', display: 'flex', flexDirection: 'column', border: '1px solid rgba(0,0,0,0.07)', background: '#fff', borderRadius: '20px', boxShadow: '0 8px 24px rgba(0,0,0,0.06)', transition: 'transform 0.2s, box-shadow 0.2s' }}
                             >
                                 {loc.imageUrl ? (
                                     <img 
                                         src={loc.imageUrl} 
                                         alt={loc.name} 
-                                        style={{ width: '100%', height: '160px', objectFit: 'cover' }} 
+                                        style={{ width: '100%', height: '160px', objectFit: 'cover', display: 'block' }} 
                                     />
-                                ) : (
-                                    <div style={{ width: '100%', height: '160px', background: 'linear-gradient(135deg, #1e293b, #0f172a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem' }}>
-                                        📍
-                                    </div>
-                                )}
+                                ) : null}
                                 
-                                <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                                    <h3 className={styles.locationName} style={{ margin: '0 0 6px 0', fontSize: '1.15rem', color: '#fff' }}>{loc.name}</h3>
-                                    <p className={styles.locationAddress} style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', color: '#94a3b8', flex: 1 }}>{loc.area}</p>
+                                <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
+                                    {/* Icon when no image */}
+                                    {!loc.imageUrl && (
+                                        <div style={{ width: '48px', height: '48px', background: '#f0f9ff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
+                                            <FaMapMarkerAlt style={{ color: '#0ea5e9', fontSize: '1.2rem' }} />
+                                        </div>
+                                    )}
+                                    <h3 className={styles.locationName} style={{ margin: '0 0 4px 0', fontSize: '1.1rem', color: '#0f172a' }}>{loc.name}</h3>
+                                    <p className={styles.locationAddress} style={{ margin: '0 0 0.75rem 0', fontSize: '0.85rem', color: '#64748b' }}>{loc.area}</p>
 
-                                    <div className={styles.divider} style={{ margin: '0 0 10px 0', borderBottom: '1px solid rgba(255,255,255,0.1)' }}></div>
-
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        {/* Status Handling */}
+                                    <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         {loc.status === 'Coming Soon' ? (
                                             <span style={{ color: '#f97316', fontSize: '0.8rem', fontWeight: 'bold' }}>Coming Soon</span>
                                         ) : loc.status === 'Closed' ? (
                                             <span style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 'bold' }}>Closed</span>
                                         ) : (
-                                            <span style={{ color: '#0ea5e9', fontSize: '0.8rem', fontWeight: 'bold' }}>Open</span>
+                                            <span style={{ color: '#22c55e', fontSize: '0.8rem', fontWeight: 'bold' }}>Open</span>
                                         )}
-                                        <span style={{ fontSize: '0.8rem', color: '#0ea5e9', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                                            Order / Navigate ➔
-                                        </span>
+                                        <span style={{ fontSize: '0.8rem', color: '#0ea5e9', fontWeight: 'bold' }}>View Details ➔</span>
                                     </div>
                                 </div>
                             </div>

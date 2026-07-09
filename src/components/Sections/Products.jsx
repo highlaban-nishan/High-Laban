@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import ReactDOM from 'react-dom';
 import Container from '../UI/Container';
@@ -6,6 +6,45 @@ import styles from './Products.module.css';
 import db from '../../utils/db';
 import useScrollReveal from '../../hooks/useScrollReveal'; // Import DB
 import { FaTimes } from 'react-icons/fa';
+
+/* ─── Smooth auto-scrolling marquee row ─── */
+const MarqueeRow = ({ items, renderItem, speed = 40 }) => {
+    const trackRef = useRef(null);
+    const animRef  = useRef(null);
+    const posRef   = useRef(0);
+    const pausedRef = useRef(false);
+
+    useEffect(() => {
+        const track = trackRef.current;
+        if (!track) return;
+
+        const step = () => {
+            if (!pausedRef.current) {
+                const halfW = track.scrollWidth / 2;
+                posRef.current -= speed / 60;
+                if (Math.abs(posRef.current) >= halfW) posRef.current = 0;
+                track.style.transform = `translateX(${posRef.current}px)`;
+            }
+            animRef.current = requestAnimationFrame(step);
+        };
+        animRef.current = requestAnimationFrame(step);
+        return () => cancelAnimationFrame(animRef.current);
+    }, [speed]);
+
+    return (
+        <div
+            style={{ overflow: 'hidden', width: '100%', cursor: 'default' }}
+            onMouseEnter={() => { pausedRef.current = true; }}
+            onMouseLeave={() => { pausedRef.current = false; }}
+        >
+            <div ref={trackRef} style={{ display: 'flex', gap: '10px', willChange: 'transform', paddingRight: '10px' }}>
+                {/* duplicated for seamless loop */}
+                {items.map((item, i) => renderItem(item, i))}
+                {items.map((item, i) => renderItem(item, `d${i}`))}
+            </div>
+        </div>
+    );
+};
 
 const ProductCard = ({ product, index, isModal = false, onOrderClick }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -139,89 +178,75 @@ const ProductCard = ({ product, index, isModal = false, onOrderClick }) => {
             {product.ingredients && (() => {
                 const layerText = 'Layers: ' + product.ingredients.split(/[-•,]/).map(s => s.trim()).filter(Boolean).join(' • ');
                 return (
-                    <div style={{ marginBottom: '0.5rem', overflow: 'hidden' }}>
-                        <div style={{ overflow: 'hidden', width: '100%' }}>
-                            <div
-                                className="marquee-track"
-                                style={{
-                                    display: 'flex',
-                                    width: 'max-content',
-                                    animation: 'toppingsSlide 10s linear infinite',
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.animationPlayState = 'paused'}
-                                onMouseLeave={e => e.currentTarget.style.animationPlayState = 'running'}
-                            >
-                                {[layerText, layerText].map((txt, i) => (
-                                    <span
-                                        key={i}
-                                        className={styles.ingredientsTag}
-                                        style={{ marginRight: '24px', flexShrink: 0 }}
-                                    >
-                                        {txt}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                        <MarqueeRow
+                            items={[layerText]}
+                            speed={35}
+                            renderItem={(txt, i) => (
+                                <span
+                                    key={i}
+                                    style={{
+                                        fontSize: '0.75rem',
+                                        color: '#64748b',
+                                        background: '#f1f5f9',
+                                        padding: '0.3rem 0.8rem',
+                                        borderRadius: '20px',
+                                        fontWeight: '600',
+                                        border: '1px solid #e2e8f0',
+                                        whiteSpace: 'nowrap',
+                                        flexShrink: 0,
+                                    }}
+                                >
+                                    {txt}
+                                </span>
+                            )}
+                        />
                     </div>
                 );
             })()}
 
             {product.toppings && (Array.isArray(product.toppings) ? product.toppings : product.toppings.split(',')).filter(t => t.trim()).length > 0 && (() => {
                 const chips = (Array.isArray(product.toppings) ? product.toppings : product.toppings.split(',')).filter(t => t.trim());
-                const renderChip = (topping, tIdx) => {
-                    const hasMatchingPic = images.some(img =>
-                        img.tag && img.tag.toLowerCase().trim() === topping.trim().toLowerCase()
-                    );
-                    const isActive = activeTopping && activeTopping.toLowerCase().trim() === topping.toLowerCase().trim();
-                    return (
-                        <span
-                            key={tIdx}
-                            onClick={() => {
-                                if (hasMatchingPic) {
-                                    const matchingIdx = images.findIndex(img =>
-                                        img.tag && img.tag.toLowerCase().trim() === topping.trim().toLowerCase()
-                                    );
-                                    if (matchingIdx !== -1) goToSlide(matchingIdx);
-                                }
-                            }}
-                            style={{
-                                fontSize: '0.65rem',
-                                color: isActive ? '#ffffff' : '#009ceb',
-                                background: isActive ? '#009ceb' : '#f0f9ff',
-                                border: isActive ? '1px solid #009ceb' : '1px solid #cbd5e1',
-                                padding: '3px 10px',
-                                borderRadius: '50px',
-                                fontWeight: '800',
-                                cursor: hasMatchingPic ? 'pointer' : 'default',
-                                transition: 'all 0.2s ease',
-                                flexShrink: 0,
-                                whiteSpace: 'nowrap',
-                                marginRight: '6px',
-                            }}
-                        >
-                            {topping.trim()}
-                        </span>
-                    );
-                };
                 return (
                     <div style={{ marginBottom: '0.75rem', minWidth: 0 }}>
                         <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '4px' }}>Toppings:</span>
-                        <div style={{ overflow: 'hidden', width: '100%' }}>
-                            <div
-                                className="marquee-track"
-                                style={{
-                                    display: 'flex',
-                                    width: 'max-content',
-                                    animation: 'toppingsSlide 8s linear infinite',
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.animationPlayState = 'paused'}
-                                onMouseLeave={e => e.currentTarget.style.animationPlayState = 'running'}
-                            >
-                                {/* Duplicate chips for seamless loop */}
-                                {chips.map((t, i) => renderChip(t, i))}
-                                {chips.map((t, i) => renderChip(t, `dup-${i}`))}
-                            </div>
-                        </div>
+                        <MarqueeRow
+                            items={chips}
+                            speed={30}
+                            renderItem={(topping, tIdx) => {
+                                const hasMatchingPic = images.some(img =>
+                                    img.tag && img.tag.toLowerCase().trim() === topping.trim().toLowerCase()
+                                );
+                                const isActive = activeTopping && activeTopping.toLowerCase().trim() === topping.toLowerCase().trim();
+                                return (
+                                    <span
+                                        key={tIdx}
+                                        onClick={() => {
+                                            if (hasMatchingPic) {
+                                                const matchingIdx = images.findIndex(img =>
+                                                    img.tag && img.tag.toLowerCase().trim() === topping.trim().toLowerCase()
+                                                );
+                                                if (matchingIdx !== -1) goToSlide(matchingIdx);
+                                            }
+                                        }}
+                                        style={{
+                                            fontSize: '0.65rem',
+                                            color: isActive ? '#ffffff' : '#009ceb',
+                                            background: isActive ? '#009ceb' : '#f0f9ff',
+                                            border: isActive ? '1px solid #009ceb' : '1px solid #cbd5e1',
+                                            padding: '3px 10px',
+                                            borderRadius: '50px',
+                                            fontWeight: '800',
+                                            cursor: hasMatchingPic ? 'pointer' : 'default',
+                                            flexShrink: 0,
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        {topping.trim()}
+                                    </span>
+                                );
+                            }}
+                        />
                     </div>
                 );
             })()}
