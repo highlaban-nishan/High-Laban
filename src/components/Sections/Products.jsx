@@ -179,7 +179,17 @@ const ProductCard = ({ product, index, isModal = false, onOrderClick }) => {
                 const chips = product.ingredients.split(/[-•,]/).map(s => s.trim()).filter(Boolean);
                 return (
                     <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: '805', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', flexShrink: 0 }}>Layers:</span>
+                        <span style={{ 
+                            fontSize: '0.72rem', 
+                            fontWeight: '900', 
+                            background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            textTransform: 'uppercase', 
+                            letterSpacing: '0.8px', 
+                            whiteSpace: 'nowrap', 
+                            flexShrink: 0 
+                        }}>Layers:</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                             <MarqueeRow
                                 items={chips}
@@ -189,12 +199,12 @@ const ProductCard = ({ product, index, isModal = false, onOrderClick }) => {
                                         key={i}
                                         style={{
                                             fontSize: '0.7rem',
-                                            color: '#475569',
-                                            background: '#f1f5f9',
+                                            color: '#0369a1',
+                                            background: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)',
                                             padding: '0.2rem 0.6rem',
                                             borderRadius: '20px',
-                                            fontWeight: '700',
-                                            border: '1px solid #e2e8f0',
+                                            fontWeight: '800',
+                                            border: '1px solid #bae6fd',
                                             whiteSpace: 'nowrap',
                                             flexShrink: 0,
                                         }}

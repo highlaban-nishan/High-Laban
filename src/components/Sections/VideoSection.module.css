@@ -150,12 +150,7 @@
 }
 
 .card3 {
-    padding: 1rem;
-    /* Less padding = shorter card */
-    /* OR */
-    min-height: 420px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    /* Force minimum height */
 }
 
 /* Expertly Crafted */
