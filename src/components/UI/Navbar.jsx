@@ -1,30 +1,29 @@
-// Removed Container import as we control width with .navPill in CSS and flex in .navbar
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import styles from './Navbar.module.css';
 import logo from '../../assets/logo.png';
 
-export default function Navbar({ onOpenFranchise }) {
-    const [menuOpen, setMenuOpen] = useState(false);
+export default function Navbar() {
     const [isScrolled, setIsScrolled] = useState(false);
     const navigate = useNavigate();
-    const location = useLocation();
 
     useEffect(() => {
-        const handleScroll = () => {
-            if (window.scrollY > 50) {
-                setIsScrolled(true);
-            } else {
-                setIsScrolled(false);
-            }
-        };
-
+        const handleScroll = () => setIsScrolled(window.scrollY > 50);
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    const scrollTo = (id) => {
+        const el = document.getElementById(id);
+        if (el) {
+            const y = el.getBoundingClientRect().top + window.scrollY - 100;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+    };
+
     return (
         <nav className={styles.navbar}>
+            {/* Logo — fixed top-left outside pill */}
             <Link to="/" className={styles.logoOutside} onClick={(e) => {
                 e.preventDefault();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -32,36 +31,32 @@ export default function Navbar({ onOpenFranchise }) {
                 <img src={logo} alt="High Laban" />
             </Link>
 
+            {/* Floating Pill */}
             <div className={`${styles.navPill} ${isScrolled ? styles.scrolled : ''}`}>
-                <div className={`${styles.links} ${menuOpen ? styles.menuOpen : ''}`}>
-                    <Link to="/about-us" onClick={() => setMenuOpen(false)}>ABOUT US</Link>
-                    <a href="#products" onClick={(e) => {
+                {/* Centered nav links */}
+                <div className={styles.links}>
+                    <Link to="/" onClick={(e) => {
                         e.preventDefault();
-                        setMenuOpen(false);
-                        const element = document.getElementById('menu-title');
-                        if (element) {
-                            const y = element.getBoundingClientRect().top + window.scrollY - 100; // 100px offset for navbar
-                            window.scrollTo({ top: y, behavior: 'smooth' });
-                        }
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}>HOME</Link>
+                    <Link to="/about-us">ABOUT US</Link>
+                    <a href="#menu" onClick={(e) => {
+                        e.preventDefault();
+                        scrollTo('menu-title');
                     }}>MENU</a>
                 </div>
 
-                <div className={styles.actionButtons}>
-                    <a href="/franchise-inquiry" className={styles.franchiseButton} onClick={(e) => {
+                {/* Franchise CTA — blue filled */}
+                <a
+                    href="/franchise-inquiry"
+                    className={styles.franchiseButton}
+                    onClick={(e) => {
                         e.preventDefault();
                         navigate('/franchise-inquiry');
-                    }}>
-                        FRANCHISE
-                    </a>
-                </div>
-
-                <button
-                    className={styles.menuToggle}
-                    onClick={() => setMenuOpen(!menuOpen)}
-                    aria-label="Toggle navigation"
+                    }}
                 >
-                    <span className={styles.hamburger}></span>
-                </button>
+                    FRANCHISE
+                </a>
             </div>
         </nav>
     );
