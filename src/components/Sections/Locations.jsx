@@ -58,7 +58,7 @@ export default function Locations() {
                                 key={loc.id} 
                                 className={styles.card}
                                 onClick={() => setSelectedLoc(loc)}
-                                style={{ cursor: 'pointer', overflow: 'hidden', padding: '0', display: 'flex', flexDirection: 'column', border: '1px solid rgba(0,0,0,0.07)', background: '#fff', borderRadius: '20px', boxShadow: '0 8px 24px rgba(0,0,0,0.06)', transition: 'transform 0.2s, box-shadow 0.2s' }}
+                                style={{ cursor: 'pointer', overflow: 'hidden', padding: '0', display: 'flex', flexDirection: 'column', border: '1px solid rgba(0,0,0,0.07)', background: '#fff', borderRadius: '20px', boxShadow: '0 8px 24px rgba(0,0,0,0.06)', transition: 'transform 0.2s, box-shadow 0.2s', alignSelf: 'flex-start', height: 'fit-content' }}
                             >
                                 {loc.imageUrl ? (
                                     <img 
