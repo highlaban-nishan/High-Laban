@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiInstagram, FiMapPin, FiChevronDown, FiPhoneCall, FiTwitter, FiYoutube } from 'react-icons/fi';
+import { FiInstagram, FiMapPin, FiChevronDown, FiPhoneCall, FiTwitter, FiYoutube, FiX } from 'react-icons/fi';
 import { FaWhatsapp, FaLinkedinIn, FaFacebookF } from 'react-icons/fa';
 import styles from './Connect.module.css';
 import db from '../utils/db';
@@ -9,6 +9,7 @@ import cupImg from '../assets/cup.png';
 import boxImg from '../assets/box.png';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
+import { productsData } from '../components/Sections/ProductsData';
 
 const ensureAbsoluteUrl = (url) => {
     if (!url) return '';
@@ -19,11 +20,31 @@ const ensureAbsoluteUrl = (url) => {
     return `https://${trimmed}`;
 };
 
+const getProductImage = (productId) => {
+    switch (productId) {
+        case 1: // Lou'a
+        case 5: // Qashtuta
+        case 7: // Velour Mango Cream
+            return cupImg;
+        case 2: // Basbousa
+        case 8: // Salankatia
+        case 9: // Koushri
+            return kunafaImg;
+        case 3: // Habba Cake
+        case 4: // Ambalyh
+        case 6: // Choco Crepe
+            return boxImg;
+        default:
+            return cupImg;
+    }
+};
+
 const Connect = () => {
     const [locations, setLocations] = useState([]);
     const [socialLinks, setSocialLinks] = useState(null);
     const [openCardId, setOpenCardId] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [showMenuModal, setShowMenuModal] = useState(false);
     const locationsRef = useRef(null);
     const navigate = useNavigate();
 
@@ -105,9 +126,9 @@ const Connect = () => {
                 {/* Grid Links (Menu, Website, About, Story) */}
                 <div className={styles.gridList}>
                     {socialLinks?.menu && (
-                        <a href={ensureAbsoluteUrl(socialLinks.menu)} target="_blank" rel="noopener noreferrer" className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center'}}>
+                        <div onClick={() => setShowMenuModal(true)} className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer'}}>
                             <h3 className={styles.cardTitle}>Menu</h3>
-                        </a>
+                        </div>
                     )}
                     {socialLinks?.website && (
                         <a href={ensureAbsoluteUrl(socialLinks.website)} target="_blank" rel="noopener noreferrer" className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center'}}>
@@ -221,6 +242,41 @@ const Connect = () => {
 
                 <a href={ensureAbsoluteUrl(socialLinks?.website || '/')} target="_blank" rel="noopener noreferrer" className={styles.joinBtn}>Visit Official Website</a>
                 <div style={{height: '40px'}}></div>
+
+                {/* Menu Modal (Popup on highlaban/connect page) */}
+                {showMenuModal && (
+                    <div className={styles.modalOverlay} onClick={() => setShowMenuModal(false)}>
+                        <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+                            <div className={styles.modalHeader}>
+                                <h2 className={styles.modalTitle}>Our Premium Menu</h2>
+                                <button className={styles.closeBtn} onClick={() => setShowMenuModal(false)}>
+                                    <FiX />
+                                </button>
+                            </div>
+                            <div className={styles.modalBody}>
+                                {productsData.map(product => (
+                                    <div key={product.id} className={styles.menuItemCard}>
+                                        <img src={getProductImage(product.id)} alt={product.name} className={styles.menuItemImg} />
+                                        <div className={styles.menuItemInfo}>
+                                            <span className={styles.menuItemTag}>{product.tag}</span>
+                                            <h3 className={styles.menuItemName}>{product.name}</h3>
+                                            <p className={styles.menuItemDesc}>{product.description}</p>
+                                            <div className={styles.menuItemRow}>
+                                                <span className={styles.menuItemPrice}>₹{product.price}</span>
+                                                {product.badge && (
+                                                    <span className={styles.menuBadge} style={{
+                                                        background: product.badgeColor === 'purple' ? '#f5f3ff' : '#eff6ff',
+                                                        color: product.badgeColor === 'purple' ? '#7c3aed' : '#1d4ed8'
+                                                    }}>{product.badge}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
