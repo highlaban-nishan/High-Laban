@@ -233,7 +233,7 @@ const WorkerApplication = () => {
                         <div className={styles.formGroup}>
                             <label className={styles.label}>Select Position *</label>
                             <select className={styles.input} value={appliedPosition} onChange={e => setAppliedPosition(e.target.value)}>
-                                {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                                {positionsList.map(p => <option key={p} value={p}>{p}</option>)}
                             </select>
                         </div>
                         {appliedPosition === 'Other (Custom)' && (
