@@ -71,7 +71,26 @@ const Connect = () => {
     const [aboutSlideIndex, setAboutSlideIndex] = useState(0);
 
     const locationsRef = useRef(null);
+    const galleryRef = useRef(null);
     const navigate = useNavigate();
+
+    // Auto-scroll outlets gallery container periodically
+    useEffect(() => {
+        const slider = galleryRef.current;
+        if (!slider) return;
+
+        const maxScrollAttempts = 20; // limit loop depth
+        const interval = setInterval(() => {
+            const maxScrollLeft = slider.scrollWidth - slider.clientWidth;
+            if (slider.scrollLeft >= maxScrollLeft - 10) {
+                slider.scrollTo({ left: 0, behavior: 'smooth' });
+            } else {
+                slider.scrollBy({ left: 160, behavior: 'smooth' });
+            }
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [locations, loading]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -322,7 +341,7 @@ const Connect = () => {
                 {/* Dynamic Image Gallery Slider (Bottom placement) */}
                 <div className={styles.galleryContainer}>
                     <h4 className={styles.galleryLabel}>Our Outlets Gallery</h4>
-                    <div className={styles.gallerySlider}>
+                    <div className={styles.gallerySlider} ref={galleryRef}>
                         {finalGalleryImages.map((img, idx) => (
                             <img key={idx} src={img} alt={`Outlet ${idx + 1}`} className={styles.galleryImg} />
                         ))}
