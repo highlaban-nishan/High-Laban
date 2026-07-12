@@ -234,16 +234,24 @@ const Connect = () => {
                     </div>
                 </div>
 
-                {/* About, Story & Franchise Row */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                    <div onClick={() => { setShowAboutModal(true); setAboutSlideIndex(0); }} className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer'}}>
-                        <h3 className={styles.cardTitle}>About Us</h3>
+                {/* Grid Links (Menu, Website, About, Story, Franchise) */}
+                <div className={styles.gridList} style={{ gap: '0.65rem', marginBottom: '1.25rem' }}>
+                    <div onClick={() => setShowMenuModal(true)} className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer', padding: '0.9rem 0.5rem'}}>
+                        <h3 className={styles.cardTitle} style={{ margin: 0, fontSize: '0.95rem', fontWeight: '800' }}>Menu</h3>
                     </div>
-                    <div onClick={() => setShowStoryModal(true)} className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer'}}>
-                        <h3 className={styles.cardTitle}>Our Story</h3>
+                    <a href={getWebsiteUrl(socialLinks)} target="_blank" rel="noopener noreferrer" className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0.9rem 0.5rem'}}>
+                        <h3 className={styles.cardTitle} style={{ margin: 0, fontSize: '0.95rem', fontWeight: '800' }}>Website</h3>
+                    </a>
+                    
+                    <div onClick={() => { setShowAboutModal(true); setAboutSlideIndex(0); }} className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer', padding: '0.9rem 0.5rem'}}>
+                        <h3 className={styles.cardTitle} style={{ margin: 0, fontSize: '0.95rem', fontWeight: '800' }}>About Us</h3>
                     </div>
-                    <div onClick={() => setShowFranchiseModal(true)} className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer', gridColumn: '1 / -1'}}>
-                        <h3 className={styles.cardTitle}>Franchise Inquiry</h3>
+                    <div onClick={() => setShowStoryModal(true)} className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer', padding: '0.9rem 0.5rem'}}>
+                        <h3 className={styles.cardTitle} style={{ margin: 0, fontSize: '0.95rem', fontWeight: '800' }}>Our Story</h3>
+                    </div>
+                    
+                    <div onClick={() => setShowFranchiseModal(true)} className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer', gridColumn: '1 / -1', padding: '1rem 0.5rem'}}>
+                        <h3 className={styles.cardTitle} style={{ margin: 0, fontSize: '0.95rem', fontWeight: '800' }}>Franchise Inquiry</h3>
                     </div>
                 </div>
 
@@ -361,7 +369,6 @@ const Connect = () => {
                         </div>
                     </div>
                 )}
-            </div>
 
                 {/* Bottom Social Icons */}
                 <div className={styles.socialRowBottom} style={{marginTop: '1rem'}}>
