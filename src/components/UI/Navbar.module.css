@@ -31,12 +31,13 @@
 }
 
 .logoOutside {
-    position: absolute;
-    top: 0.5rem;
-    left: 3rem;
+    position: fixed;
+    top: 0.75rem;
+    left: 1.5rem;
     pointer-events: auto;
     display: flex;
     align-items: center;
+    z-index: 1001;
     transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s ease;
     opacity: 1;
     transform: scale(1);
@@ -51,10 +52,10 @@
 }
 
 .logoOutside img {
-    height: 68px;
+    height: 80px;
     width: auto;
     object-fit: contain;
-    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.18));
+    filter: drop-shadow(0 3px 10px rgba(0,0,0,0.22));
 }
 
 .logoOutside:hover {
