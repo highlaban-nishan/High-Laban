@@ -263,8 +263,11 @@ const AdminDashboard = () => {
     const [isSavingHero, setIsSavingHero] = useState(false);
     
     // Worker hiring pipeline states
-    const [activeStaffSubTab, setActiveStaffSubTab] = useState('directory'); // 'directory' | 'leads'
+    const [activeStaffSubTab, setActiveStaffSubTab] = useState('directory'); // 'directory' | 'leads' | 'openings' | 'messages'
     const [workerApplications, setWorkerApplications] = useState([]);
+    const [contactMessages, setContactMessages] = useState([]);
+    const [openingsList, setOpeningsList] = useState([]);
+    const [isSavingOpenings, setIsSavingOpenings] = useState(false);
     const [selectedApplication, setSelectedApplication] = useState(null);
     const [showInterviewModal, setShowInterviewModal] = useState(null); // application object
     const [interviewScoreInput, setInterviewScoreInput] = useState('');
@@ -488,6 +491,18 @@ const AdminDashboard = () => {
             setRunningFranchises(franchises);
             const applications = await db.getWorkerApplications();
             setWorkerApplications(applications);
+            const msgs = await db.getContactMessages();
+            setContactMessages(msgs);
+            const jobsData = await db.getSiteContent('jobs');
+            setOpeningsList(jobsData?.positions || [
+                'Waiter / Waitress',
+                'Chef / Cook',
+                'Cashier',
+                'Manager',
+                'Kitchen Helper',
+                'Delivery Boy',
+                'Cleaner / Steward'
+            ]);
         } else if (activeTab === 'payroll') {
             const staff = await db.getStaff();
             setStaffList(staff);
@@ -3849,6 +3864,38 @@ const AdminDashboard = () => {
                                 >
                                     📋 Job Applications ({workerApplications.length})
                                 </button>
+                                <button 
+                                    onClick={() => setActiveStaffSubTab("openings")}
+                                    style={{
+                                        background: "none",
+                                        border: "none",
+                                        fontSize: "1rem",
+                                        fontWeight: "800",
+                                        color: activeStaffSubTab === "openings" ? "#0ea5e9" : "#64748b",
+                                        borderBottom: activeStaffSubTab === "openings" ? "3px solid #0ea5e9" : "3px solid transparent",
+                                        padding: "0.5rem 1rem",
+                                        cursor: "pointer",
+                                        transition: "all 0.2s"
+                                    }}
+                                >
+                                    💼 Job Openings
+                                </button>
+                                <button 
+                                    onClick={() => setActiveStaffSubTab("messages")}
+                                    style={{
+                                        background: "none",
+                                        border: "none",
+                                        fontSize: "1rem",
+                                        fontWeight: "800",
+                                        color: activeStaffSubTab === "messages" ? "#0ea5e9" : "#64748b",
+                                        borderBottom: activeStaffSubTab === "messages" ? "3px solid #0ea5e9" : "3px solid transparent",
+                                        padding: "0.5rem 1rem",
+                                        cursor: "pointer",
+                                        transition: "all 0.2s"
+                                    }}
+                                >
+                                    💬 Customer Messages ({contactMessages.length})
+                                </button>
                             </div>
 
                             {activeStaffSubTab === 'directory' ? (
@@ -4586,6 +4633,131 @@ const AdminDashboard = () => {
                                             </table>
                                         </div>
                                     </div>
+                            )}
+
+                            {activeStaffSubTab === 'openings' && (
+                                <div style={{ background: 'white', padding: '2rem', borderRadius: '18px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', marginBottom: '0.5rem' }}>Active Job Openings</h3>
+                                    <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+                                        Check the positions that are currently hiring. Checked items will automatically appear in the public job application dropdown.
+                                    </p>
+                                    
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px', marginBottom: '2rem' }}>
+                                        {[
+                                            'Waiter / Waitress',
+                                            'Chef / Cook',
+                                            'Cashier',
+                                            'Manager',
+                                            'Kitchen Helper',
+                                            'Delivery Boy',
+                                            'Cleaner / Steward'
+                                        ].map(pos => {
+                                            const isChecked = openingsList.includes(pos);
+                                            return (
+                                                <label key={pos} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={isChecked}
+                                                        onChange={e => {
+                                                            if (e.target.checked) {
+                                                                setOpeningsList(prev => [...prev, pos]);
+                                                            } else {
+                                                                setOpeningsList(prev => prev.filter(p => p !== pos));
+                                                            }
+                                                        }}
+                                                    />
+                                                    {pos}
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                    
+                                    <button 
+                                        onClick={async () => {
+                                            setIsSavingOpenings(true);
+                                            try {
+                                                await db.updateSiteContent('jobs', { positions: openingsList });
+                                                alert('Job Openings updated successfully!');
+                                            } catch (err) {
+                                                console.error(err);
+                                                alert('Failed to update openings');
+                                            } finally {
+                                                setIsSavingOpenings(false);
+                                            }
+                                        }}
+                                        disabled={isSavingOpenings}
+                                        className={styles.saveButton}
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 24px', fontSize: '0.9rem' }}
+                                    >
+                                        {isSavingOpenings ? 'Saving...' : 'Save Job Openings'}
+                                    </button>
+                                </div>
+                            )}
+
+                            {activeStaffSubTab === 'messages' && (
+                                <div style={{ background: 'white', padding: '2rem', borderRadius: '18px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', marginBottom: '1.5rem' }}>Customer Messages & Inquiries</h3>
+                                    
+                                    {contactMessages.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8', fontSize: '0.9rem' }}>
+                                            No inquiries or messages found.
+                                        </div>
+                                    ) : (
+                                        <div className={styles.tableWrapper}>
+                                            <table className={styles.table}>
+                                                <thead>
+                                                    <tr>
+                                                        <th>Date</th>
+                                                        <th>Sender Name</th>
+                                                        <th>Email</th>
+                                                        <th>Phone</th>
+                                                        <th>Message</th>
+                                                        <th style={{ textAlign: 'center' }}>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {contactMessages.map(msg => (
+                                                        <tr key={msg.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                            <td style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+                                                                {msg.createdAt ? new Date(msg.createdAt).toLocaleDateString() : 'N/A'}
+                                                            </td>
+                                                            <td style={{ padding: '1rem', fontWeight: 'bold', color: '#0f172a' }}>
+                                                                {msg.name}
+                                                            </td>
+                                                            <td style={{ padding: '1rem', color: '#475569' }}>
+                                                                {msg.email}
+                                                            </td>
+                                                            <td style={{ padding: '1rem', color: '#475569' }}>
+                                                                {msg.phone}
+                                                            </td>
+                                                            <td style={{ padding: '1rem', color: '#334155', fontSize: '0.88rem', maxWidth: '300px', wordBreak: 'break-word' }}>
+                                                                {msg.message}
+                                                            </td>
+                                                            <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                                <button 
+                                                                    onClick={async () => {
+                                                                        if (window.confirm('Delete this message entry?')) {
+                                                                            try {
+                                                                                await db.deleteContactMessage(msg.id);
+                                                                                setContactMessages(prev => prev.filter(m => m.id !== msg.id));
+                                                                                showToast("Message deleted.");
+                                                                            } catch (err) {
+                                                                                showToast("Failed to delete message: " + err.message, "error");
+                                                                            }
+                                                                        }
+                                                                    }}
+                                                                    style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                                                >
+                                                                    <TrashIcon />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
                     );

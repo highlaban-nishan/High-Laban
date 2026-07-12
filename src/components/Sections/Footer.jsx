@@ -20,8 +20,20 @@ export default function Footer() {
         setContactForm({ ...contactForm, [e.target.name]: e.target.value });
     };
 
-    const handleContactSubmit = (e) => {
+    const handleContactSubmit = async (e) => {
         e.preventDefault();
+        try {
+            await db.addContactMessage({
+                name: contactForm.name.trim(),
+                email: contactForm.email.trim(),
+                phone: contactForm.phone.trim(),
+                message: contactForm.message.trim(),
+                status: 'New'
+            });
+        } catch (err) {
+            console.error("Failed to save contact message to database:", err);
+        }
+        
         const msg = encodeURIComponent(
             `*New HQ Contact Enquiry*\nName: ${contactForm.name}\nEmail: ${contactForm.email}\nPhone: ${contactForm.phone}\nMessage: ${contactForm.message}`
         );

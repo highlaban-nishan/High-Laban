@@ -202,19 +202,7 @@ const Connect = () => {
                     <div className={styles.logoContainer}>
                         <img src={logo} alt="High Laban Logo" className={styles.logo} />
                     </div>
-                    <span style={{
-                        fontSize: '0.65rem',
-                        fontWeight: 900,
-                        letterSpacing: '2px',
-                        textTransform: 'uppercase',
-                        color: '#0ea5e9',
-                        background: 'rgba(14,165,233,0.1)',
-                        border: '1px solid rgba(14,165,233,0.25)',
-                        borderRadius: '20px',
-                        padding: '4px 14px',
-                        marginBottom: '0.5rem',
-                        zIndex: 1
-                    }}>✨ GET HIGH ON BITES</span>
+                    <span className={styles.taglineBadge}>✨ GET HIGH ON BITES</span>
                     <h1 className={styles.brandName}>
                         {socialLinks?.bannerTitle ? socialLinks.bannerTitle : 'High Laban'}
                     </h1>

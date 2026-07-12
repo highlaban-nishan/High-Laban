@@ -1141,6 +1141,42 @@ const db = {
             console.error("Error deleting worker application:", error);
             throw error;
         }
+    },
+
+    getContactMessages: async () => {
+        try {
+            const q = query(collection(firestore, 'contact_messages'), orderBy('createdAt', 'desc'));
+            const querySnapshot = await getDocs(q);
+            const messages = [];
+            querySnapshot.forEach((doc) => messages.push({ id: doc.id, ...doc.data() }));
+            return messages;
+        } catch (error) {
+            console.error("Error getting contact messages:", error);
+            return [];
+        }
+    },
+
+    addContactMessage: async (msgData) => {
+        try {
+            const docRef = await addDoc(collection(firestore, 'contact_messages'), {
+                ...msgData,
+                createdAt: new Date().toISOString()
+            });
+            return { id: docRef.id, ...msgData };
+        } catch (error) {
+            console.error("Error adding contact message:", error);
+            throw error;
+        }
+    },
+
+    deleteContactMessage: async (id) => {
+        try {
+            await deleteDoc(doc(firestore, 'contact_messages', id));
+            return id;
+        } catch (error) {
+            console.error("Error deleting contact message:", error);
+            throw error;
+        }
     }
 };
 
