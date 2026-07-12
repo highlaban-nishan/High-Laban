@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Container from '../UI/Container';
 import styles from './Locations.module.css';
-import { FaMapMarkerAlt, FaTimes } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaTimes, FaWhatsapp, FaMapMarkedAlt } from 'react-icons/fa';
+import { FiPhone, FiShoppingBag, FiExternalLink, FiZap, FiStore } from 'react-icons/fi';
 import db from '../../utils/db';
 
 export default function Locations() {
@@ -218,7 +219,7 @@ export default function Locations() {
                                                 flexDirection: 'column',
                                                 gap: '6px'
                                             }}>
-                                                <div style={{ color: '#0ea5e9', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem', marginBottom: '2px' }}>🏪 Store Details</div>
+                                                <div style={{ color: '#0ea5e9', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}><FiStore /> Store Details</div>
                                                 <div style={{ color: '#e2e8f0' }}><span style={{ color: '#94a3b8' }}>Owner:</span> <strong>{linkedFranchise.ownerName}</strong></div>
                                                 <div style={{ color: '#e2e8f0' }}><span style={{ color: '#94a3b8' }}>Contact:</span> <strong>{linkedFranchise.phone}</strong></div>
                                                 {linkedFranchise.email && <div style={{ color: '#e2e8f0' }}><span style={{ color: '#94a3b8' }}>Email:</span> <strong>{linkedFranchise.email}</strong></div>}
@@ -238,7 +239,7 @@ export default function Locations() {
                                             marginBottom: '1.25rem',
                                             fontSize: '0.85rem'
                                         }}>
-                                            <div style={{ color: '#0ea5e9', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem', marginBottom: '6px' }}>🏪 Store Details</div>
+                                            <div style={{ color: '#0ea5e9', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}><FiStore /> Store Details</div>
                                             <div style={{ color: '#e2e8f0' }}><span style={{ color: '#94a3b8' }}>Contact:</span> <strong>{selectedLoc.whatsapp || 'N/A'}</strong></div>
                                             <div style={{ color: '#e2e8f0', marginTop: '4px', display: 'flex', gap: '4px' }}>
                                                 <span style={{ color: '#94a3b8', flexShrink: 0 }}>Address:</span>
@@ -250,7 +251,7 @@ export default function Locations() {
 
                                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '1.25rem' }}></div>
 
-                                <h4 style={{ margin: '0 0 10px 0', color: '#cbd5e1', fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>⚡ Connect & Order Online</h4>
+                                <h4 style={{ margin: '0 0 10px 0', color: '#cbd5e1', fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '6px' }}><FiZap style={{color:'#f59e0b'}}/> Connect &amp; Order Online</h4>
                                 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                     {/* Map Link */}
@@ -259,9 +260,9 @@ export default function Locations() {
                                             href={selectedLoc.mapUrl} 
                                             target="_blank" 
                                             rel="noopener noreferrer"
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#0284c7', color: 'white', textDecoration: 'none', padding: '10px 16px', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 'bold', transition: 'background 0.2s' }}
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px', background: 'linear-gradient(135deg,#0284c7,#0369a1)', color: 'white', textDecoration: 'none', padding: '11px 16px', borderRadius: '12px', fontSize: '0.88rem', fontWeight: '700', transition: 'opacity 0.2s' }}
                                         >
-                                            📍 Navigate on Google Maps
+                                            <FaMapMarkedAlt style={{fontSize:'1rem'}}/> Navigate on Google Maps
                                         </a>
                                     )}
 
@@ -271,9 +272,9 @@ export default function Locations() {
                                             href={selectedLoc.whatsapp.startsWith('http') ? selectedLoc.whatsapp : `https://wa.me/${selectedLoc.whatsapp.replace(/\D/g, '')}`}
                                             target="_blank" 
                                             rel="noopener noreferrer"
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#25d366', color: 'white', textDecoration: 'none', padding: '10px 16px', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 'bold', transition: 'background 0.2s' }}
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px', background: 'linear-gradient(135deg,#25d366,#128c7e)', color: 'white', textDecoration: 'none', padding: '11px 16px', borderRadius: '12px', fontSize: '0.88rem', fontWeight: '700', transition: 'opacity 0.2s' }}
                                         >
-                                            💬 Order via WhatsApp
+                                            <FaWhatsapp style={{fontSize:'1.1rem'}}/> Order via WhatsApp
                                         </a>
                                     )}
 
@@ -283,9 +284,9 @@ export default function Locations() {
                                             href={selectedLoc.zomato} 
                                             target="_blank" 
                                             rel="noopener noreferrer"
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#cb202d', color: 'white', textDecoration: 'none', padding: '10px 16px', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 'bold', transition: 'background 0.2s' }}
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px', background: 'linear-gradient(135deg,#cb202d,#a31a25)', color: 'white', textDecoration: 'none', padding: '11px 16px', borderRadius: '12px', fontSize: '0.88rem', fontWeight: '700', transition: 'opacity 0.2s' }}
                                         >
-                                            🔴 Order on Zomato
+                                            <FiShoppingBag style={{fontSize:'1rem'}}/> Order on Zomato
                                         </a>
                                     )}
 
@@ -295,9 +296,9 @@ export default function Locations() {
                                             href={selectedLoc.swiggy} 
                                             target="_blank" 
                                             rel="noopener noreferrer"
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#fc8019', color: 'white', textDecoration: 'none', padding: '10px 16px', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 'bold', transition: 'background 0.2s' }}
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px', background: 'linear-gradient(135deg,#fc8019,#e06b10)', color: 'white', textDecoration: 'none', padding: '11px 16px', borderRadius: '12px', fontSize: '0.88rem', fontWeight: '700', transition: 'opacity 0.2s' }}
                                         >
-                                            🧡 Order on Swiggy
+                                            <FiShoppingBag style={{fontSize:'1rem'}}/> Order on Swiggy
                                         </a>
                                     )}
 
@@ -307,9 +308,9 @@ export default function Locations() {
                                             href={selectedLoc.magicpin} 
                                             target="_blank" 
                                             rel="noopener noreferrer"
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#ec4899', color: 'white', textDecoration: 'none', padding: '10px 16px', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 'bold', transition: 'background 0.2s' }}
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px', background: 'linear-gradient(135deg,#ec4899,#be185d)', color: 'white', textDecoration: 'none', padding: '11px 16px', borderRadius: '12px', fontSize: '0.88rem', fontWeight: '700', transition: 'opacity 0.2s' }}
                                         >
-                                            ✨ Order on Magicpin
+                                            <FiExternalLink style={{fontSize:'1rem'}}/> Order on Magicpin
                                         </a>
                                     )}
 
@@ -319,9 +320,9 @@ export default function Locations() {
                                             href={selectedLoc.ondc} 
                                             target="_blank" 
                                             rel="noopener noreferrer"
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#6366f1', color: 'white', textDecoration: 'none', padding: '10px 16px', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 'bold', transition: 'background 0.2s' }}
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: 'white', textDecoration: 'none', padding: '11px 16px', borderRadius: '12px', fontSize: '0.88rem', fontWeight: '700', transition: 'opacity 0.2s' }}
                                         >
-                                            🛍️ Order via ONDC Shop
+                                            <FiShoppingBag style={{fontSize:'1rem'}}/> Order via ONDC Shop
                                         </a>
                                     )}
 

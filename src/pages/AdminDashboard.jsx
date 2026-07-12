@@ -1222,9 +1222,12 @@ const AdminDashboard = () => {
                     }
                 }
 
-                // If a franchise is linked now, sync details to it
-                if (newFranchiseId) {
-                    const franchise = runningFranchises.find(f => f.id === newFranchiseId);
+                // Find franchise to sync — first try explicit franchiseId, then fallback to franchise linked by locationId
+                const resolvedFranchiseId = newFranchiseId || 
+                    (runningFranchises.find(f => f.locationId === editingLocationId)?.id) || '';
+
+                if (resolvedFranchiseId) {
+                    const franchise = runningFranchises.find(f => f.id === resolvedFranchiseId);
                     if (franchise) {
                         const updatedFranchise = {
                             ...franchise,
@@ -1241,8 +1244,13 @@ const AdminDashboard = () => {
                             ownly: newLocation.ownly || '',
                             phone: newLocation.phone || franchise.phone || ''
                         };
-                        await db.updateFranchiseOutlet(newFranchiseId, updatedFranchise);
-                        setRunningFranchises(prev => prev.map(f => f.id === newFranchiseId ? updatedFranchise : f));
+                        await db.updateFranchiseOutlet(resolvedFranchiseId, updatedFranchise);
+                        setRunningFranchises(prev => prev.map(f => f.id === resolvedFranchiseId ? updatedFranchise : f));
+
+                        // Also write the franchiseId back to the location doc if missing
+                        if (!newFranchiseId) {
+                            await db.updateLocation(editingLocationId, { ...newLocation, franchiseId: resolvedFranchiseId });
+                        }
                     }
                 }
 

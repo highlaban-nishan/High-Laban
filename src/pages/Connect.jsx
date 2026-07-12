@@ -418,8 +418,57 @@ const Connect = () => {
                     )}
                 </div>
 
+                {/* WhatsApp Channel Join */}
+                <a
+                    href="https://whatsapp.com/channel/0029Vb8I2pm2v1Im3k3Iez1e"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '14px',
+                        background: 'linear-gradient(135deg, #25D366, #128C7E)',
+                        color: 'white',
+                        textDecoration: 'none',
+                        borderRadius: '18px',
+                        padding: '1rem 1.5rem',
+                        marginTop: '1rem',
+                        fontWeight: 700,
+                        fontSize: '0.95rem',
+                        boxShadow: '0 6px 24px rgba(37,211,102,0.3)',
+                        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                        width: '100%',
+                        justifyContent: 'space-between',
+                        boxSizing: 'border-box',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 28px rgba(37,211,102,0.4)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 24px rgba(37,211,102,0.3)'; }}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{
+                            width: '44px',
+                            height: '44px',
+                            borderRadius: '50%',
+                            background: 'rgba(255,255,255,0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1.4rem',
+                            flexShrink: 0
+                        }}>
+                            <FaWhatsapp />
+                        </div>
+                        <div>
+                            <div style={{ fontSize: '0.95rem', fontWeight: 800 }}>Join Our WhatsApp Channel</div>
+                            <div style={{ fontSize: '0.75rem', opacity: 0.85, fontWeight: 500 }}>Offers, updates &amp; exclusive drops</div>
+                        </div>
+                    </div>
+                    <span style={{ fontSize: '1.2rem', opacity: 0.8 }}>→</span>
+                </a>
+
                 <a href={getWebsiteUrl(socialLinks)} target="_blank" rel="noopener noreferrer" className={styles.joinBtn}>Visit Official Website</a>
                 <div style={{height: '40px'}}></div>
+
 
                 {/* 1. SYNCED MENU MODAL */}
                 {showMenuModal && (
