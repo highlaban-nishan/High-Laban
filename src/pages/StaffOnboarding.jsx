@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { FiUploadCloud, FiCheckCircle, FiFileText } from 'react-icons/fi';
+import { FiUploadCloud, FiCheckCircle, FiFileText, FiX } from 'react-icons/fi';
 import { Helmet } from 'react-helmet-async';
+import { useNavigate } from 'react-router-dom';
 import styles from './StaffOnboarding.module.css';
 import db from '../utils/db';
 import { uploadMedia } from '../utils/storage';
 import logo from '../assets/logo.png';
 
 const StaffOnboarding = () => {
+    const navigate = useNavigate();
     // Form fields
     const [fullName, setFullName] = useState('');
     const [nickname, setNickname] = useState('');
@@ -178,7 +180,15 @@ const StaffOnboarding = () => {
                 <meta name="description" content="Register your details as an employee with highlaban." />
             </Helmet>
 
-            <div className={styles.formCard}>
+            <div className={styles.formCard} style={{ position: 'relative' }}>
+                <button 
+                    onClick={() => navigate(-1)} 
+                    style={{ position: 'absolute', top: '20px', right: '20px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b', transition: 'all 0.2s', zIndex: 10 }}
+                    title="Close"
+                    type="button"
+                >
+                    <FiX size={18} />
+                </button>
                 <div className={styles.header}>
                     <img src={logo} alt="highlaban Logo" className={styles.logo} />
                     <h1 className={styles.title}>Staff Onboarding Registry</h1>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { FiUploadCloud, FiCheckCircle, FiFileText, FiTrash2 } from 'react-icons/fi';
+import { FiUploadCloud, FiCheckCircle, FiFileText, FiTrash2, FiX } from 'react-icons/fi';
 import { Helmet } from 'react-helmet-async';
+import { useNavigate } from 'react-router-dom';
 import styles from './WorkerApplication.module.css';
 import db from '../utils/db';
 import { uploadMedia } from '../utils/storage';
@@ -34,6 +35,7 @@ const ALL_LANGUAGES = [
 ];
 
 const WorkerApplication = () => {
+    const navigate = useNavigate();
     // ── Personal Info ──────────────────────────────
     const [fullName, setFullName]         = useState('');
     const [mobile, setMobile]             = useState('');
@@ -178,7 +180,15 @@ const WorkerApplication = () => {
                 <meta name="description" content="Apply for worker and staff positions at highlaban." />
             </Helmet>
 
-            <div className={styles.formCard}>
+            <div className={styles.formCard} style={{ position: 'relative' }}>
+                <button 
+                    onClick={() => navigate(-1)} 
+                    style={{ position: 'absolute', top: '20px', right: '20px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b', transition: 'all 0.2s', zIndex: 10 }}
+                    title="Close"
+                    type="button"
+                >
+                    <FiX size={18} />
+                </button>
                 <div className={styles.header}>
                     <img src={logo} alt="highlaban Logo" className={styles.logo} />
                     <h1 className={styles.title}>Work With Us</h1>

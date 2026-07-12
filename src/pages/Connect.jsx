@@ -181,8 +181,7 @@ const Connect = () => {
         ...(l.imageUrl ? [l.imageUrl] : []),
         ...(l.imageUrls || [])
     ]).filter((val, index, self) => self.indexOf(val) === index && val.trim() !== '');
-
-    const finalGalleryImages = outletImages.length > 0 ? outletImages : [kunafaImg, cupImg, boxImg];
+    const finalGalleryImages = outletImages;
 
     return (
         <div className={styles.container}>
@@ -203,9 +202,6 @@ const Connect = () => {
                         <img src={logo} alt="High Laban Logo" className={styles.logo} />
                     </div>
                     <span className={styles.taglineBadge}>✨ GET HIGH ON BITES</span>
-                    <h1 className={styles.brandName}>
-                        {socialLinks?.bannerTitle ? socialLinks.bannerTitle : 'High Laban'}
-                    </h1>
                     <p className={styles.description}>
                         {socialLinks?.bannerDescription || 'Premium Egyptian Desserts in India'}
                     </p>
@@ -238,16 +234,8 @@ const Connect = () => {
                     </div>
                 </div>
 
-                {/* Grid Links (Menu, Website, About, Story, Franchise) */}
-                <div className={styles.gridList}>
-                    {socialLinks?.menu && (
-                        <div onClick={() => setShowMenuModal(true)} className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer'}}>
-                            <h3 className={styles.cardTitle}>Menu</h3>
-                        </div>
-                    )}
-                    <a href={getWebsiteUrl(socialLinks)} target="_blank" rel="noopener noreferrer" className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center'}}>
-                        <h3 className={styles.cardTitle}>Website</h3>
-                    </a>
+                {/* About, Story & Franchise Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem', marginBottom: '1.5rem' }}>
                     <div onClick={() => { setShowAboutModal(true); setAboutSlideIndex(0); }} className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer'}}>
                         <h3 className={styles.cardTitle}>About Us</h3>
                     </div>
@@ -363,14 +351,17 @@ const Connect = () => {
                 </div>
 
                 {/* Dynamic Image Gallery Slider (Bottom placement) */}
-                <div className={styles.galleryContainer}>
-                    <h4 className={styles.galleryLabel}>Our Outlets Gallery</h4>
-                    <div className={styles.gallerySlider} ref={galleryRef}>
-                        {finalGalleryImages.map((img, idx) => (
-                            <img key={idx} src={img} alt={`Outlet ${idx + 1}`} className={styles.galleryImg} />
-                        ))}
+                {finalGalleryImages.length > 0 && (
+                    <div className={styles.galleryContainer}>
+                        <h4 className={styles.galleryLabel}>Our Outlets Gallery</h4>
+                        <div className={styles.gallerySlider} ref={galleryRef}>
+                            {finalGalleryImages.map((img, idx) => (
+                                <img key={idx} src={img} alt={`Outlet ${idx + 1}`} className={styles.galleryImg} />
+                            ))}
+                        </div>
                     </div>
-                </div>
+                )}
+            </div>
 
                 {/* Bottom Social Icons */}
                 <div className={styles.socialRowBottom} style={{marginTop: '1rem'}}>
