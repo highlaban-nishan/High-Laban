@@ -111,13 +111,14 @@ const Connect = () => {
                 
                 return {
                     id: l.id,
-                    title: l.name || l.area,
-                    address: address || l.name,
+                    title: l.area || l.name,
+                    address: address || l.area || l.name,
                     phone: phone || '',
                     zomato: l.zomato || (linkedFranchise ? linkedFranchise.zomato : ''),
                     swiggy: l.swiggy || (linkedFranchise ? linkedFranchise.swiggy : ''),
                     magicpin: l.magicpin || (linkedFranchise ? linkedFranchise.magicpin : ''),
-                    ownly: l.ondc || (linkedFranchise ? linkedFranchise.ondc : ''),
+                    ownly: l.ownly || (linkedFranchise ? linkedFranchise.ownly : ''),
+                    ondc: l.ondc || (linkedFranchise ? linkedFranchise.ondc : ''),
                     whatsapp: l.whatsapp ? (l.whatsapp.startsWith('http') ? l.whatsapp : `https://wa.me/${l.whatsapp.replace(/\D/g, '')}`) : (linkedFranchise && linkedFranchise.whatsapp ? (linkedFranchise.whatsapp.startsWith('http') ? linkedFranchise.whatsapp : `https://wa.me/${linkedFranchise.whatsapp.replace(/\D/g, '')}`) : ''),
                     mapUrl: mapUrl || '',
                     imageUrl: l.imageUrl || '',
@@ -313,9 +314,14 @@ const Connect = () => {
                                             <div className={styles.ownlyWrapper}>
                                                 <span className={styles.recommendedTag}>⭐ Recommended</span>
                                                 <a href={ensureAbsoluteUrl(loc.ownly)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnOwnly}`}>
-                                                    🛵 Order on Ownly Food (ONDC)
+                                                    🛵 Order on Ownly Food
                                                 </a>
                                             </div>
+                                        )}
+                                        {loc.ondc && (
+                                            <a href={ensureAbsoluteUrl(loc.ondc)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnPrimary}`} style={{background: '#0ea5e9'}}>
+                                                🔗 Order on ONDC
+                                            </a>
                                         )}
                                         {loc.whatsapp && (
                                             <a href={ensureAbsoluteUrl(loc.whatsapp)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnWhatsapp}`}>

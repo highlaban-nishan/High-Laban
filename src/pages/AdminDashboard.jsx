@@ -216,7 +216,7 @@ const AdminDashboard = () => {
 
     // Locations State
     const [locations, setLocations] = useState([]);
-    const [newLocation, setNewLocation] = useState({ name: '', area: '', mapUrl: '', status: 'Open', imageUrl: '', imageUrls: [], whatsapp: '', zomato: '', swiggy: '', magicpin: '', ondc: '', phone: '', ownerName: '', ownerEmail: '', address: '', franchiseId: '' });
+    const [newLocation, setNewLocation] = useState({ name: '', area: '', mapUrl: '', status: 'Open', imageUrl: '', imageUrls: [], whatsapp: '', zomato: '', swiggy: '', magicpin: '', ondc: '', ownly: '', phone: '', ownerName: '', ownerEmail: '', address: '', franchiseId: '' });
     const [editingLocationId, setEditingLocationId] = useState(null);
 
     // Franchise Filters & Manual Form State
@@ -1238,6 +1238,7 @@ const AdminDashboard = () => {
                             swiggy: newLocation.swiggy || '',
                             magicpin: newLocation.magicpin || '',
                             ondc: newLocation.ondc || '',
+                            ownly: newLocation.ownly || '',
                             phone: newLocation.phone || franchise.phone || ''
                         };
                         await db.updateFranchiseOutlet(newFranchiseId, updatedFranchise);
@@ -1274,6 +1275,7 @@ const AdminDashboard = () => {
                         swiggy: newLocation.swiggy || '',
                         magicpin: newLocation.magicpin || '',
                         ondc: newLocation.ondc || '',
+                        ownly: newLocation.ownly || '',
                         documents: [],
                         locationId: addedLoc.id
                     };
@@ -1294,7 +1296,7 @@ const AdminDashboard = () => {
 
                 showToast('Location added and Franchise synced successfully!');
             }
-            setNewLocation({ name: '', area: '', mapUrl: '', status: 'Open', imageUrl: '', imageUrls: [], whatsapp: '', zomato: '', swiggy: '', magicpin: '', ondc: '', phone: '', ownerName: '', ownerEmail: '', address: '', franchiseId: '' });
+            setNewLocation({ name: '', area: '', mapUrl: '', status: 'Open', imageUrl: '', imageUrls: [], whatsapp: '', zomato: '', swiggy: '', magicpin: '', ondc: '', ownly: '', phone: '', ownerName: '', ownerEmail: '', address: '', franchiseId: '' });
             refreshData();
         } catch (error) {
             console.error(error);
@@ -1315,6 +1317,7 @@ const AdminDashboard = () => {
             swiggy: loc.swiggy || '',
             magicpin: loc.magicpin || '',
             ondc: loc.ondc || '',
+            ownly: loc.ownly || '',
             phone: loc.phone || '',
             ownerName: loc.ownerName || '',
             ownerEmail: loc.ownerEmail || '',
@@ -1344,6 +1347,7 @@ const AdminDashboard = () => {
                 swiggy: franchise.swiggy || '',
                 magicpin: franchise.magicpin || '',
                 ondc: franchise.ondc || '',
+                ownly: franchise.ownly || '',
                 phone: franchise.phone || '',
                 ownerName: franchise.ownerName || '',
                 ownerEmail: franchise.email || '',
@@ -1393,7 +1397,7 @@ const AdminDashboard = () => {
     };
 
     const handleCancelEdit = () => {
-        setNewLocation({ name: '', area: '', mapUrl: '', status: 'Open', imageUrl: '', imageUrls: [], whatsapp: '', zomato: '', swiggy: '', magicpin: '', ondc: '', phone: '', ownerName: '', ownerEmail: '', address: '', franchiseId: '' });
+        setNewLocation({ name: '', area: '', mapUrl: '', status: 'Open', imageUrl: '', imageUrls: [], whatsapp: '', zomato: '', swiggy: '', magicpin: '', ondc: '', ownly: '', phone: '', ownerName: '', ownerEmail: '', address: '', franchiseId: '' });
         setEditingLocationId(null);
     };
 
@@ -3489,7 +3493,18 @@ const AdminDashboard = () => {
                                                         style={{ padding: '6px 10px', fontSize: '0.85rem' }}
                                                     />
                                                 </div>
-                                                <div className={styles.formGroup} style={{ gridColumn: '1/-1' }}>
+                                                <div className={styles.formGroup}>
+                                                    <label style={{ fontSize: '0.7rem', color: '#64748b' }}>Ownly Food Link</label>
+                                                    <input 
+                                                        type="url" 
+                                                        placeholder="https://ownly.in/..." 
+                                                        value={newLocation.ownly || ''} 
+                                                        onChange={e => setNewLocation({ ...newLocation, ownly: e.target.value })} 
+                                                        className={styles.input} 
+                                                        style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+                                                    />
+                                                </div>
+                                                <div className={styles.formGroup}>
                                                     <label style={{ fontSize: '0.7rem', color: '#64748b' }}>ONDC Link</label>
                                                     <input 
                                                         type="url" 
