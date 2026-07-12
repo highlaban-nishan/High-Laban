@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiUploadCloud, FiCheckCircle, FiFileText, FiTrash2 } from 'react-icons/fi';
 import { Helmet } from 'react-helmet-async';
 import styles from './WorkerApplication.module.css';
