@@ -87,23 +87,7 @@ const Connect = () => {
     const galleryRef = useRef(null);
     const navigate = useNavigate();
 
-    // Auto-scroll outlets gallery container periodically
-    useEffect(() => {
-        const slider = galleryRef.current;
-        if (!slider) return;
 
-        const maxScrollAttempts = 20; // limit loop depth
-        const interval = setInterval(() => {
-            const maxScrollLeft = slider.scrollWidth - slider.clientWidth;
-            if (slider.scrollLeft >= maxScrollLeft - 10) {
-                slider.scrollTo({ left: 0, behavior: 'smooth' });
-            } else {
-                slider.scrollBy({ left: 160, behavior: 'smooth' });
-            }
-        }, 3000);
-
-        return () => clearInterval(interval);
-    }, [locations, loading]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -190,10 +174,7 @@ const Connect = () => {
                 <meta name="description" content="Connect with highlaban. Premium Egyptian Desserts in India. Find our locations, order online, and follow us on social media." />
             </Helmet>
 
-            {/* 3D Flowy Background Blobs */}
-            <div className={styles.blob1}></div>
-            <div className={styles.blob2}></div>
-            <div className={styles.blob3}></div>
+
 
             <div className={styles.contentWrapper}>
                 {/* Header: Gradient Glassy Hero Banner */}
@@ -203,7 +184,7 @@ const Connect = () => {
                     </div>
                     <span className={styles.taglineBadge}>✨ GET HIGH ON BITES</span>
                     <p className={styles.description}>
-                        {socialLinks?.bannerDescription || 'Premium Egyptian Desserts in India'}
+                        {socialLinks?.bannerDescription || 'Premium Egyptian Desserts with a Modern Twist'}
                     </p>
                     
                     <div style={{ display: 'flex', gap: '0.75rem', width: '100%', maxWidth: '340px', justifyContent: 'center', marginTop: '0.5rem', zIndex: 2 }}>
