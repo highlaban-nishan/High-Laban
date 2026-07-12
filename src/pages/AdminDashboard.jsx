@@ -697,8 +697,12 @@ const AdminDashboard = () => {
                     swiggy: editingFranchiseOutlet.swiggy || '',
                     magicpin: editingFranchiseOutlet.magicpin || '',
                     ondc: editingFranchiseOutlet.ondc || '',
+                    ownly: editingFranchiseOutlet.ownly || '',
                     imageUrl: editingFranchiseOutlet.imageUrl || linkedLoc.imageUrl || '',
-                    franchiseId: editingFranchiseOutlet.id
+                    franchiseId: editingFranchiseOutlet.id,
+                    ownerName: editingFranchiseOutlet.ownerName || '',
+                    phone: editingFranchiseOutlet.phone || '',
+                    ownerEmail: editingFranchiseOutlet.email || ''
                 };
                 await db.updateLocation(linkedLoc.id, updatedLoc);
                 setLocations(prev => prev.map(l => l.id === linkedLoc.id ? updatedLoc : l));
@@ -1242,7 +1246,9 @@ const AdminDashboard = () => {
                             magicpin: newLocation.magicpin || '',
                             ondc: newLocation.ondc || '',
                             ownly: newLocation.ownly || '',
-                            phone: newLocation.phone || franchise.phone || ''
+                            phone: newLocation.phone || franchise.phone || '',
+                            ownerName: newLocation.ownerName || franchise.ownerName || '',
+                            email: newLocation.ownerEmail || franchise.email || ''
                         };
                         await db.updateFranchiseOutlet(resolvedFranchiseId, updatedFranchise);
                         setRunningFranchises(prev => prev.map(f => f.id === resolvedFranchiseId ? updatedFranchise : f));
