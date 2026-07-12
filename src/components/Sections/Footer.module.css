@@ -270,8 +270,9 @@
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 24px;
     width: 100%;
-    max-width: 440px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    max-width: 860px;
+    max-height: 90vh;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -315,19 +316,130 @@
 
 .modalBody {
     padding: 1.5rem;
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 1.5rem;
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .modalBody {
+        grid-template-columns: 1fr;
+    }
+    .modalCard {
+        max-width: 480px;
+    }
+}
+
+.modalColLeft {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.modalColRight {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 18px;
+    padding: 1.25rem;
+}
+
+.modalFormTitle {
+    font-size: 1rem;
+    font-weight: 800;
+    color: white;
+    margin: 0 0 0.25rem;
+}
+
+.modalForm {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.modalField {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.modalField label {
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #94a3b8;
+    letter-spacing: 0.5px;
+}
+
+.modalInput,
+.modalTextarea {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 0.65rem 0.85rem;
+    color: white;
+    font-size: 0.88rem;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.modalInput:focus,
+.modalTextarea:focus {
+    outline: none;
+    border-color: #38bdf8;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.modalSubmitBtn {
+    background: linear-gradient(135deg, #25d366, #128c7e);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: transform 0.15s;
+}
+
+.modalSubmitBtn:hover {
+    transform: translateY(-1px);
+}
+
+.modalSuccess {
+    background: rgba(37, 211, 102, 0.08);
+    border: 1px solid rgba(37, 211, 102, 0.2);
+    color: #4ade80;
+    border-radius: 12px;
+    padding: 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.modalMapBox {
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    height: 160px;
+    margin-top: 0.25rem;
 }
 
 .modalItem {
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 0.75rem 1rem;
+    padding: 0.65rem 0.85rem;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 14px;
+    border-radius: 12px;
     text-decoration: none;
     color: inherit;
     transition: all 0.2s ease;
@@ -340,23 +452,23 @@ a.modalItem:hover {
 }
 
 .modalIcon {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     color: #38bdf8;
     display: flex;
     align-items: center;
 }
 
 .modalLabel {
-    font-size: 0.72rem;
+    font-size: 0.65rem;
     font-weight: 800;
     text-transform: uppercase;
     color: #94a3b8;
     letter-spacing: 0.5px;
-    margin-bottom: 2px;
+    margin-bottom: 1px;
 }
 
 .modalValue {
-    font-size: 0.95rem;
+    font-size: 0.88rem;
     font-weight: 700;
     color: #f1f5f9;
 }

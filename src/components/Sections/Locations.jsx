@@ -14,7 +14,14 @@ export default function Locations() {
 
     useEffect(() => {
         const unsubscribe = db.subscribeToLocations((fetched) => {
-            setLocations(fetched);
+            const sorted = [...(fetched || [])].sort((a, b) => {
+                const statusA = (a.status || '').toLowerCase();
+                const statusB = (b.status || '').toLowerCase();
+                if (statusA === 'open' && statusB !== 'open') return -1;
+                if (statusA !== 'open' && statusB === 'open') return 1;
+                return 0;
+            });
+            setLocations(sorted);
             setLoading(false);
         });
         db.getFranchises().then(fetchedFrans => {

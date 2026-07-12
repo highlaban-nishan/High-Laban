@@ -78,7 +78,14 @@ export default function ValuesAndLocations() {
         const fetchAllData = async () => {
             try {
                 const locs = await db.getLocations();
-                setLocations(locs);
+                const sorted = [...(locs || [])].sort((a, b) => {
+                    const statusA = (a.status || '').toLowerCase();
+                    const statusB = (b.status || '').toLowerCase();
+                    if (statusA === 'open' && statusB !== 'open') return -1;
+                    if (statusA !== 'open' && statusB === 'open') return 1;
+                    return 0;
+                });
+                setLocations(sorted);
                 const prods = await db.getProducts();
                 setProducts(prods || []);
                 const frans = await db.getFranchises();
