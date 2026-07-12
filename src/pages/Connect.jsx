@@ -9,6 +9,7 @@ import cupImg from '../assets/cup.png';
 import boxImg from '../assets/box.png';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
+import FranchiseForm from '../components/Franchise/FranchiseForm';
 
 const ensureAbsoluteUrl = (url) => {
     if (!url) return '';
@@ -17,6 +18,13 @@ const ensureAbsoluteUrl = (url) => {
         return trimmed;
     }
     return `https://${trimmed}`;
+};
+
+const getWebsiteUrl = (socialLinks) => {
+    if (socialLinks?.website && !socialLinks.website.includes('highlaban.web.app') && socialLinks.website.trim() !== '') {
+        return ensureAbsoluteUrl(socialLinks.website);
+    }
+    return 'https://highlaban.com';
 };
 
 const getProductImage = (productId) => {
@@ -38,6 +46,14 @@ const getProductImage = (productId) => {
     }
 };
 
+const getProductCoverImage = (product) => {
+    if (product.images && product.images.length > 0) {
+        const firstImg = product.images[0];
+        return typeof firstImg === 'string' ? firstImg : firstImg.url;
+    }
+    return product.img || product.image || product.imageUrl || getProductImage(product.id);
+};
+
 const Connect = () => {
     const [locations, setLocations] = useState([]);
     const [socialLinks, setSocialLinks] = useState(null);
@@ -49,6 +65,7 @@ const Connect = () => {
     const [showMenuModal, setShowMenuModal] = useState(false);
     const [showAboutModal, setShowAboutModal] = useState(false);
     const [showStoryModal, setShowStoryModal] = useState(false);
+    const [showFranchiseModal, setShowFranchiseModal] = useState(false);
     
     // About Slide Index (0: About, 1: Vision, 2: Mission)
     const [aboutSlideIndex, setAboutSlideIndex] = useState(0);
@@ -58,30 +75,40 @@ const Connect = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-            const [locationsData, socialData, productsData] = await Promise.all([
+            const [locationsData, socialData, productsData, franchisesData] = await Promise.all([
                 db.getLocations(),
                 db.getSocialLinks(),
-                db.getProducts()
+                db.getProducts(),
+                db.getFranchises()
             ]);
             
-            // Format existing locations to match Connect Page card structure
-            const activeLocs = (locationsData || []).filter(l => l.status === 'Open').map(l => ({
-                id: l.id,
-                title: l.area || l.name,
-                address: l.address || l.name,
-                phone: l.phone || '',
-                zomato: l.zomato || '',
-                swiggy: l.swiggy || '',
-                magicpin: l.magicpin || '',
-                ownly: l.ondc || '',
-                whatsapp: l.whatsapp ? (l.whatsapp.startsWith('http') ? l.whatsapp : `https://wa.me/${l.whatsapp.replace(/\D/g, '')}`) : '',
-                mapUrl: l.mapUrl || '',
-                imageUrl: l.imageUrl || '',
-                imageUrls: l.imageUrls || []
-            }));
+            // Format all locations, linking with franchise details if matched
+            const allLocs = (locationsData || []).map(l => {
+                const linkedFranchise = (franchisesData || []).find(f => f.id === l.franchiseId || f.locationId === l.id);
+                
+                const phone = l.phone || (linkedFranchise ? linkedFranchise.phone : '');
+                const address = l.address || (linkedFranchise ? linkedFranchise.address : l.area);
+                const mapUrl = l.mapUrl || (linkedFranchise ? linkedFranchise.mapUrl : '');
+                
+                return {
+                    id: l.id,
+                    title: l.name || l.area,
+                    address: address || l.name,
+                    phone: phone || '',
+                    zomato: l.zomato || (linkedFranchise ? linkedFranchise.zomato : ''),
+                    swiggy: l.swiggy || (linkedFranchise ? linkedFranchise.swiggy : ''),
+                    magicpin: l.magicpin || (linkedFranchise ? linkedFranchise.magicpin : ''),
+                    ownly: l.ondc || (linkedFranchise ? linkedFranchise.ondc : ''),
+                    whatsapp: l.whatsapp ? (l.whatsapp.startsWith('http') ? l.whatsapp : `https://wa.me/${l.whatsapp.replace(/\D/g, '')}`) : (linkedFranchise && linkedFranchise.whatsapp ? (linkedFranchise.whatsapp.startsWith('http') ? linkedFranchise.whatsapp : `https://wa.me/${linkedFranchise.whatsapp.replace(/\D/g, '')}`) : ''),
+                    mapUrl: mapUrl || '',
+                    imageUrl: l.imageUrl || '',
+                    imageUrls: l.imageUrls || [],
+                    status: l.status || 'Open' // 'Open', 'Coming Soon', 'Closed'
+                };
+            });
 
             // HQ Fallback if locations is empty
-            const finalLocs = activeLocs.length > 0 ? activeLocs : [
+            const finalLocs = allLocs.length > 0 ? allLocs : [
                 {
                     id: 'hq',
                     title: 'HQ - Indiranagar',
@@ -90,7 +117,8 @@ const Connect = () => {
                     zomato: 'https://zomato.com',
                     swiggy: 'https://swiggy.com',
                     whatsapp: 'https://wa.me/917483837201',
-                    mapUrl: 'https://maps.google.com'
+                    mapUrl: 'https://maps.google.com',
+                    status: 'Open'
                 }
             ];
 
@@ -145,28 +173,54 @@ const Connect = () => {
                         {socialLinks?.bannerDescription || 'Premium Egyptian Desserts in India'}
                     </p>
                     
-                    <button onClick={scrollToLocations} className={styles.orderNowTopBtn}>
-                        ORDER NOW
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.75rem', width: '100%', maxWidth: '340px', justifyContent: 'center', marginTop: '0.5rem', zIndex: 2 }}>
+                        <button onClick={scrollToLocations} className={styles.orderNowTopBtn} style={{ flex: 1, margin: 0 }}>
+                            ORDER NOW
+                        </button>
+                        {socialLinks?.whatsapp && (
+                            <a 
+                                href={ensureAbsoluteUrl(socialLinks.whatsapp)} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className={styles.orderNowTopBtn} 
+                                style={{ 
+                                    flex: 1, 
+                                    background: '#25D366', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center', 
+                                    gap: '8px',
+                                    textDecoration: 'none',
+                                    padding: '0.75rem 1rem',
+                                    fontSize: '0.9rem',
+                                    fontWeight: '800',
+                                    margin: 0
+                                }}
+                            >
+                                <FaWhatsapp style={{ fontSize: '1.1rem' }} /> WHATSAPP
+                            </a>
+                        )}
+                    </div>
                 </div>
 
-                {/* Grid Links (Menu, Website, About, Story) */}
+                {/* Grid Links (Menu, Website, About, Story, Franchise) */}
                 <div className={styles.gridList}>
                     {socialLinks?.menu && (
                         <div onClick={() => setShowMenuModal(true)} className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer'}}>
                             <h3 className={styles.cardTitle}>Menu</h3>
                         </div>
                     )}
-                    {socialLinks?.website && (
-                        <a href={ensureAbsoluteUrl(socialLinks.website)} target="_blank" rel="noopener noreferrer" className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center'}}>
-                            <h3 className={styles.cardTitle}>Website</h3>
-                        </a>
-                    )}
+                    <a href={getWebsiteUrl(socialLinks)} target="_blank" rel="noopener noreferrer" className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center'}}>
+                        <h3 className={styles.cardTitle}>Website</h3>
+                    </a>
                     <div onClick={() => { setShowAboutModal(true); setAboutSlideIndex(0); }} className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer'}}>
                         <h3 className={styles.cardTitle}>About Us</h3>
                     </div>
                     <div onClick={() => setShowStoryModal(true)} className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer'}}>
                         <h3 className={styles.cardTitle}>Our Story</h3>
+                    </div>
+                    <div onClick={() => setShowFranchiseModal(true)} className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer', gridColumn: '1 / -1'}}>
+                        <h3 className={styles.cardTitle}>Franchise Inquiry</h3>
                     </div>
                 </div>
 
@@ -179,7 +233,22 @@ const Connect = () => {
                                 <div className={styles.cardTitleWrap}>
                                     <div className={styles.cardIcon}><FiMapPin /></div>
                                     <div className={styles.cardText}>
-                                        <h3 className={styles.cardTitle}>{loc.title}</h3>
+                                        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                                            <h3 className={styles.cardTitle} style={{ margin: 0 }}>{loc.title}</h3>
+                                            {loc.status !== 'Open' && (
+                                                <span style={{
+                                                    fontSize: '0.65rem',
+                                                    fontWeight: 'bold',
+                                                    padding: '2px 8px',
+                                                    borderRadius: '10px',
+                                                    background: loc.status === 'Coming Soon' ? '#fef3c7' : '#fee2e2',
+                                                    color: loc.status === 'Coming Soon' ? '#d97706' : '#ef4444',
+                                                    display: 'inline-block'
+                                                }}>
+                                                    {loc.status}
+                                                </span>
+                                            )}
+                                        </div>
                                         <p className={styles.cardSubtitle}>{loc.address}</p>
                                     </div>
                                 </div>
@@ -188,39 +257,63 @@ const Connect = () => {
                             
                             {/* Expandable Content */}
                             <div className={`${styles.cardContent} ${openCardId === loc.id ? styles.cardContentOpen : ''}`} onClick={e => e.stopPropagation()}>
-                                <div className={styles.actionGrid}>
-                                    {loc.zomato && (
-                                        <a href={ensureAbsoluteUrl(loc.zomato)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnPrimary}`}>
-                                            Order on Zomato
-                                        </a>
-                                    )}
-                                    {loc.swiggy && (
-                                        <a href={ensureAbsoluteUrl(loc.swiggy)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnPrimary}`} style={{background: '#fc8019'}}>
-                                            Order on Swiggy
-                                        </a>
-                                    )}
-                                    {loc.magicpin && (
-                                        <a href={ensureAbsoluteUrl(loc.magicpin)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnPrimary}`} style={{background: '#e11d48'}}>
-                                            Order on MagicPin
-                                        </a>
-                                    )}
-                                    {loc.ownly && (
-                                        <a href={ensureAbsoluteUrl(loc.ownly)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnPrimary}`} style={{background: '#0ea5e9'}}>
-                                            Order on ONDC
-                                        </a>
-                                    )}
-                                    <a href={ensureAbsoluteUrl(loc.whatsapp)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnWhatsapp}`}>
-                                        <FaWhatsapp /> WhatsApp
-                                    </a>
-                                    <a href={`tel:${loc.phone}`} className={`${styles.actionBtn} ${styles.btnSecondary}`}>
-                                        <FiPhoneCall /> Call Now
-                                    </a>
-                                    {loc.mapUrl && (
-                                        <a href={ensureAbsoluteUrl(loc.mapUrl)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnSecondary}`} style={{gridColumn: '1 / -1'}}>
-                                            <FiMapPin /> Open in Maps
-                                        </a>
-                                    )}
-                                </div>
+                                {loc.status !== 'Open' ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+                                        <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem', fontStyle: 'italic', padding: '15px 0', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                                            {loc.status === 'Coming Soon' ? '⏳ We are setting up our kitchen! Opening shortly.' : '🚫 This outlet is temporarily closed.'}
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                            {loc.phone && (
+                                                <a href={`tel:${loc.phone}`} className={`${styles.actionBtn} ${styles.btnSecondary}`}>
+                                                    <FiPhoneCall /> Call Info
+                                                </a>
+                                            )}
+                                            {loc.mapUrl && (
+                                                <a href={ensureAbsoluteUrl(loc.mapUrl)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnSecondary}`}>
+                                                    <FiMapPin /> Map Location
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className={styles.actionGrid}>
+                                        {loc.zomato && (
+                                            <a href={ensureAbsoluteUrl(loc.zomato)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnPrimary}`}>
+                                                Order on Zomato
+                                            </a>
+                                        )}
+                                        {loc.swiggy && (
+                                            <a href={ensureAbsoluteUrl(loc.swiggy)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnPrimary}`} style={{background: '#fc8019'}}>
+                                                Order on Swiggy
+                                            </a>
+                                        )}
+                                        {loc.magicpin && (
+                                            <a href={ensureAbsoluteUrl(loc.magicpin)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnPrimary}`} style={{background: '#e11d48'}}>
+                                                Order on MagicPin
+                                            </a>
+                                        )}
+                                        {loc.ownly && (
+                                            <a href={ensureAbsoluteUrl(loc.ownly)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnPrimary}`} style={{background: '#0ea5e9'}}>
+                                                Order on ONDC
+                                            </a>
+                                        )}
+                                        {loc.whatsapp && (
+                                            <a href={ensureAbsoluteUrl(loc.whatsapp)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnWhatsapp}`}>
+                                                <FaWhatsapp /> WhatsApp
+                                            </a>
+                                        )}
+                                        {loc.phone && (
+                                            <a href={`tel:${loc.phone}`} className={`${styles.actionBtn} ${styles.btnSecondary}`}>
+                                                <FiPhoneCall /> Call Now
+                                            </a>
+                                        )}
+                                        {loc.mapUrl && (
+                                            <a href={ensureAbsoluteUrl(loc.mapUrl)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnSecondary}`} style={{gridColumn: '1 / -1'}}>
+                                                <FiMapPin /> Open in Maps
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))}
@@ -270,7 +363,7 @@ const Connect = () => {
                     )}
                 </div>
 
-                <a href={ensureAbsoluteUrl(socialLinks?.website || '/')} target="_blank" rel="noopener noreferrer" className={styles.joinBtn}>Visit Official Website</a>
+                <a href={getWebsiteUrl(socialLinks)} target="_blank" rel="noopener noreferrer" className={styles.joinBtn}>Visit Official Website</a>
                 <div style={{height: '40px'}}></div>
 
                 {/* 1. SYNCED MENU MODAL */}
@@ -287,7 +380,7 @@ const Connect = () => {
                                 {products.map(product => (
                                     <div key={product.id} className={styles.menuItemCard}>
                                         <img 
-                                            src={product.imageUrl || product.image || getProductImage(product.id)} 
+                                            src={getProductCoverImage(product)} 
                                             alt={product.name} 
                                             className={styles.menuItemImg} 
                                             onError={(e) => { e.target.src = cupImg; }}
@@ -422,6 +515,9 @@ const Connect = () => {
                         </div>
                     </div>
                 )}
+
+                {/* 4. FRANCHISE INQUIRY FORM MODAL */}
+                <FranchiseForm isOpen={showFranchiseModal} onClose={() => setShowFranchiseModal(false)} isModal={true} />
 
             </div>
         </div>

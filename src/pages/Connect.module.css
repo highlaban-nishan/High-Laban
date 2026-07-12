@@ -1,6 +1,6 @@
 .container {
     min-height: 100vh;
-    background: #0f172a; /* Slate 900 base */
+    background: radial-gradient(circle at 50% 0%, #1e152a 0%, #0b0f19 80%); /* Deep rich plum to dark space navy */
     position: relative;
     overflow-x: hidden;
     padding: 2.5rem 1rem 4rem;
@@ -9,56 +9,58 @@
     justify-content: center;
 }
 
-/* 3D Flowy Background Blobs */
+/* 3D Flowy Background Blobs - Organic morphing metaballs */
 .blob1, .blob2, .blob3 {
     position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
+    filter: blur(100px);
     z-index: 0;
     pointer-events: none;
-    opacity: 0.45;
+    opacity: 0.5;
 }
 
 .blob1 {
-    width: 300px;
-    height: 300px;
-    background: radial-gradient(circle, #0ea5e9 0%, rgba(14,165,233,0) 70%);
+    width: 350px;
+    height: 350px;
+    background: radial-gradient(circle, rgba(14, 165, 233, 0.4) 0%, rgba(14, 165, 233, 0) 70%);
     top: -50px;
     left: -100px;
-    animation: flow1 25s ease-in-out infinite alternate;
+    animation: flow1 22s ease-in-out infinite;
 }
 
 .blob2 {
-    width: 350px;
-    height: 350px;
-    background: radial-gradient(circle, #0284c7 0%, rgba(2,132,199,0) 70%);
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.35) 0%, rgba(124, 58, 237, 0) 70%);
     bottom: 10%;
     right: -120px;
-    animation: flow2 28s ease-in-out infinite alternate;
+    animation: flow2 25s ease-in-out infinite;
 }
 
 .blob3 {
-    width: 250px;
-    height: 250px;
-    background: radial-gradient(circle, #7c3aed 0%, rgba(124,58,237,0) 70%);
-    top: 40%;
-    left: 30%;
-    animation: flow3 22s ease-in-out infinite alternate;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.3) 0%, rgba(236, 72, 153, 0) 70%);
+    top: 35%;
+    left: 20%;
+    animation: flow3 18s ease-in-out infinite;
 }
 
 @keyframes flow1 {
-    0% { transform: translate(0, 0) scale(1); }
-    100% { transform: translate(120px, 80px) scale(1.15); }
+    0% { transform: translate(0, 0) rotate(0deg) scale(1); border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
+    50% { transform: translate(100px, 60px) rotate(180deg) scale(1.2); border-radius: 60% 40% 50% 50% / 50% 60% 40% 60%; }
+    100% { transform: translate(0, 0) rotate(360deg) scale(1); border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
 }
 
 @keyframes flow2 {
-    0% { transform: translate(0, 0) scale(1); }
-    100% { transform: translate(-100px, -110px) scale(0.9); }
+    0% { transform: translate(0, 0) rotate(0deg) scale(1); border-radius: 50% 50% 30% 70% / 50% 40% 60% 50%; }
+    50% { transform: translate(-80px, -90px) rotate(-180deg) scale(0.85); border-radius: 30% 70% 60% 40% / 40% 60% 50% 60%; }
+    100% { transform: translate(0, 0) rotate(-360deg) scale(1); border-radius: 50% 50% 30% 70% / 50% 40% 60% 50%; }
 }
 
 @keyframes flow3 {
-    0% { transform: translate(0, 0) scale(1); }
-    100% { transform: translate(-60px, 90px) scale(1.2); }
+    0% { transform: translate(0, 0) rotate(0deg) scale(1); border-radius: 60% 40% 60% 40% / 50% 50% 50% 50%; }
+    50% { transform: translate(-50px, 80px) rotate(180deg) scale(1.15); border-radius: 40% 60% 40% 60% / 60% 40% 60% 40%; }
+    100% { transform: translate(0, 0) rotate(360deg) scale(1); border-radius: 60% 40% 60% 40% / 50% 50% 50% 50%; }
 }
 
 .contentWrapper {
@@ -105,12 +107,7 @@
 }
 
 .logoContainer {
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    padding: 4px;
-    background: linear-gradient(135deg, #0ea5e9, #0284c7);
-    box-shadow: 0 8px 20px rgba(14, 165, 233, 0.3);
+    height: 100px;
     margin-bottom: 1.25rem;
     display: flex;
     align-items: center;
@@ -120,11 +117,9 @@
 }
 
 .logo {
-    width: 100%;
     height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-    background: white;
+    width: auto;
+    object-fit: contain;
 }
 
 .brandName {

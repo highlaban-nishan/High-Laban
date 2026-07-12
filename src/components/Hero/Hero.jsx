@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useScrollProgress } from '../../hooks/useScrollProgress';
 import styles from './Hero.module.css';
+import db from '../../utils/db';
 
 // Configuration
 const CONFIG = {
@@ -21,6 +22,28 @@ export default function Hero() {
     const canvasRef = useRef(null);
     const [imagesLoaded, setImagesLoaded] = useState(0);
     const [isMobile, setIsMobile] = useState(true); // Default to mobile first (or check logic below)
+
+    // Dynamic Hero configurations from DB
+    const [heroSettings, setHeroSettings] = useState({
+        badge: 'Premium Egyptian Desserts in India',
+        title: 'GET HIGH ON BITE',
+        subtitle: "Experience Egypt's Finest Creamy Desserts",
+        btn1Text: 'FRANCHISE',
+        btn2Text: 'Our Story',
+        gradientStart: '#27aae1',
+        gradientEnd: '#7c3aed',
+        glassOpacity: '0.15'
+    });
+
+    // Subscribe to Hero Custom Configuration from Firestore
+    useEffect(() => {
+        const unsubscribe = db.subscribeToSiteContent('hero', (data) => {
+            if (data) {
+                setHeroSettings(prev => ({ ...prev, ...data }));
+            }
+        });
+        return () => unsubscribe && unsubscribe();
+    }, []);
 
     // Progress determines the frame
     const progress = useScrollProgress(containerRef);
@@ -111,54 +134,90 @@ export default function Hero() {
 
     }, [progress, images, imagesLoaded, dimensions, activeConfig.frames]);
 
+    const renderTitle = () => {
+        const text = heroSettings.title || 'GET HIGH ON BITE';
+        const lastSpaceIndex = text.lastIndexOf(' ');
+        if (lastSpaceIndex === -1) return text;
+        const firstPart = text.substring(0, lastSpaceIndex);
+        const lastWord = text.substring(lastSpaceIndex + 1);
+        return (
+            <>
+                {firstPart}{' '}
+                <span className={styles.highlight}>{lastWord}</span>
+            </>
+        );
+    };
+
     return (
         <div className={styles.heroContainer} ref={containerRef}>
             <div className={styles.stickyWrapper}>
                 <canvas ref={canvasRef} className={styles.heroCanvas} />
 
-
-
                 <div className={styles.overlayContent}>
-                    <div className={styles.topBadge}>
-                        Premium Egyptian Desserts in India
-                    </div>
+                    <div 
+                        className={styles.glassCard}
+                        style={{
+                            background: `linear-gradient(135deg, ${heroSettings.gradientStart || '#27aae1'}22, ${heroSettings.gradientEnd || '#7c3aed'}22)`,
+                            backgroundColor: `rgba(255, 255, 255, ${parseFloat(heroSettings.glassOpacity) || 0.1})`,
+                            backdropFilter: 'blur(20px)',
+                            WebkitBackdropFilter: 'blur(20px)',
+                            border: '1px solid rgba(255, 255, 255, 0.15)',
+                            borderRadius: '24px',
+                            padding: '2.5rem',
+                            maxWidth: '650px',
+                            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.35)',
+                            pointerEvents: 'auto',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-start',
+                            textAlign: 'left'
+                        }}
+                    >
+                        <div className={styles.topBadge}>
+                            {heroSettings.badge}
+                        </div>
 
-                    <h1 className={styles.mainTitle}>
-                        GET HIGH <span className={styles.highlight}>ON BITE</span>
-                    </h1>
+                        <h1 className={styles.mainTitle}>
+                            {renderTitle()}
+                        </h1>
 
-                    <p className={styles.subHeadline}>
-                        Experience Egypt's Finest Creamy Desserts
-                    </p>
+                        <p className={styles.subHeadline}>
+                            {heroSettings.subtitle}
+                        </p>
 
-                    <div className={styles.buttonGroup}>
-                        <button className={styles.btnPrimary} onClick={() => document.getElementById('franchise-section')?.scrollIntoView({ behavior: 'smooth' })}>FRANCHISE</button>
-                        <button className={styles.btnSecondary} onClick={() => {
-                            const element = document.getElementById('story-section');
-                            if (element) {
-                                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }
-                        }}>Our Story</button>
-                        <div className={styles.playWrapper} onClick={() => {
-                            const element = document.getElementById('story-section');
-                            if (element) {
-                                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }
-                        }} style={{ cursor: 'pointer' }}>
-                            <div className={styles.rotatingText}>
-                                <svg viewBox="0 0 100 100">
-                                    <defs>
-                                        <path id="circle" d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" />
-                                    </defs>
-                                    <text>
-                                        <textPath xlinkHref="#circle">
-                                            PLAY VIDEO • PLAY VIDEO •
-                                        </textPath>
-                                    </text>
-                                </svg>
-                            </div>
-                            <div className={styles.playCenter}>
-                                <span className={styles.playIcon}>▶</span>
+                        <div className={styles.buttonGroup}>
+                            <button className={styles.btnPrimary} onClick={() => document.getElementById('franchise-section')?.scrollIntoView({ behavior: 'smooth' })}>
+                                {heroSettings.btn1Text}
+                            </button>
+                            <button className={styles.btnSecondary} onClick={() => {
+                                const element = document.getElementById('story-section');
+                                if (element) {
+                                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }
+                            }}>
+                                {heroSettings.btn2Text}
+                            </button>
+                            <div className={styles.playWrapper} onClick={() => {
+                                const element = document.getElementById('story-section');
+                                if (element) {
+                                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }
+                            }} style={{ cursor: 'pointer' }}>
+                                <div className={styles.rotatingText}>
+                                    <svg viewBox="0 0 100 100">
+                                        <defs>
+                                            <path id="circle" d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" />
+                                        </defs>
+                                        <text>
+                                            <textPath xlinkHref="#circle">
+                                                PLAY VIDEO • PLAY VIDEO •
+                                            </textPath>
+                                        </text>
+                                    </svg>
+                                </div>
+                                <div className={styles.playCenter}>
+                                    <span className={styles.playIcon}>▶</span>
+                                </div>
                             </div>
                         </div>
                     </div>

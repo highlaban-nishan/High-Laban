@@ -247,6 +247,20 @@ const AdminDashboard = () => {
     const [staffRoleFilter, setStaffRoleFilter] = useState('All');
     const [staffOutletFilter, setStaffOutletFilter] = useState('All');
     const [selectedHrTab, setSelectedHrTab] = useState('personal');
+
+    // Content management sub-tabs
+    const [contentSubTab, setContentSubTab] = useState('story'); // 'story' | 'hero'
+    const [heroSettings, setHeroSettings] = useState({
+        badge: 'Premium Egyptian Desserts in India',
+        title: 'GET HIGH ON BITE',
+        subtitle: "Experience Egypt's Finest Creamy Desserts",
+        btn1Text: 'FRANCHISE',
+        btn2Text: 'Our Story',
+        gradientStart: '#27aae1',
+        gradientEnd: '#7c3aed',
+        glassOpacity: '0.15'
+    });
+    const [isSavingHero, setIsSavingHero] = useState(false);
     
     // Worker hiring pipeline states
     const [activeStaffSubTab, setActiveStaffSubTab] = useState('directory'); // 'directory' | 'leads'
@@ -449,6 +463,10 @@ const AdminDashboard = () => {
                 setSiteContent({ ...defaultSiteContent, ...content });
             } else {
                 setSiteContent(defaultSiteContent);
+            }
+            const heroData = await db.getSiteContent('hero');
+            if (heroData) {
+                setHeroSettings(prev => ({ ...prev, ...heroData }));
             }
         } else if (activeTab === 'locations') {
             const locs = await db.getLocations();
@@ -1538,9 +1556,39 @@ const AdminDashboard = () => {
 
                 {/* --- CONTENT TAB --- */}
                 {activeTab === 'content' && (
-                    <div className={styles.card} style={{ maxWidth: '800px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
-                            <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Edit "Our Story" Section</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '850px', width: '100%' }}>
+                        {/* Sub-navigation for Site Content */}
+                        <div style={{ display: 'flex', gap: '1rem', borderBottom: '2px solid #e2e8f0', marginBottom: '1rem', paddingBottom: '0.5rem' }}>
+                            <button
+                                type="button"
+                                onClick={() => setContentSubTab('story')}
+                                style={{
+                                    background: 'none', border: 'none', fontSize: '1rem', fontWeight: '800',
+                                    color: contentSubTab === 'story' ? '#0ea5e9' : '#64748b',
+                                    borderBottom: contentSubTab === 'story' ? '3px solid #0ea5e9' : '3px solid transparent',
+                                    padding: '0.5rem 1rem', cursor: 'pointer', transition: 'all 0.2s'
+                                }}
+                            >
+                                📖 Our Story Section
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setContentSubTab('hero')}
+                                style={{
+                                    background: 'none', border: 'none', fontSize: '1rem', fontWeight: '800',
+                                    color: contentSubTab === 'hero' ? '#0ea5e9' : '#64748b',
+                                    borderBottom: contentSubTab === 'hero' ? '3px solid #0ea5e9' : '3px solid transparent',
+                                    padding: '0.5rem 1rem', cursor: 'pointer', transition: 'all 0.2s'
+                                }}
+                            >
+                                🎨 Hero Banner Config
+                            </button>
+                        </div>
+
+                        {contentSubTab === 'story' ? (
+                            <div className={styles.card} style={{ margin: 0, maxWidth: '100%' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
+                                    <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Edit "Our Story" Section</h2>
                             <button
                                 onClick={async () => {
                                     setIsSavingContent(true);
@@ -1671,6 +1719,128 @@ const AdminDashboard = () => {
                                 <Highlights manualContent={siteContent} />
                             </div>
                         </div>
+                            </div>
+                        ) : (
+                            <div className={styles.card} style={{ margin: 0, maxWidth: '100%' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
+                                    <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Edit Hero Banner Overlay</h2>
+                                    <button
+                                        onClick={async () => {
+                                            setIsSavingHero(true);
+                                            try {
+                                                await db.updateSiteContent('hero', heroSettings);
+                                                showToast('Hero Settings updated successfully!');
+                                            } catch (e) {
+                                                showToast('Error saving hero settings: ' + e.message, "error");
+                                            } finally {
+                                                setIsSavingHero(false);
+                                            }
+                                        }}
+                                        className={styles.saveButton}
+                                        disabled={isSavingHero}
+                                    >
+                                        {isSavingHero ? 'SAVING...' : 'SAVE CHANGES'}
+                                    </button>
+                                </div>
+
+                                <div style={{ display: 'grid', gap: '1.25rem' }}>
+                                    <div className={styles.formGroup}>
+                                        <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569' }}>Top Badge Text</label>
+                                        <input
+                                            type="text"
+                                            value={heroSettings.badge}
+                                            onChange={e => setHeroSettings({ ...heroSettings, badge: e.target.value })}
+                                            className={styles.input}
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569' }}>Main Title</label>
+                                        <input
+                                            type="text"
+                                            value={heroSettings.title}
+                                            onChange={e => setHeroSettings({ ...heroSettings, title: e.target.value })}
+                                            className={styles.input}
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569' }}>Sub Headline</label>
+                                        <input
+                                            type="text"
+                                            value={heroSettings.subtitle}
+                                            onChange={e => setHeroSettings({ ...heroSettings, subtitle: e.target.value })}
+                                            className={styles.input}
+                                        />
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div className={styles.formGroup}>
+                                            <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569' }}>Primary Button Text</label>
+                                            <input
+                                                type="text"
+                                                value={heroSettings.btn1Text}
+                                                onChange={e => setHeroSettings({ ...heroSettings, btn1Text: e.target.value })}
+                                                className={styles.input}
+                                            />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569' }}>Secondary Button Text</label>
+                                            <input
+                                                type="text"
+                                                value={heroSettings.btn2Text}
+                                                onChange={e => setHeroSettings({ ...heroSettings, btn2Text: e.target.value })}
+                                                className={styles.input}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                                        <div className={styles.formGroup}>
+                                            <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569' }}>Glass Card Opacity (0.0 to 1.0)</label>
+                                            <input
+                                                type="number" min="0" max="1" step="0.05"
+                                                value={heroSettings.glassOpacity}
+                                                onChange={e => setHeroSettings({ ...heroSettings, glassOpacity: e.target.value })}
+                                                className={styles.input}
+                                            />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569' }}>Gradient Start Color</label>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <input
+                                                    type="color"
+                                                    value={heroSettings.gradientStart}
+                                                    onChange={e => setHeroSettings({ ...heroSettings, gradientStart: e.target.value })}
+                                                    style={{ width: '40px', height: '40px', padding: 0, border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={heroSettings.gradientStart}
+                                                    onChange={e => setHeroSettings({ ...heroSettings, gradientStart: e.target.value })}
+                                                    className={styles.input}
+                                                    style={{ flex: 1 }}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569' }}>Gradient End Color</label>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <input
+                                                    type="color"
+                                                    value={heroSettings.gradientEnd}
+                                                    onChange={e => setHeroSettings({ ...heroSettings, gradientEnd: e.target.value })}
+                                                    style={{ width: '40px', height: '40px', padding: 0, border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={heroSettings.gradientEnd}
+                                                    onChange={e => setHeroSettings({ ...heroSettings, gradientEnd: e.target.value })}
+                                                    className={styles.input}
+                                                    style={{ flex: 1 }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )
                 }
@@ -3565,6 +3735,53 @@ const AdminDashboard = () => {
                                     <button onClick={exportToCsv} className={styles.exportBtn} style={{ background: '#10b981', color: 'white', padding: '0.8rem 1.5rem', borderRadius: '50px', border: 'none', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                         📥 Export to CSV
                                     </button>
+                                </div>
+                            </div>
+
+                            {/* Copy URLs Panel */}
+                            <div style={{
+                                background: '#f8fafc',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '16px',
+                                padding: '1rem 1.5rem',
+                                marginBottom: '1.5rem',
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: '1.5rem',
+                                alignItems: 'center',
+                                justifyContent: 'space-between'
+                            }}>
+                                <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', flex: 1 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Public Job App:</span>
+                                        <code style={{ background: '#e2e8f0', padding: '4px 8px', borderRadius: '6px', fontSize: '0.8rem', color: '#0f172a' }}>
+                                            {window.location.origin}/apply
+                                        </code>
+                                        <button 
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(`${window.location.origin}/apply`);
+                                                showToast("Job App URL copied!");
+                                            }}
+                                            style={{ background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}
+                                        >
+                                            Copy
+                                        </button>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Staff Onboarding:</span>
+                                        <code style={{ background: '#e2e8f0', padding: '4px 8px', borderRadius: '6px', fontSize: '0.8rem', color: '#0f172a' }}>
+                                            {window.location.origin}/onboarding
+                                        </code>
+                                        <button 
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(`${window.location.origin}/onboarding`);
+                                                showToast("Onboarding URL copied!");
+                                            }}
+                                            style={{ background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}
+                                        >
+                                            Copy
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
