@@ -9,6 +9,7 @@ import logo from '../assets/logo.png';
 const StaffOnboarding = () => {
     // Form fields
     const [fullName, setFullName] = useState('');
+    const [nickname, setNickname] = useState('');
     const [email, setEmail] = useState('');
     const [dob, setDob] = useState('');
     const [gender, setGender] = useState('Female');
@@ -29,9 +30,11 @@ const StaffOnboarding = () => {
     const [bankIfsc, setBankIfsc] = useState('');
 
     // Document files
+    const [photoFile, setPhotoFile] = useState(null);
     const [aadhaarFile, setAadhaarFile] = useState(null);
     const [panFile, setPanFile] = useState(null);
     const [medicalFile, setMedicalFile] = useState(null);
+    const [otherFiles, setOtherFiles] = useState([]);
 
     // Page states
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,12 +48,29 @@ const StaffOnboarding = () => {
         }
     };
 
+    const handleOtherFilesChange = (e) => {
+        if (e.target.files) {
+            const chosen = Array.from(e.target.files).map(file => ({
+                name: file.name,
+                file: file
+            }));
+            setOtherFiles(prev => [...prev, ...chosen]);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
         setError('');
         
         try {
+            // Upload Photo File
+            let photoUrl = '';
+            if (photoFile) {
+                setSubmitStatus('Uploading employee profile photo...');
+                photoUrl = await uploadMedia(photoFile);
+            }
+
             // 1. Upload Aadhaar Card
             let aadhaarUrl = '';
             if (aadhaarFile) {
@@ -72,17 +92,27 @@ const StaffOnboarding = () => {
                 medicalUrl = await uploadMedia(medicalFile);
             }
 
+            // Upload Other Documents
+            const uploadedOtherDocs = [];
+            for (let i = 0; i < otherFiles.length; i++) {
+                setSubmitStatus(`Uploading additional document ${i + 1} of ${otherFiles.length}...`);
+                const url = await uploadMedia(otherFiles[i].file);
+                uploadedOtherDocs.push({ name: otherFiles[i].name, url });
+            }
+
             // 4. Save to Firestore
             setSubmitStatus('Saving employee profile to HR directory...');
             
             const documents = [];
+            if (photoUrl) documents.push({ name: 'Profile Photo', url: photoUrl });
             if (aadhaarUrl) documents.push({ name: 'Aadhaar Card', url: aadhaarUrl });
             if (panUrl) documents.push({ name: 'PAN Card', url: panUrl });
             if (medicalUrl) documents.push({ name: 'Medical Certificate', url: medicalUrl });
+            uploadedOtherDocs.forEach(doc => documents.push(doc));
 
             const newEmployee = {
                 fullName: fullName.trim(),
-                nickname: fullName.trim().split(' ')[0].toUpperCase(),
+                nickname: (nickname.trim() || fullName.trim().split(' ')[0]).toUpperCase(),
                 email: email.trim(),
                 dob,
                 gender,
@@ -96,6 +126,7 @@ const StaffOnboarding = () => {
                 bankName: bankName.trim(),
                 accountNumber: bankAccount.trim(),
                 ifscCode: bankIfsc.trim(),
+                photoUrl: photoUrl,
                 aadhaarDocUrl: aadhaarUrl,
                 aadhaarCollected: !!aadhaarUrl,
                 panCollected: !!panUrl,

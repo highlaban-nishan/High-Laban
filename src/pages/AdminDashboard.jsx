@@ -419,6 +419,7 @@ const AdminDashboard = () => {
     const [showAddBlogForm, setShowAddBlogForm] = useState(false);
     const [editingBlog, setEditingBlog] = useState(null);
     const [newBlog, setNewBlog] = useState({ title: '', content: '', author: 'Admin', tags: '', image: '' });
+    const [blogImageFile, setBlogImageFile] = useState(null);
     
     // Filter & Search states
     const [isSavingContent, setIsSavingContent] = useState(false);
@@ -8345,15 +8346,22 @@ const AdminDashboard = () => {
             {activeTab === 'blogs' && (() => {
                 const handleBlogSave = async () => {
                     try {
+                        let finalImage = newBlog.image;
+                        if (blogImageFile) {
+                            finalImage = await uploadMedia(blogImageFile);
+                        }
+                        const savedBlog = { ...newBlog, image: finalImage };
+
                         if (editingBlog) {
-                            await db.updateBlog(editingBlog.id, newBlog);
-                            setBlogs(blogs.map(b => b.id === editingBlog.id ? { ...newBlog, id: editingBlog.id } : b));
+                            await db.updateBlog(editingBlog.id, savedBlog);
+                            setBlogs(blogs.map(b => b.id === editingBlog.id ? { ...savedBlog, id: editingBlog.id } : b));
                         } else {
-                            const created = await db.addBlog(newBlog);
+                            const created = await db.addBlog(savedBlog);
                             setBlogs([created, ...blogs]);
                         }
                         setShowAddBlogForm(false);
                         setEditingBlog(null);
+                        setBlogImageFile(null);
                         setNewBlog({ title: '', content: '', author: 'Admin', tags: '', image: '' });
                         alert('Blog saved successfully');
                     } catch (err) {
@@ -8373,7 +8381,7 @@ const AdminDashboard = () => {
                     <div className={styles.tabContent}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                             <h2 className={styles.tabTitle}>Blog Management</h2>
-                            <button className={styles.addButton} onClick={() => { setShowAddBlogForm(true); setEditingBlog(null); setNewBlog({ title: '', content: '', author: 'Admin', tags: '', image: '' }); }}>+ Add Blog</button>
+                            <button className={styles.addButton} onClick={() => { setShowAddBlogForm(true); setEditingBlog(null); setBlogImageFile(null); setNewBlog({ title: '', content: '', author: 'Admin', tags: '', image: '' }); }}>+ Add Blog</button>
                         </div>
                         
                         {showAddBlogForm ? (
@@ -8384,8 +8392,25 @@ const AdminDashboard = () => {
                                     <input className={styles.input} type="text" value={newBlog.title} onChange={e => setNewBlog({...newBlog, title: e.target.value})} />
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>Image URL</label>
-                                    <input className={styles.input} type="text" value={newBlog.image} onChange={e => setNewBlog({...newBlog, image: e.target.value})} placeholder="https://..." />
+                                    <label>Blog Cover Image</label>
+                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                        <input 
+                                            type="file" 
+                                            accept="image/*" 
+                                            onChange={e => {
+                                                if (e.target.files && e.target.files[0]) {
+                                                    setBlogImageFile(e.target.files[0]);
+                                                }
+                                            }} 
+                                        />
+                                        <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Or enter URL:</span>
+                                        <input className={styles.input} type="text" style={{ flex: 1 }} value={newBlog.image} onChange={e => setNewBlog({...newBlog, image: e.target.value})} placeholder="https://..." />
+                                    </div>
+                                    {blogImageFile && (
+                                        <div style={{ marginTop: '5px', fontSize: '0.85rem', color: '#10b981' }}>
+                                            Selected: {blogImageFile.name} (will be uploaded on save)
+                                        </div>
+                                    )}
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>Author</label>
@@ -8401,7 +8426,7 @@ const AdminDashboard = () => {
                                 </div>
                                 <div style={{ display: 'flex', gap: '10px' }}>
                                     <button className={styles.saveButton} onClick={handleBlogSave}>Save Blog</button>
-                                    <button className={styles.cancelButton} onClick={() => setShowAddBlogForm(false)}>Cancel</button>
+                                    <button className={styles.cancelButton} onClick={() => { setShowAddBlogForm(false); setBlogImageFile(null); }}>Cancel</button>
                                 </div>
                             </div>
                         ) : (

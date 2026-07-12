@@ -43,8 +43,18 @@ const WorkerApplication = () => {
     const [currentPlace, setCurrentPlace] = useState('');
 
     // ── Position ───────────────────────────────────
+    const [positionsList, setPositionsList]     = useState(POSITIONS);
     const [appliedPosition, setAppliedPosition] = useState(POSITIONS[0]);
     const [customPosition, setCustomPosition]   = useState('');
+
+    useEffect(() => {
+        db.getSiteContent('jobs').then(data => {
+            if (data && data.positions && data.positions.length > 0) {
+                setPositionsList([...data.positions, 'Other (Custom)']);
+                setAppliedPosition(data.positions[0]);
+            }
+        }).catch(err => console.error("Error loading positions:", err));
+    }, []);
 
     // ── Experience ────────────────────────────────
     const [hasExperience, setHasExperience]   = useState('No');
