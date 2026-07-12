@@ -78,8 +78,16 @@ export default function Footer() {
                         <a href="#products" className={styles.link}>Menu</a>
                         <a href="/franchise-inquiry" className={styles.link} onClick={(e) => { e.preventDefault(); navigate('/franchise-inquiry'); }}>Franchise</a>
                         <a href="/blog" className={styles.link} onClick={(e) => { e.preventDefault(); navigate('/blog'); }}>Blog</a>
+                    </div>
+
+                    {/* Quick Links Column */}
+                    <div className={styles.linkList}>
+                        <h4 className={styles.columnTitle}>QUICK LINKS</h4>
                         <a href="/connect" className={styles.link} onClick={(e) => { e.preventDefault(); navigate('/connect'); }}>Social Profile</a>
                         <a href="https://www.google.com/maps/search/High+Laban" target="_blank" rel="noopener noreferrer" className={styles.link}>Find Us</a>
+                        <a href="/apply" className={styles.link} onClick={(e) => { e.preventDefault(); navigate('/apply'); }}>Careers</a>
+                        <a href="/onboarding" className={styles.link} onClick={(e) => { e.preventDefault(); navigate('/onboarding'); }}>Staff Portal</a>
+                        <a href="tel:+917353100100" className={styles.link}>📞 +91 73531 00100</a>
                     </div>
 
                     {/* Connect Column */}
@@ -92,7 +100,7 @@ export default function Footer() {
                             <a href="#" className={styles.socialIcon}>
                                 <FaFacebookF />
                             </a>
-                            <a href="https://wa.me/919037783864" target="_blank" rel="noopener noreferrer" className={styles.socialIcon}>
+                            <a href="https://wa.me/917353100100" target="_blank" rel="noopener noreferrer" className={styles.socialIcon}>
                                 <FaWhatsapp />
                             </a>
                         </div>

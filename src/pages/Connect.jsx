@@ -310,9 +310,12 @@ const Connect = () => {
                                             </a>
                                         )}
                                         {loc.ownly && (
-                                            <a href={ensureAbsoluteUrl(loc.ownly)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnPrimary}`} style={{background: '#0ea5e9'}}>
-                                                Order on ONDC
-                                            </a>
+                                            <div className={styles.ownlyWrapper}>
+                                                <span className={styles.recommendedTag}>⭐ Recommended</span>
+                                                <a href={ensureAbsoluteUrl(loc.ownly)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnOwnly}`}>
+                                                    🛵 Order on Ownly Food (ONDC)
+                                                </a>
+                                            </div>
                                         )}
                                         {loc.whatsapp && (
                                             <a href={ensureAbsoluteUrl(loc.whatsapp)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnWhatsapp}`}>

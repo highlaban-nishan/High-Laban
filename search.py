@@ -1,5 +1,7 @@
 target = "src/pages/AdminDashboard.jsx"
 with open(target, 'r', encoding='utf-8') as f:
-    for idx, line in enumerate(f, 1):
-        if "activeTab === 'staff'" in line or "activeTab === \"staff\"" in line:
-            print(f"{idx}: {line.strip()}")
+    lines = f.readlines()
+
+for idx in range(1679, min(1705, len(lines))):
+    safe_line = lines[idx].strip().encode('ascii', 'replace').decode('ascii')
+    print(f"{idx+1}: {safe_line[:120]}")
