@@ -110,17 +110,17 @@
 
 .topBadge {
     display: inline-block;
-    border: 1px solid #ddd;
+    border: 1.5px solid rgba(255, 255, 255, 0.55);
     border-radius: 50px;
-    padding: 0.5rem 1rem;
-    font-size: 0.8rem;
-    font-weight: 600;
+    padding: 0.4rem 1rem;
+    font-size: 0.72rem;
+    font-weight: 700;
     text-transform: uppercase;
-    color: #666;
-    margin-bottom: 2rem;
+    letter-spacing: 1.5px;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 1.5rem;
     pointer-events: auto;
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(5px);
+    background: rgba(255, 255, 255, 0.08);
     opacity: 0;
     animation: fadeIn 0.8s ease-out forwards;
 }
