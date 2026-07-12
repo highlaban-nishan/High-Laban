@@ -1,17 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { FiInstagram, FiMapPin, FiChevronDown, FiGlobe, FiPhoneCall } from 'react-icons/fi';
-import { FaWhatsapp, FaLinkedinIn } from 'react-icons/fa';
-import { MdOutlineRestaurantMenu } from 'react-icons/md';
+import React, { useState, useEffect, useRef } from 'react';
+import { FiInstagram, FiMapPin, FiChevronDown, FiPhoneCall, FiTwitter, FiYoutube } from 'react-icons/fi';
+import { FaWhatsapp, FaLinkedinIn, FaFacebookF } from 'react-icons/fa';
 import styles from './Connect.module.css';
 import db from '../utils/db';
 import logo from '../assets/logo.png';
+import kunafaImg from '../assets/cheese_pull_kunafa.png';
+import cupImg from '../assets/cup.png';
+import boxImg from '../assets/box.png';
 import { Helmet } from 'react-helmet-async';
+import { useNavigate } from 'react-router-dom';
+
+const ensureAbsoluteUrl = (url) => {
+    if (!url) return '';
+    const trimmed = url.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/') || trimmed.startsWith('mailto:') || trimmed.startsWith('tel:')) {
+        return trimmed;
+    }
+    return `https://${trimmed}`;
+};
 
 const Connect = () => {
     const [locations, setLocations] = useState([]);
     const [socialLinks, setSocialLinks] = useState(null);
     const [openCardId, setOpenCardId] = useState(null);
     const [loading, setLoading] = useState(true);
+    const locationsRef = useRef(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchData = async () => {
@@ -23,21 +37,23 @@ const Connect = () => {
             // Format existing franchises to match the card style
             const runningLocs = franchisesData.filter(f => f.status === 'Running').map(f => ({
                 id: f.id,
-                title: `${f.outletName} - ${f.phone || ''}`.toUpperCase(),
+                title: f.outletName, // CLEAN NAME
                 address: f.address,
                 phone: f.phone,
                 zomato: f.zomatoUrl || '',
                 swiggy: f.swiggyUrl || '',
+                magicpin: f.magicPinUrl || '',
+                ownly: f.ownlyUrl || '',
                 whatsapp: `https://wa.me/91${(f.phone || '').replace(/\D/g, '')}`,
                 mapUrl: f.mapUrl || ''
             }));
 
             // Make sure HQ is there if not in franchises
-            const hasHQ = runningLocs.some(l => l.title.includes('INDIRANAGAR') || l.title.includes('HQ'));
+            const hasHQ = runningLocs.some(l => l.title.toUpperCase().includes('INDIRANAGAR') || l.title.toUpperCase().includes('HQ'));
             const finalLocs = hasHQ ? runningLocs : [
                 {
                     id: 'hq',
-                    title: 'HQ - INDIRANAGAR - 7483837201',
+                    title: 'HQ - Indiranagar',
                     address: '17, Jeevan Bima Nagar Main Rd, HAL 3rd Stage, Bengaluru',
                     phone: '7483837201',
                     zomato: 'https://zomato.com',
@@ -59,6 +75,10 @@ const Connect = () => {
         setOpenCardId(openCardId === id ? null : id);
     };
 
+    const scrollToLocations = () => {
+        locationsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
     if (loading) return <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Loading...</div>;
 
     return (
@@ -76,29 +96,34 @@ const Connect = () => {
                     </div>
                     <h1 className={styles.brandName}>highlaban</h1>
                     <p className={styles.description}>Premium Egyptian Desserts in India</p>
-                    <p className={styles.description}>Authentic Recipes • Modern Indulgence</p>
                     
-                    <div className={styles.socialRow}>
-                        {socialLinks?.instagram && (
-                            <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className={styles.socialIcon}>
-                                <FiInstagram />
-                            </a>
-                        )}
-                        {socialLinks?.whatsapp && (
-                            <a href={socialLinks.whatsapp} target="_blank" rel="noopener noreferrer" className={styles.socialIcon}>
-                                <FaWhatsapp />
-                            </a>
-                        )}
-                        {socialLinks?.linkedin && (
-                            <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className={styles.socialIcon}>
-                                <FaLinkedinIn />
-                            </a>
-                        )}
-                    </div>
+                    <button onClick={scrollToLocations} className={styles.orderNowTopBtn}>
+                        ORDER NOW
+                    </button>
+                </div>
+
+                {/* Grid Links (Menu, Website, About, Story) */}
+                <div className={styles.gridList}>
+                    {socialLinks?.menu && (
+                        <a href={ensureAbsoluteUrl(socialLinks.menu)} target="_blank" rel="noopener noreferrer" className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center'}}>
+                            <h3 className={styles.cardTitle}>Menu</h3>
+                        </a>
+                    )}
+                    {socialLinks?.website && (
+                        <a href={ensureAbsoluteUrl(socialLinks.website)} target="_blank" rel="noopener noreferrer" className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center'}}>
+                            <h3 className={styles.cardTitle}>Website</h3>
+                        </a>
+                    )}
+                    <a href="/about-us" onClick={(e) => { e.preventDefault(); navigate('/about-us'); }} className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center'}}>
+                        <h3 className={styles.cardTitle}>About Us</h3>
+                    </a>
+                    <a href="/#story-section" onClick={(e) => { e.preventDefault(); navigate('/'); setTimeout(() => { document.getElementById('story-section')?.scrollIntoView({behavior:'smooth'}); }, 500); }} className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center', textAlign: 'center'}}>
+                        <h3 className={styles.cardTitle}>Our Story</h3>
+                    </a>
                 </div>
 
                 {/* Locations Section */}
-                <div className={styles.sectionTitle}>Location</div>
+                <div className={styles.sectionTitle} ref={locationsRef} style={{marginTop: '2rem'}}>Select Location</div>
                 <div className={styles.cardList}>
                     {locations.map((loc) => (
                         <div key={loc.id} className={styles.glassCard} onClick={() => toggleCard(loc.id)}>
@@ -117,33 +142,33 @@ const Connect = () => {
                             <div className={`${styles.cardContent} ${openCardId === loc.id ? styles.cardContentOpen : ''}`} onClick={e => e.stopPropagation()}>
                                 <div className={styles.actionGrid}>
                                     {loc.zomato && (
-                                        <a href={loc.zomato} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnPrimary}`}>
+                                        <a href={ensureAbsoluteUrl(loc.zomato)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnPrimary}`}>
                                             Order on Zomato
                                         </a>
                                     )}
                                     {loc.swiggy && (
-                                        <a href={loc.swiggy} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnPrimary}`} style={{background: '#fc8019'}}>
+                                        <a href={ensureAbsoluteUrl(loc.swiggy)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnPrimary}`} style={{background: '#fc8019'}}>
                                             Order on Swiggy
                                         </a>
                                     )}
                                     {loc.magicpin && (
-                                        <a href={loc.magicpin} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnPrimary}`} style={{background: '#e11d48'}}>
+                                        <a href={ensureAbsoluteUrl(loc.magicpin)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnPrimary}`} style={{background: '#e11d48'}}>
                                             Order on MagicPin
                                         </a>
                                     )}
                                     {loc.ownly && (
-                                        <a href={loc.ownly} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnPrimary}`} style={{background: '#0ea5e9'}}>
+                                        <a href={ensureAbsoluteUrl(loc.ownly)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnPrimary}`} style={{background: '#0ea5e9'}}>
                                             Order on Ownly
                                         </a>
                                     )}
-                                    <a href={loc.whatsapp} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnWhatsapp}`}>
+                                    <a href={ensureAbsoluteUrl(loc.whatsapp)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnWhatsapp}`}>
                                         <FaWhatsapp /> WhatsApp
                                     </a>
                                     <a href={`tel:${loc.phone}`} className={`${styles.actionBtn} ${styles.btnSecondary}`}>
                                         <FiPhoneCall /> Call Now
                                     </a>
                                     {loc.mapUrl && (
-                                        <a href={loc.mapUrl} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnSecondary}`} style={{gridColumn: '1 / -1'}}>
+                                        <a href={ensureAbsoluteUrl(loc.mapUrl)} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.btnSecondary}`} style={{gridColumn: '1 / -1'}}>
                                             <FiMapPin /> Open in Maps
                                         </a>
                                     )}
@@ -153,50 +178,48 @@ const Connect = () => {
                     ))}
                 </div>
 
-                {/* General Links */}
-                <div className={styles.cardList} style={{marginTop: '1rem'}}>
-                    {socialLinks?.website && (
-                        <a href={socialLinks.website} target="_blank" rel="noopener noreferrer" className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center'}}>
-                            <h3 className={styles.cardTitle}>Website</h3>
+                {/* Gallery Slider (Moved to Bottom) */}
+                <div className={styles.gallerySlider} style={{marginTop: '2rem'}}>
+                    <img src={kunafaImg} alt="Kunafa" className={styles.galleryImg} />
+                    <img src={cupImg} alt="Dessert Cup" className={styles.galleryImg} />
+                    <img src={boxImg} alt="Box" className={styles.galleryImg} />
+                </div>
+
+                {/* Bottom Social Icons */}
+                <div className={styles.socialRowBottom} style={{marginTop: '1rem'}}>
+                    {socialLinks?.instagram && (
+                        <a href={ensureAbsoluteUrl(socialLinks.instagram)} target="_blank" rel="noopener noreferrer" className={styles.socialIcon}>
+                            <FiInstagram />
                         </a>
                     )}
-                    {socialLinks?.menu && (
-                        <a href={socialLinks.menu} target="_blank" rel="noopener noreferrer" className={styles.glassCard} style={{alignItems: 'center', justifyContent: 'center'}}>
-                            <h3 className={styles.cardTitle}>Menu</h3>
+                    {socialLinks?.facebook && (
+                        <a href={ensureAbsoluteUrl(socialLinks.facebook)} target="_blank" rel="noopener noreferrer" className={styles.socialIcon}>
+                            <FaFacebookF />
+                        </a>
+                    )}
+                    {socialLinks?.twitter && (
+                        <a href={ensureAbsoluteUrl(socialLinks.twitter)} target="_blank" rel="noopener noreferrer" className={styles.socialIcon}>
+                            <FiTwitter />
+                        </a>
+                    )}
+                    {socialLinks?.youtube && (
+                        <a href={ensureAbsoluteUrl(socialLinks.youtube)} target="_blank" rel="noopener noreferrer" className={styles.socialIcon}>
+                            <FiYoutube />
+                        </a>
+                    )}
+                    {socialLinks?.linkedin && (
+                        <a href={ensureAbsoluteUrl(socialLinks.linkedin)} target="_blank" rel="noopener noreferrer" className={styles.socialIcon}>
+                            <FaLinkedinIn />
+                        </a>
+                    )}
+                    {socialLinks?.whatsapp && (
+                        <a href={ensureAbsoluteUrl(socialLinks.whatsapp)} target="_blank" rel="noopener noreferrer" className={styles.socialIcon}>
+                            <FaWhatsapp />
                         </a>
                     )}
                 </div>
 
-                {/* Order Now Global Section */}
-                <div className={styles.sectionTitle} style={{marginTop: '2rem'}}>ORDER NOW</div>
-                <div className={styles.cardList}>
-                    {socialLinks?.orderOwnly && (
-                        <a href={socialLinks.orderOwnly} target="_blank" rel="noopener noreferrer" className={styles.platformCard}>
-                            <div className={`${styles.platformIconWrap} ${styles.ownly}`}><MdOutlineRestaurantMenu /></div>
-                            Ownly
-                        </a>
-                    )}
-                    {socialLinks?.orderZomato && (
-                        <a href={socialLinks.orderZomato} target="_blank" rel="noopener noreferrer" className={styles.platformCard}>
-                            <div className={`${styles.platformIconWrap} ${styles.zomato}`} style={{fontWeight: 900}}>Z</div>
-                            Zomato
-                        </a>
-                    )}
-                    {socialLinks?.orderSwiggy && (
-                        <a href={socialLinks.orderSwiggy} target="_blank" rel="noopener noreferrer" className={styles.platformCard}>
-                            <div className={`${styles.platformIconWrap} ${styles.swiggy}`} style={{fontWeight: 900}}>S</div>
-                            Swiggy
-                        </a>
-                    )}
-                    {socialLinks?.orderMagicPin && (
-                        <a href={socialLinks.orderMagicPin} target="_blank" rel="noopener noreferrer" className={styles.platformCard}>
-                            <div className={`${styles.platformIconWrap} ${styles.magicpin}`} style={{fontWeight: 900}}>M</div>
-                            Magic Pin
-                        </a>
-                    )}
-                </div>
-
-                <a href="/" className={styles.joinBtn}>Visit Official Website</a>
+                <a href={ensureAbsoluteUrl(socialLinks?.website || '/')} target="_blank" rel="noopener noreferrer" className={styles.joinBtn}>Visit Official Website</a>
                 <div style={{height: '40px'}}></div>
             </div>
         </div>

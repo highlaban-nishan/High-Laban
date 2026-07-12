@@ -163,6 +163,8 @@ const AdminDashboard = () => {
     const [showAddBundleForm, setShowAddBundleForm] = useState(false);
     const [editingBundle, setEditingBundle] = useState(null);
     const [newBundle, setNewBundle] = useState({ name: '', yieldQuantity: '1000', yieldUnit: 'g', portions: '24', servingTool: 'Standard Scoop', ingredients: [], productUsages: [] }); // ingredients: [{ materialId: '', quantity: '' }]
+    const [showNameSuggestions, setShowNameSuggestions] = useState(false);
+    const [showBundleSuggestions, setShowBundleSuggestions] = useState(false);
 
     // Product recipe form state
     const [selectedRecipeProduct, setSelectedRecipeProduct] = useState(null); // product ID for editing recipe
@@ -6331,6 +6333,18 @@ const AdminDashboard = () => {
                     return totalCost / yieldQty;
                 };
 
+                const getBundleIngredientCost = (bundle, quantity, unit) => {
+                    const totalCost = getBundleItemTotalCost(bundle);
+                    const portions = parseFloat(bundle.portions) || 1;
+                    const yieldQty = parseFloat(bundle.yieldQuantity) || 1;
+                    const normalizedUnit = (unit || bundle.yieldUnit || 'g').toLowerCase();
+                    if (normalizedUnit === 'pcs' || normalizedUnit === 'pc' || normalizedUnit === 'piece' || normalizedUnit === 'pieces') {
+                        return (totalCost / portions) * (parseFloat(quantity) || 0);
+                    } else {
+                        return (totalCost / yieldQty) * (parseFloat(quantity) || 0);
+                    }
+                };
+
                 const getBundleSopDetails = (bundle) => {
                     let totalWeight = 0;
                     let batchCost = 0;
@@ -6396,7 +6410,7 @@ const AdminDashboard = () => {
                             if (raw) ingCost += getRawMaterialUnitPrice(raw) * (parseFloat(ing.quantity) || 0);
                         } else if (ing.type === 'bundle') {
                             const bundle = bundleItems.find(b => b.id === ing.id);
-                            if (bundle) ingCost += getBundleItemUnitCost(bundle) * (parseFloat(ing.quantity) || 0);
+                            if (bundle) ingCost += getBundleIngredientCost(bundle, ing.quantity, ing.unit);
                         }
                     });
 
@@ -6422,7 +6436,7 @@ const AdminDashboard = () => {
                                 if (raw) toppingCost += getRawMaterialUnitPrice(raw) * (parseFloat(ing.quantity) || 0);
                             } else if (ing.type === 'bundle') {
                                 const bundle = bundleItems.find(b => b.id === ing.id);
-                                if (bundle) toppingCost += getBundleItemUnitCost(bundle) * (parseFloat(ing.quantity) || 0);
+                                if (bundle) toppingCost += getBundleIngredientCost(bundle, ing.quantity, ing.unit);
                             }
                         });
                     }
@@ -6702,9 +6716,37 @@ const AdminDashboard = () => {
                                                     </div>
                                                 );
                                             })()}
-                                            <div>
+                                            <div style={{ position: 'relative' }}>
                                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Material Name</label>
-                                                <input type="text" value={newRaw.name} onChange={e => setNewRaw({ ...newRaw, name: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px' }} required placeholder="e.g. Pistachio Kernels" />
+                                                <input type="text" value={newRaw.name} onChange={e => { setNewRaw({ ...newRaw, name: e.target.value }); setShowNameSuggestions(true); }} onFocus={() => setShowNameSuggestions(true)} onBlur={() => setTimeout(() => setShowNameSuggestions(false), 200)} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px' }} required placeholder="e.g. Pistachio Kernels" />
+                                                {showNameSuggestions && (() => {
+                                                    const nameSug = newRaw.name.trim()
+                                                        ? rawMaterials.filter(r => r.name.toLowerCase().includes(newRaw.name.toLowerCase()) && r.name.toLowerCase() !== newRaw.name.toLowerCase())
+                                                        : [];
+                                                    if (nameSug.length === 0) return null;
+                                                    return (
+                                                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginTop: '4px' }}>
+                                                            {nameSug.map(s => (
+                                                                <div key={s.id} onClick={() => {
+                                                                    setNewRaw({
+                                                                        ...newRaw,
+                                                                        name: s.name,
+                                                                        category: s.category || newRaw.category,
+                                                                        unit: s.unit || newRaw.unit
+                                                                    });
+                                                                    if (s.category) {
+                                                                        setIsRawCustom(!CATEGORIES.includes(s.category));
+                                                                    }
+                                                                    setShowNameSuggestions(false);
+                                                                }} style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '0.85rem', borderBottom: '1px solid #f1f5f9', textAlign: 'left', fontWeight: '500', color: '#334155' }}
+                                                                onMouseEnter={e => e.target.style.background = '#f1f5f9'}
+                                                                onMouseLeave={e => e.target.style.background = 'transparent'}>
+                                                                    {s.name} <span style={{ fontSize: '0.72rem', color: '#64748b', marginLeft: '6px' }}>({s.category})</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Category</label>
@@ -6757,15 +6799,10 @@ const AdminDashboard = () => {
                                     {rawMaterials
                                         .filter(raw => rawMaterialCategoryFilter === 'All' || raw.category === rawMaterialCategoryFilter)
                                         .sort((a, b) => {
-                                            const catA = (a.category || '').toLowerCase();
-                                            const catB = (b.category || '').toLowerCase();
-                                            if (catA < catB) return -1;
-                                            if (catA > catB) return 1;
-                                            const nameA = (a.name || '').toLowerCase();
-                                            const nameB = (b.name || '').toLowerCase();
-                                            if (nameA < nameB) return -1;
-                                            if (nameA > nameB) return 1;
-                                            return 0;
+                                            const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime() || 0;
+                                            const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime() || 0;
+                                            if (timeB !== timeA) return timeB - timeA;
+                                            return (b.id || '').localeCompare(a.id || '');
                                         })
                                         .map(raw => {
                                             const unitCost = getRawMaterialUnitPrice(raw);
@@ -6829,10 +6866,39 @@ const AdminDashboard = () => {
                                             <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontSize: '1.25rem' }}>{editingBundle ? '✏️ Edit Prep Sub-Recipe' : '➕ Add New Prep Sub-Recipe'}</h4>
                                             <form onSubmit={handleSaveBundleItem} style={{ display: 'grid', gap: '1rem' }}>
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-                                                <div>
-                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Sub-Recipe Name</label>
-                                                    <input type="text" value={newBundle.name} onChange={e => setNewBundle({ ...newBundle, name: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px' }} required placeholder="e.g. Milk Pudding Base" />
-                                                </div>
+                                                 <div style={{ position: 'relative' }}>
+                                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Sub-Recipe Name</label>
+                                                     <input type="text" value={newBundle.name} onChange={e => { setNewBundle({ ...newBundle, name: e.target.value }); setShowBundleSuggestions(true); }} onFocus={() => setShowBundleSuggestions(true)} onBlur={() => setTimeout(() => setShowBundleSuggestions(false), 200)} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px' }} required placeholder="e.g. Milk Pudding Base" />
+                                                     {showBundleSuggestions && (() => {
+                                                         const bundleSug = newBundle.name.trim()
+                                                             ? bundleItems.filter(b => b.name.toLowerCase().includes(newBundle.name.toLowerCase()) && b.name.toLowerCase() !== newBundle.name.toLowerCase())
+                                                             : [];
+                                                         if (bundleSug.length === 0) return null;
+                                                         return (
+                                                             <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginTop: '4px' }}>
+                                                                 {bundleSug.map(s => (
+                                                                     <div key={s.id} onClick={() => {
+                                                                         setNewBundle({
+                                                                             ...newBundle,
+                                                                             name: s.name,
+                                                                             yieldQuantity: s.yieldQuantity.toString(),
+                                                                             yieldUnit: s.yieldUnit,
+                                                                             portions: (s.portions || 24).toString(),
+                                                                             servingTool: s.servingTool || 'Standard Scoop',
+                                                                             ingredients: s.ingredients || [],
+                                                                             productUsages: s.productUsages || []
+                                                                         });
+                                                                         setShowBundleSuggestions(false);
+                                                                     }} style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '0.85rem', borderBottom: '1px solid #f1f5f9', textAlign: 'left', fontWeight: '500', color: '#334155' }}
+                                                                     onMouseEnter={e => e.target.style.background = '#f1f5f9'}
+                                                                     onMouseLeave={e => e.target.style.background = 'transparent'}>
+                                                                         {s.name} <span style={{ fontSize: '0.72rem', color: '#64748b', marginLeft: '6px' }}>({s.yieldQuantity} {s.yieldUnit})</span>
+                                                                     </div>
+                                                                 ))}
+                                                             </div>
+                                                         );
+                                                     })()}
+                                                 </div>
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>Yield Output Quantity</label>
                                                     <input type="number" step="0.01" value={newBundle.yieldQuantity} onChange={e => setNewBundle({ ...newBundle, yieldQuantity: e.target.value })} style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px' }} required />
@@ -6866,7 +6932,8 @@ const AdminDashboard = () => {
                                                 {(newBundle.productUsages || []).map((usage, idx) => {
                                                     const qtyUsed = parseFloat(usage.quantity) || 0;
                                                     const batchQty = parseFloat(newBundle.yieldQuantity) || 0;
-                                                    const piecesProduced = qtyUsed > 0 ? (batchQty / qtyUsed) : 0;
+                                                    const isPcs = (usage.unit === 'pcs');
+                                                    const piecesProduced = qtyUsed > 0 ? (isPcs ? ((parseFloat(newBundle.portions) || 1) / qtyUsed) : (batchQty / qtyUsed)) : 0;
                                                     
                                                     return (
                                                         <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap' }}>
@@ -6876,18 +6943,28 @@ const AdminDashboard = () => {
                                                                 setNewBundle({ ...newBundle, productUsages: updated });
                                                             }} style={{ flex: 2, minWidth: '150px', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white' }}>
                                                                 <option value="">-- Choose Product --</option>
-                                                                {products.map(p => (
-                                                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                                                ))}
+                                                                {products
+                                                                    .filter(p => p.id === usage.productId || !(newBundle.productUsages || []).some((otherUsage, otherIdx) => otherIdx !== idx && otherUsage.productId === p.id))
+                                                                    .map(p => (
+                                                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                                                    ))}
                                                             </select>
                                                             
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: '120px' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: '150px' }}>
                                                                 <input type="number" step="0.01" placeholder="Qty used" value={usage.quantity} onChange={e => {
                                                                     const updated = [...(newBundle.productUsages || [])];
                                                                     updated[idx].quantity = e.target.value;
                                                                     setNewBundle({ ...newBundle, productUsages: updated });
                                                                 }} style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
-                                                                <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: 'bold' }}>{newBundle.yieldUnit}</span>
+                                                                <select value={usage.unit || newBundle.yieldUnit || 'g'} onChange={e => {
+                                                                    const updated = [...(newBundle.productUsages || [])];
+                                                                    updated[idx].unit = e.target.value;
+                                                                    setNewBundle({ ...newBundle, productUsages: updated });
+                                                                }} style={{ padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', fontSize: '0.85rem' }}>
+                                                                    <option value="g">g</option>
+                                                                    <option value="ml">ml</option>
+                                                                    <option value="pcs">pcs</option>
+                                                                </select>
                                                             </div>
 
                                                             {qtyUsed > 0 && (
@@ -6907,7 +6984,7 @@ const AdminDashboard = () => {
                                                 })}
                                                 
                                                 <button type="button" onClick={() => {
-                                                    const updated = [...(newBundle.productUsages || []), { productId: '', quantity: '' }];
+                                                    const updated = [...(newBundle.productUsages || []), { productId: '', quantity: '', unit: newBundle.yieldUnit || 'g' }];
                                                     setNewBundle({ ...newBundle, productUsages: updated });
                                                 }} style={{ background: 'white', border: '1px solid #bae6fd', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', color: '#0369a1', fontSize: '0.8rem', marginTop: '5px' }}>
                                                     + Link Product
@@ -6927,7 +7004,9 @@ const AdminDashboard = () => {
                                                                 setNewBundle({ ...newBundle, ingredients: updated });
                                                             }} style={{ flex: 2, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white' }}>
                                                                 <option value="">-- Choose Material --</option>
-                                                                {rawMaterials.map(r => <option key={r.id} value={r.id}>{r.name} (₹{getRawMaterialUnitPrice(r).toFixed(3)}/{r.unit})</option>)}
+                                                                {rawMaterials
+                                                                    .filter(r => r.id === ing.materialId || !newBundle.ingredients.some((otherIng, otherIdx) => otherIdx !== idx && otherIng.materialId === r.id))
+                                                                    .map(r => <option key={r.id} value={r.id}>{r.name} (₹{getRawMaterialUnitPrice(r).toFixed(3)}/{r.unit})</option>)}
                                                             </select>
                                                             <input type="number" step="0.01" placeholder="Quantity used" value={ing.quantity} onChange={e => {
                                                                 const updated = [...newBundle.ingredients];
@@ -6973,7 +7052,12 @@ const AdminDashboard = () => {
                                 )}
 
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                                    {bundleItems.map(bundle => {
+                                    {[...bundleItems].sort((a, b) => {
+                                        const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime() || 0;
+                                        const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime() || 0;
+                                        if (timeB !== timeA) return timeB - timeA;
+                                        return (b.id || '').localeCompare(a.id || '');
+                                    }).map(bundle => {
                                         const totalCost = getBundleItemTotalCost(bundle);
                                         const unitCost = getBundleItemUnitCost(bundle);
                                         const portions = parseFloat(bundle.portions) || 1;
@@ -6991,9 +7075,16 @@ const AdminDashboard = () => {
                                                                     setEditingBundle(bundle);
                                                                     const usages = [];
                                                                     products.forEach(p => {
-                                                                        const qty = getBundleQuantityUsedInProduct(p, bundle.id);
-                                                                        if (qty > 0) {
-                                                                            usages.push({ productId: p.id, quantity: qty.toString() });
+                                                                        const recipe = recipesList.find(r => r.id === p.id);
+                                                                        if (recipe) {
+                                                                            const baseIng = (recipe.ingredients || []).find(ing => ing.type === 'bundle' && ing.id === bundle.id);
+                                                                            if (baseIng) {
+                                                                                usages.push({
+                                                                                    productId: p.id,
+                                                                                    quantity: (baseIng.quantity || '').toString(),
+                                                                                    unit: baseIng.unit || bundle.yieldUnit || 'g'
+                                                                                });
+                                                                            }
                                                                         }
                                                                     });
                                                                     setNewBundle({
@@ -7100,13 +7191,13 @@ const AdminDashboard = () => {
                                                 {editingRecipe.ingredients.map((ing, idx) => {
                                                     const options = ing.type === 'raw' ? rawMaterials : bundleItems;
                                                     const matchItem = options.find(o => o.id === ing.id);
-                                                    const unitName = ing.type === 'raw' ? matchItem?.unit : matchItem?.yieldUnit;
                                                     return (
                                                         <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px' }}>
                                                             <select value={ing.type} onChange={e => {
                                                                 const updated = [...editingRecipe.ingredients];
                                                                 updated[idx].type = e.target.value;
                                                                 updated[idx].id = '';
+                                                                updated[idx].unit = e.target.value === 'raw' ? '' : 'g';
                                                                 setEditingRecipe({ ...editingRecipe, ingredients: updated });
                                                             }} style={{ flex: 1, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white' }}>
                                                                 <option value="raw">🌾 Raw Material</option>
@@ -7115,23 +7206,41 @@ const AdminDashboard = () => {
                                                             <select value={ing.id} onChange={e => {
                                                                 const updated = [...editingRecipe.ingredients];
                                                                 updated[idx].id = e.target.value;
+                                                                const selectedOption = options.find(o => o.id === e.target.value);
+                                                                updated[idx].unit = ing.type === 'raw' ? (selectedOption?.unit || 'g') : (selectedOption?.yieldUnit || 'g');
                                                                 setEditingRecipe({ ...editingRecipe, ingredients: updated });
                                                             }} style={{ flex: 3, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white' }}>
                                                                 <option value="">-- Choose Ingredient --</option>
-                                                                {options.map(o => (
-                                                                    <option key={o.id} value={o.id}>
-                                                                        {o.name} (₹{ing.type === 'raw' ? getRawMaterialUnitPrice(o).toFixed(3) : getBundleItemUnitCost(o).toFixed(3)}/{ing.type === 'raw' ? o.unit : o.yieldUnit})
-                                                                    </option>
-                                                                ))}
+                                                                {options
+                                                                    .filter(o => o.id === ing.id || !editingRecipe.ingredients.some((otherIng, otherIdx) => otherIdx !== idx && otherIng.type === ing.type && otherIng.id === o.id))
+                                                                    .map(o => (
+                                                                        <option key={o.id} value={o.id}>
+                                                                            {o.name} (₹{ing.type === 'raw' ? getRawMaterialUnitPrice(o).toFixed(3) : getBundleItemUnitCost(o).toFixed(3)}/{ing.type === 'raw' ? o.unit : o.yieldUnit})
+                                                                        </option>
+                                                                    ))}
                                                             </select>
                                                             <input type="number" step="0.001" placeholder="Qty used" value={ing.quantity} onChange={e => {
                                                                 const updated = [...editingRecipe.ingredients];
                                                                 updated[idx].quantity = e.target.value;
                                                                 setEditingRecipe({ ...editingRecipe, ingredients: updated });
                                                             }} style={{ flex: 1.5, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
-                                                            <span style={{ fontSize: '0.85rem', color: '#64748b', minWidth: '30px' }}>{unitName || ''}</span>
+                                                            
+                                                            {ing.type === 'raw' ? (
+                                                                <span style={{ fontSize: '0.85rem', color: '#64748b', minWidth: '30px' }}>{matchItem?.unit || ''}</span>
+                                                            ) : (
+                                                                <select value={ing.unit || matchItem?.yieldUnit || 'g'} onChange={e => {
+                                                                    const updated = [...editingRecipe.ingredients];
+                                                                    updated[idx].unit = e.target.value;
+                                                                    setEditingRecipe({ ...editingRecipe, ingredients: updated });
+                                                                }} style={{ padding: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white', fontSize: '0.85rem' }}>
+                                                                    <option value="g">g</option>
+                                                                    <option value="ml">ml</option>
+                                                                    <option value="pcs">pcs</option>
+                                                                </select>
+                                                            )}
+
                                                             <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0369a1', minWidth: '50px' }}>
-                                                                {matchItem ? `₹${(parseFloat(ing.quantity) ? ((ing.type === 'raw' ? getRawMaterialUnitPrice(matchItem) : getBundleItemUnitCost(matchItem)) * parseFloat(ing.quantity)) : 0).toFixed(2)}` : '₹0.00'}
+                                                                {matchItem ? `₹${(parseFloat(ing.quantity) ? (ing.type === 'raw' ? getRawMaterialUnitPrice(matchItem) * parseFloat(ing.quantity) : getBundleIngredientCost(matchItem, ing.quantity, ing.unit)) : 0).toFixed(2)}` : '₹0.00'}
                                                             </span>
                                                             <button type="button" onClick={() => {
                                                                 setEditingRecipe({ ...editingRecipe, ingredients: editingRecipe.ingredients.filter((_, i) => i !== idx) });
@@ -7141,7 +7250,7 @@ const AdminDashboard = () => {
                                                 })}
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <button type="button" onClick={() => {
-                                                        setEditingRecipe({ ...editingRecipe, ingredients: [...editingRecipe.ingredients, { type: 'raw', id: '', quantity: '' }] });
+                                                        setEditingRecipe({ ...editingRecipe, ingredients: [...editingRecipe.ingredients, { type: 'raw', id: '', quantity: '', unit: '' }] });
                                                     }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', color: '#475569', fontSize: '0.8rem', marginTop: '5px' }}>
                                                         + Add Ingredient
                                                     </button>
@@ -7149,7 +7258,7 @@ const AdminDashboard = () => {
                                                         Subtotal: ₹{ (editingRecipe.ingredients || []).reduce((acc, i) => {
                                                             const match = i.type === 'raw' ? rawMaterials.find(r => r.id === i.id) : bundleItems.find(b => b.id === i.id);
                                                             if(!match || !parseFloat(i.quantity)) return acc;
-                                                            return acc + (i.type === 'raw' ? getRawMaterialUnitPrice(match) : getBundleItemUnitCost(match)) * parseFloat(i.quantity);
+                                                            return acc + (i.type === 'raw' ? getRawMaterialUnitPrice(match) * parseFloat(i.quantity) : getBundleIngredientCost(match, i.quantity, i.unit));
                                                         }, 0).toFixed(2) }
                                                     </div>
                                                 </div>
@@ -7168,11 +7277,13 @@ const AdminDashboard = () => {
                                                                 setEditingRecipe({ ...editingRecipe, packagingIngredients: updated });
                                                             }} style={{ flex: 3, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white' }}>
                                                                 <option value="">-- Choose Packaging Material --</option>
-                                                                {rawMaterials.map(r => (
-                                                                    <option key={r.id} value={r.id}>
-                                                                        {r.name} (₹{getRawMaterialUnitPrice(r).toFixed(3)}/{r.unit})
-                                                                    </option>
-                                                                ))}
+                                                                {rawMaterials
+                                                                    .filter(r => r.id === ing.materialId || !(editingRecipe.packagingIngredients || []).some((otherIng, otherIdx) => otherIdx !== idx && otherIng.materialId === r.id))
+                                                                    .map(r => (
+                                                                        <option key={r.id} value={r.id}>
+                                                                            {r.name} (₹{getRawMaterialUnitPrice(r).toFixed(3)}/{r.unit})
+                                                                        </option>
+                                                                    ))}
                                                             </select>
                                                             <input type="number" step="0.001" placeholder="Qty used" value={ing.quantity} onChange={e => {
                                                                 const updated = [...(editingRecipe.packagingIngredients || [])];
@@ -7226,13 +7337,13 @@ const AdminDashboard = () => {
                                                             {(topping.ingredients || []).map((ing, ingIdx) => {
                                                                 const options = ing.type === 'raw' ? rawMaterials : bundleItems;
                                                                 const matchItem = options.find(o => o.id === ing.id);
-                                                                const unitName = ing.type === 'raw' ? matchItem?.unit : matchItem?.yieldUnit;
                                                                 return (
                                                                     <div key={ingIdx} style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px' }}>
                                                                         <select value={ing.type} onChange={e => {
                                                                             const updated = [...editingRecipe.toppings];
                                                                             updated[tIdx].ingredients[ingIdx].type = e.target.value;
                                                                             updated[tIdx].ingredients[ingIdx].id = '';
+                                                                            updated[tIdx].ingredients[ingIdx].unit = e.target.value === 'raw' ? '' : 'g';
                                                                             setEditingRecipe({ ...editingRecipe, toppings: updated });
                                                                         }} style={{ padding: '6px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', fontSize: '0.8rem' }}>
                                                                             <option value="raw">🌾 Raw</option>
@@ -7241,19 +7352,37 @@ const AdminDashboard = () => {
                                                                         <select value={ing.id} onChange={e => {
                                                                             const updated = [...editingRecipe.toppings];
                                                                             updated[tIdx].ingredients[ingIdx].id = e.target.value;
+                                                                            const selectedOption = options.find(o => o.id === e.target.value);
+                                                                            updated[tIdx].ingredients[ingIdx].unit = ing.type === 'raw' ? (selectedOption?.unit || 'g') : (selectedOption?.yieldUnit || 'g');
                                                                             setEditingRecipe({ ...editingRecipe, toppings: updated });
                                                                         }} style={{ flex: 1, padding: '6px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', fontSize: '0.8rem' }}>
                                                                             <option value="">-- Choose Ingredient --</option>
-                                                                            {options.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+                                                                            {options
+                                                                                .filter(o => o.id === ing.id || !(topping.ingredients || []).some((otherIng, otherIdx) => otherIdx !== ingIdx && otherIng.type === ing.type && otherIng.id === o.id))
+                                                                                .map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
                                                                         </select>
                                                                         <input type="number" step="0.001" placeholder="Qty" value={ing.quantity} onChange={e => {
                                                                             const updated = [...editingRecipe.toppings];
                                                                             updated[tIdx].ingredients[ingIdx].quantity = e.target.value;
                                                                             setEditingRecipe({ ...editingRecipe, toppings: updated });
                                                                         }} style={{ width: '80px', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem' }} />
-                                                                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{unitName || ''}</span>
+                                                                        
+                                                                        {ing.type === 'raw' ? (
+                                                                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{matchItem?.unit || ''}</span>
+                                                                        ) : (
+                                                                            <select value={ing.unit || matchItem?.yieldUnit || 'g'} onChange={e => {
+                                                                                const updated = [...editingRecipe.toppings];
+                                                                                updated[tIdx].ingredients[ingIdx].unit = e.target.value;
+                                                                                setEditingRecipe({ ...editingRecipe, toppings: updated });
+                                                                            }} style={{ padding: '4px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', background: 'white' }}>
+                                                                                <option value="g">g</option>
+                                                                                <option value="ml">ml</option>
+                                                                                <option value="pcs">pcs</option>
+                                                                            </select>
+                                                                        )}
+
                                                                         <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#0369a1', minWidth: '40px' }}>
-                                                                            {matchItem ? `₹${(parseFloat(ing.quantity) ? ((ing.type === 'raw' ? getRawMaterialUnitPrice(matchItem) : getBundleItemUnitCost(matchItem)) * parseFloat(ing.quantity)) : 0).toFixed(2)}` : '₹0.00'}
+                                                                            {matchItem ? `₹${(parseFloat(ing.quantity) ? (ing.type === 'raw' ? getRawMaterialUnitPrice(matchItem) * parseFloat(ing.quantity) : getBundleIngredientCost(matchItem, ing.quantity, ing.unit)) : 0).toFixed(2)}` : '₹0.00'}
                                                                         </span>
                                                                         <button type="button" onClick={() => {
                                                                             const updated = [...editingRecipe.toppings];
@@ -7265,7 +7394,7 @@ const AdminDashboard = () => {
                                                             })}
                                                             <button type="button" onClick={() => {
                                                                 const updated = [...editingRecipe.toppings];
-                                                                updated[tIdx].ingredients = [...(updated[tIdx].ingredients || []), { type: 'raw', id: '', quantity: '' }];
+                                                                updated[tIdx].ingredients = [...(updated[tIdx].ingredients || []), { type: 'raw', id: '', quantity: '', unit: '' }];
                                                                 setEditingRecipe({ ...editingRecipe, toppings: updated });
                                                             }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: '700', color: '#475569', fontSize: '0.72rem', marginTop: '6px', display: 'block' }}>
                                                                 + Add Ingredient to Topping
@@ -7286,7 +7415,7 @@ const AdminDashboard = () => {
                                                         (editingRecipe.ingredients || []).reduce((acc, i) => {
                                                             const match = i.type === 'raw' ? rawMaterials.find(r => r.id === i.id) : bundleItems.find(b => b.id === i.id);
                                                             if(!match || !parseFloat(i.quantity)) return acc;
-                                                            return acc + (i.type === 'raw' ? getRawMaterialUnitPrice(match) : getBundleItemUnitCost(match)) * parseFloat(i.quantity);
+                                                            return acc + (i.type === 'raw' ? getRawMaterialUnitPrice(match) * parseFloat(i.quantity) : getBundleIngredientCost(match, i.quantity, i.unit));
                                                         }, 0) +
                                                         (editingRecipe.packagingIngredients || []).reduce((acc, i) => {
                                                             const raw = rawMaterials.find(r => r.id === i.materialId);
