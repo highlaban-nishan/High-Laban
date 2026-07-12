@@ -179,23 +179,27 @@ const Connect = () => {
             <div className={styles.contentWrapper}>
                 {/* Header: Gradient Glassy Hero Banner */}
                 <div className={styles.profileHeader}>
+                    {/* Centered Large Logo */}
+                    <div className={styles.logoContainer}>
+                        <img src={logo} alt="High Laban Logo" className={styles.logo} />
+                    </div>
+
+                    {/* Tagline circle badge positioned absolutely in the empty space of the card */}
                     <div className={styles.rotatingBadgeContainer}>
-                        <svg viewBox="0 0 100 100" width="135" height="135" className={styles.rotatingSvg}>
+                        <svg viewBox="0 0 100 100" width="105" height="105" className={styles.rotatingSvg}>
                             <path 
                                 id="circlePath" 
                                 d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" 
                                 fill="none"
                             />
-                            <text fill="#0ea5e9" fontSize="7.2" fontWeight="900" letterSpacing="1.8">
+                            <text fill="#0284c7" fontSize="7.2" fontWeight="900" letterSpacing="1.8">
                                 <textPath href="#circlePath">
                                     GET HIGH ON BITES • GET HIGH ON BITES •
                                 </textPath>
                             </text>
                         </svg>
-                        <div className={styles.logoContainer}>
-                            <img src={logo} alt="High Laban Logo" className={styles.logo} />
-                        </div>
                     </div>
+
                     <p className={styles.description}>
                         {socialLinks?.bannerDescription || 'Premium Egyptian Desserts with a Modern Twist'}
                     </p>
