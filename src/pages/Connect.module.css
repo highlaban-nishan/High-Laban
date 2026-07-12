@@ -795,3 +795,34 @@
 
 @media (max-width: 640px) {
 }
+
+.rotatingBadgeContainer {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.rotatingSvg {
+    animation: rotateTextCircle 15s linear infinite;
+    filter: drop-shadow(0 4px 12px rgba(14, 165, 233, 0.45));
+}
+
+.badgeCenterStar {
+    position: absolute;
+    font-size: 1.15rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    filter: drop-shadow(0 0 6px #0ea5e9);
+}
+
+@keyframes rotateTextCircle {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

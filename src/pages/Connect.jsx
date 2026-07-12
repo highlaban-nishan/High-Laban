@@ -182,7 +182,6 @@ const Connect = () => {
                     <div className={styles.logoContainer}>
                         <img src={logo} alt="High Laban Logo" className={styles.logo} />
                     </div>
-                    <span className={styles.taglineBadge}>✨ GET HIGH ON BITES</span>
                     <p className={styles.description}>
                         {socialLinks?.bannerDescription || 'Premium Egyptian Desserts with a Modern Twist'}
                     </p>
@@ -590,6 +589,23 @@ const Connect = () => {
                 {/* 4. FRANCHISE INQUIRY FORM MODAL */}
                 <FranchiseForm isOpen={showFranchiseModal} onClose={() => setShowFranchiseModal(false)} isModal={true} />
 
+            </div>
+
+            {/* Infinite Rotating Text Circle Badge (Floating on the bottom-right side) */}
+            <div className={styles.rotatingBadgeContainer}>
+                <svg viewBox="0 0 100 100" width="85" height="85" className={styles.rotatingSvg}>
+                    <path 
+                        id="circlePath" 
+                        d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" 
+                        fill="none"
+                    />
+                    <text fill="#0ea5e9" fontSize="7.2" fontWeight="900" letterSpacing="1.8">
+                        <textPath href="#circlePath">
+                            GET HIGH ON BITES • GET HIGH ON BITES •
+                        </textPath>
+                    </text>
+                </svg>
+                <div className={styles.badgeCenterStar}>✨</div>
             </div>
         </div>
     );
