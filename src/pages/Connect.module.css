@@ -810,8 +810,4 @@
 }
 
 @media (max-width: 640px) {
-    .gridList {
-        grid-template-columns: 1fr;
-        gap: 0.75rem;
-    }
 }
