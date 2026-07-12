@@ -116,10 +116,7 @@ const Connect = () => {
                     magicpin: l.magicpin || (linkedFranchise ? linkedFranchise.magicpin : ''),
                     ownly: l.ownly || (linkedFranchise ? linkedFranchise.ownly : ''),
                     ondc: l.ondc || (linkedFranchise ? linkedFranchise.ondc : ''),
-                    whatsapp: (() => {
-                        const raw = l.whatsapp || (linkedFranchise?.whatsapp) || '';
-                        return ensureWaUrl(raw);
-                    })(),
+                    whatsapp: 'https://wa.me/917353100100',
                     mapUrl: mapUrl || '',
                     imageUrl: l.imageUrl || '',
                     imageUrls: l.imageUrls || [],
@@ -133,10 +130,10 @@ const Connect = () => {
                     id: 'hq',
                     title: 'HQ - Indiranagar',
                     address: '17, Jeevan Bima Nagar Main Rd, HAL 3rd Stage, Bengaluru',
-                    phone: '7483837201',
+                    phone: '7353100100',
                     zomato: 'https://zomato.com',
                     swiggy: 'https://swiggy.com',
-                    whatsapp: 'https://wa.me/917483837201',
+                    whatsapp: 'https://wa.me/917353100100',
                     mapUrl: 'https://maps.google.com',
                     status: 'Open'
                 }
@@ -395,11 +392,9 @@ const Connect = () => {
                             <FaLinkedinIn />
                         </a>
                     )}
-                    {socialLinks?.whatsapp && (
-                        <a href={ensureAbsoluteUrl(socialLinks.whatsapp)} target="_blank" rel="noopener noreferrer" className={styles.socialIcon}>
-                            <FaWhatsapp />
-                        </a>
-                    )}
+                    <a href="https://wa.me/917353100100" target="_blank" rel="noopener noreferrer" className={styles.socialIcon}>
+                        <FaWhatsapp />
+                    </a>
                 </div>
 
                 {/* WhatsApp Channel Join */}
