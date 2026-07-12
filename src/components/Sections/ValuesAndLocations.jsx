@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './ValuesAndLocations.module.css';
-import { FaMapMarkerAlt, FaTimes, FaWhatsapp, FaMapMarkedAlt } from 'react-icons/fa';
-import { FiPhone, FiShoppingBag, FiExternalLink, FiZap, FiStore } from 'react-icons/fi';
+import { FaMapMarkerAlt, FaTimes, FaWhatsapp, FaMapMarkedAlt, FaStore } from 'react-icons/fa';
+import { FiPhone, FiShoppingBag, FiExternalLink, FiZap } from 'react-icons/fi';
 import db from '../../utils/db';
 
 import useScrollReveal from '../../hooks/useScrollReveal';
@@ -319,7 +319,7 @@ export default function ValuesAndLocations() {
                                              flexDirection: 'column',
                                              gap: '8px'
                                          }}>
-                                             <div style={{ color: '#0ea5e9', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}><FiStore /> Store Details</div>
+                                             <div style={{ color: '#0ea5e9', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}><FaStore /> Store Details</div>
                                              <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Owner Name:</span> <strong>{selectedLoc.ownerName || linkedFranchise.ownerName}</strong></div>
                                              {contactPhone && <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Contact:</span> <strong>{contactPhone}</strong></div>}
                                              {(selectedLoc.ownerEmail || linkedFranchise.email) && <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Email:</span> <strong>{selectedLoc.ownerEmail || linkedFranchise.email}</strong></div>}
@@ -341,7 +341,7 @@ export default function ValuesAndLocations() {
                                          flexDirection: 'column',
                                          gap: '6px'
                                      }}>
-                                         <div style={{ color: '#0ea5e9', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}><FiStore /> Store Details</div>
+                                         <div style={{ color: '#0ea5e9', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}><FaStore /> Store Details</div>
                                          {selectedLoc.ownerName && <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Owner Name:</span> <strong>{selectedLoc.ownerName}</strong></div>}
                                          {(selectedLoc.phone || selectedLoc.whatsapp) && <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Contact:</span> <strong>{selectedLoc.phone || selectedLoc.whatsapp}</strong></div>}
                                          {selectedLoc.ownerEmail && <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Email:</span> <strong>{selectedLoc.ownerEmail}</strong></div>}

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Container from '../UI/Container';
 import styles from './Locations.module.css';
-import { FaMapMarkerAlt, FaTimes, FaWhatsapp, FaMapMarkedAlt } from 'react-icons/fa';
-import { FiPhone, FiShoppingBag, FiExternalLink, FiZap, FiStore } from 'react-icons/fi';
+import { FaMapMarkerAlt, FaTimes, FaWhatsapp, FaMapMarkedAlt, FaStore } from 'react-icons/fa';
+import { FiPhone, FiShoppingBag, FiExternalLink, FiZap } from 'react-icons/fi';
 import db from '../../utils/db';
 
 export default function Locations() {
@@ -219,7 +219,7 @@ export default function Locations() {
                                                 flexDirection: 'column',
                                                 gap: '6px'
                                             }}>
-                                                <div style={{ color: '#0ea5e9', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}><FiStore /> Store Details</div>
+                                                <div style={{ color: '#0ea5e9', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}><FaStore /> Store Details</div>
                                                 <div style={{ color: '#e2e8f0' }}><span style={{ color: '#94a3b8' }}>Owner:</span> <strong>{linkedFranchise.ownerName}</strong></div>
                                                 <div style={{ color: '#e2e8f0' }}><span style={{ color: '#94a3b8' }}>Contact:</span> <strong>{linkedFranchise.phone}</strong></div>
                                                 {linkedFranchise.email && <div style={{ color: '#e2e8f0' }}><span style={{ color: '#94a3b8' }}>Email:</span> <strong>{linkedFranchise.email}</strong></div>}
@@ -239,7 +239,7 @@ export default function Locations() {
                                             marginBottom: '1.25rem',
                                             fontSize: '0.85rem'
                                         }}>
-                                            <div style={{ color: '#0ea5e9', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}><FiStore /> Store Details</div>
+                                            <div style={{ color: '#0ea5e9', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}><FaStore /> Store Details</div>
                                             <div style={{ color: '#e2e8f0' }}><span style={{ color: '#94a3b8' }}>Contact:</span> <strong>{selectedLoc.whatsapp || 'N/A'}</strong></div>
                                             <div style={{ color: '#e2e8f0', marginTop: '4px', display: 'flex', gap: '4px' }}>
                                                 <span style={{ color: '#94a3b8', flexShrink: 0 }}>Address:</span>
