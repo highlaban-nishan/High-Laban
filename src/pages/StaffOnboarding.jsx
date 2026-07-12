@@ -200,6 +200,10 @@ const StaffOnboarding = () => {
                             <input className={styles.input} type="text" value={fullName} onChange={e => setFullName(e.target.value)} required placeholder="e.g. Rosemary Sangeipuinath" />
                         </div>
                         <div className={styles.formGroup}>
+                            <label className={styles.label}>Nickname / Call Name</label>
+                            <input className={styles.input} type="text" value={nickname} onChange={e => setNickname(e.target.value)} placeholder="e.g. Rose" />
+                        </div>
+                        <div className={styles.formGroup}>
                             <label className={styles.label}>Email ID *</label>
                             <input className={styles.input} type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="e.g. Rosemary@gmail.com" />
                         </div>
@@ -315,6 +319,22 @@ const StaffOnboarding = () => {
                     {/* SECTION 5: DOCUMENT UPLOADS */}
                     <div className={styles.sectionTitle}>5. Required Documentation</div>
                     <div className={styles.grid}>
+                        <div className={styles.formGroup} style={{ gridColumn: 'span 2' }}>
+                            <label className={styles.label}>Profile Photo / Picture *</label>
+                            <div className={styles.fileUploadZone} onClick={() => document.getElementById('photo-file-input').click()}>
+                                <FiUploadCloud className={styles.fileIcon} />
+                                {photoFile ? (
+                                    <span className={styles.fileName}>{photoFile.name}</span>
+                                ) : (
+                                    <>
+                                        <span className={styles.fileText}>Choose Profile Picture</span>
+                                        <span className={styles.fileSubtext}>JPEG, PNG accepted</span>
+                                    </>
+                                )}
+                                <input id="photo-file-input" type="file" accept="image/*" onChange={e => handleFileChange(e, setPhotoFile)} style={{ display: 'none' }} required />
+                            </div>
+                        </div>
+
                         <div className={styles.formGroup}>
                             <label className={styles.label}>Aadhaar Card Copy *</label>
                             <div className={styles.fileUploadZone} onClick={() => document.getElementById('aadhaar-file-input').click()}>
@@ -347,7 +367,7 @@ const StaffOnboarding = () => {
                             </div>
                         </div>
 
-                        <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                        <div className={styles.formGroup}>
                             <label className={styles.label}>Medical Certificate (If Available)</label>
                             <div className={styles.fileUploadZone} onClick={() => document.getElementById('medical-file-input').click()}>
                                 <FiUploadCloud className={styles.fileIcon} />
@@ -361,6 +381,31 @@ const StaffOnboarding = () => {
                                 )}
                                 <input id="medical-file-input" type="file" onChange={e => handleFileChange(e, setMedicalFile)} style={{ display: 'none' }} />
                             </div>
+                        </div>
+
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>Other Documents / Certificates (If Available)</label>
+                            <div className={styles.fileUploadZone} onClick={() => document.getElementById('other-files-input').click()}>
+                                <FiUploadCloud className={styles.fileIcon} />
+                                <span className={styles.fileText}>Choose Multiple Files / Photos</span>
+                                <span className={styles.fileSubtext}>PDF, JPEG, PNG accepted</span>
+                                <input
+                                    id="other-files-input"
+                                    type="file"
+                                    onChange={handleOtherFilesChange}
+                                    style={{ display: 'none' }}
+                                    multiple
+                                />
+                            </div>
+                            {otherFiles.length > 0 && (
+                                <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                    {otherFiles.map((f, idx) => (
+                                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#64748b' }}>
+                                            <FiFileText /> <span>{f.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 
