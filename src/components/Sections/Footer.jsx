@@ -83,7 +83,6 @@ export default function Footer() {
                         <a className={styles.navLink} href="/connect"        onClick={(e) => { e.preventDefault(); navigate('/connect'); }}>Social Profile</a>
                         <a className={styles.navLink} href="https://www.google.com/maps/search/High+Laban" target="_blank" rel="noopener noreferrer">Find Us</a>
                         <a className={styles.navLink} href="/apply"          onClick={(e) => { e.preventDefault(); navigate('/apply'); }}>Careers</a>
-                        <a className={styles.navLink} href="/onboarding"     onClick={(e) => { e.preventDefault(); navigate('/onboarding'); }}>Staff Portal</a>
                         <a className={styles.navLink} href="tel:+917353100100">📞 +91 73531 00100</a>
                     </div>
 
