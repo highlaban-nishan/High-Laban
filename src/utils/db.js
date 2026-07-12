@@ -1093,6 +1093,54 @@ const db = {
             console.error('Error saving social links:', error);
             throw error;
         }
+    },
+
+    // --- Worker Applications / Hiring leads ---
+    getWorkerApplications: async () => {
+        try {
+            const q = query(collection(firestore, 'worker_applications'), orderBy('createdAt', 'desc'));
+            const querySnapshot = await getDocs(q);
+            const applications = [];
+            querySnapshot.forEach((doc) => applications.push({ id: doc.id, ...doc.data() }));
+            return applications;
+        } catch (error) {
+            console.error("Error getting worker applications:", error);
+            return [];
+        }
+    },
+
+    addWorkerApplication: async (appData) => {
+        try {
+            const docRef = await addDoc(collection(firestore, 'worker_applications'), {
+                ...appData,
+                createdAt: new Date().toISOString()
+            });
+            return { id: docRef.id, ...appData };
+        } catch (error) {
+            console.error("Error adding worker application:", error);
+            throw error;
+        }
+    },
+
+    updateWorkerApplication: async (id, updatedData) => {
+        try {
+            const docRef = doc(firestore, 'worker_applications', id);
+            await updateDoc(docRef, updatedData);
+            return true;
+        } catch (error) {
+            console.error("Error updating worker application:", error);
+            throw error;
+        }
+    },
+
+    deleteWorkerApplication: async (id) => {
+        try {
+            await deleteDoc(doc(firestore, 'worker_applications', id));
+            return id;
+        } catch (error) {
+            console.error("Error deleting worker application:", error);
+            throw error;
+        }
     }
 };
 

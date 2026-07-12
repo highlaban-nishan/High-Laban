@@ -247,6 +247,22 @@ const AdminDashboard = () => {
     const [staffRoleFilter, setStaffRoleFilter] = useState('All');
     const [staffOutletFilter, setStaffOutletFilter] = useState('All');
     const [selectedHrTab, setSelectedHrTab] = useState('personal');
+    
+    // Worker hiring pipeline states
+    const [activeStaffSubTab, setActiveStaffSubTab] = useState('directory'); // 'directory' | 'leads'
+    const [workerApplications, setWorkerApplications] = useState([]);
+    const [selectedApplication, setSelectedApplication] = useState(null);
+    const [showInterviewModal, setShowInterviewModal] = useState(null); // application object
+    const [interviewScoreInput, setInterviewScoreInput] = useState('');
+    const [interviewNotesInput, setInterviewNotesInput] = useState('');
+    const [selectedApplicationStatus, setSelectedApplicationStatus] = useState('Pending');
+    const [appSearchQuery, setAppSearchQuery] = useState('');
+    const [appPositionFilter, setAppPositionFilter] = useState('All');
+    const [showJoinApprovalModal, setShowJoinApprovalModal] = useState(null); // application object
+    const [joinPositionInput, setJoinPositionInput] = useState('Waiter');
+    const [joinSalaryInput, setJoinSalaryInput] = useState('');
+    const [joinOutletInput, setJoinOutletInput] = useState('');
+    const [joinDateInput, setJoinDateInput] = useState(new Date().toISOString().split('T')[0]);
 
     // New states for Approved Franchises, Payroll, and Document Attachments
     const [franchiseSubTab, setFranchiseSubTab] = useState('pipeline'); // 'pipeline' | 'outlets'
@@ -451,6 +467,8 @@ const AdminDashboard = () => {
             setStaffList(staff);
             const franchises = await db.getFranchises();
             setRunningFranchises(franchises);
+            const applications = await db.getWorkerApplications();
+            setWorkerApplications(applications);
         } else if (activeTab === 'payroll') {
             const staff = await db.getStaff();
             setStaffList(staff);
@@ -3550,8 +3568,45 @@ const AdminDashboard = () => {
                                 </div>
                             </div>
 
-                            {/* KPI Metrics Dashboard Cards */}
-                            {/* KPI Metrics — compact single row */}
+                            {/* Staff Sub-Tabs Toggle: Directory vs Job Applications */}
+                            <div style={{ display: "flex", gap: "1rem", borderBottom: "2px solid #e2e8f0", marginBottom: "1.5rem", paddingBottom: "0.5rem" }}>
+                                <button 
+                                    onClick={() => setActiveStaffSubTab("directory")}
+                                    style={{
+                                        background: "none",
+                                        border: "none",
+                                        fontSize: "1rem",
+                                        fontWeight: "800",
+                                        color: activeStaffSubTab === "directory" ? "#0ea5e9" : "#64748b",
+                                        borderBottom: activeStaffSubTab === "directory" ? "3px solid #0ea5e9" : "3px solid transparent",
+                                        padding: "0.5rem 1rem",
+                                        cursor: "pointer",
+                                        transition: "all 0.2s"
+                                    }}
+                                >
+                                    🧑‍🍳 Staff Directory ({staffList.length})
+                                </button>
+                                <button 
+                                    onClick={() => setActiveStaffSubTab("leads")}
+                                    style={{
+                                        background: "none",
+                                        border: "none",
+                                        fontSize: "1rem",
+                                        fontWeight: "800",
+                                        color: activeStaffSubTab === "leads" ? "#0ea5e9" : "#64748b",
+                                        borderBottom: activeStaffSubTab === "leads" ? "3px solid #0ea5e9" : "3px solid transparent",
+                                        padding: "0.5rem 1rem",
+                                        cursor: "pointer",
+                                        transition: "all 0.2s"
+                                    }}
+                                >
+                                    📋 Job Applications ({workerApplications.length})
+                                </button>
+                            </div>
+
+                            {activeStaffSubTab === 'directory' ? (
+                                <>
+                                    {/* KPI Metrics — compact single row */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.75rem', marginBottom: '1.5rem' }}>
                                 {[
                                     { label: 'Total Workers', value: totalWorkers, color: '#1e293b', icon: '🏦' },
@@ -3579,6 +3634,7 @@ const AdminDashboard = () => {
                                 </div>
                                 <select value={staffStatusFilter} onChange={e => setStaffStatusFilter(e.target.value)} className={styles.statusSelect} style={{ minWidth: '150px' }}>
                                     <option value="All">All Statuses</option>
+                                    <option value="Onboarding">Onboarding</option>
                                     <option value="Permanent">Permanent</option>
                                     <option value="Temporary">Temporary</option>
                                     <option value="Terminated">Terminated</option>
@@ -3854,10 +3910,11 @@ const AdminDashboard = () => {
                                                                             border: '1px solid #cbd5e1',
                                                                             cursor: 'pointer',
                                                                             outline: 'none',
-                                                                            background: staff.status === 'Terminated' ? '#fee2e2' : staff.status === 'Permanent' ? '#e0f2fe' : '#f1f5f9',
-                                                                            color: staff.status === 'Terminated' ? '#ef4444' : staff.status === 'Permanent' ? '#0369a1' : '#475569'
+                                                                            background: staff.status === 'Terminated' ? '#fee2e2' : staff.status === 'Permanent' ? '#e0f2fe' : staff.status === 'Onboarding' ? '#fff3cd' : '#f1f5f9',
+                                                                            color: staff.status === 'Terminated' ? '#ef4444' : staff.status === 'Permanent' ? '#0369a1' : staff.status === 'Onboarding' ? '#b45309' : '#475569'
                                                                         }}
                                                                     >
+                                                                        <option value="Onboarding">Onboarding</option>
                                                                         <option value="Permanent">Permanent</option>
                                                                         <option value="Temporary">Temporary</option>
                                                                         <option value="Terminated">Terminated</option>
@@ -4132,6 +4189,156 @@ const AdminDashboard = () => {
                                     </tbody>
                                 </table>
                             </div>
+                            )}
+                                </>
+                            ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+                                        {/* Search & Filters row */}
+                                        <div className={styles.hrFiltersRow} style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center', background: 'white', padding: '1rem', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                                            <div className={styles.searchBar} style={{ flex: 1, minWidth: '250px', display: 'flex', visibility: 'visible' }}>
+                                                <LoopIcon />
+                                                <input type="text" placeholder="Search applicants by name or phone..." value={appSearchQuery} onChange={e => setAppSearchQuery(e.target.value)} className={styles.searchInput} />
+                                            </div>
+                                            <select value={appPositionFilter} onChange={e => setAppPositionFilter(e.target.value)} className={styles.statusSelect} style={{ minWidth: '160px' }}>
+                                                <option value="All">All Positions</option>
+                                                <option value="Waiter">Waiter / Waitress</option>
+                                                <option value="Chef">Chef / Cook</option>
+                                                <option value="Cashier">Cashier</option>
+                                                <option value="Manager">Manager</option>
+                                                <option value="Helper">Kitchen Helper</option>
+                                                <option value="Delivery">Delivery Boy</option>
+                                                <option value="Cleaner">Cleaner / Steward</option>
+                                                <option value="Other">Other Position</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Table */}
+                                        <div className={styles.card} style={{ padding: '0', overflowX: 'auto', borderRadius: '20px' }}>
+                                            <table className={styles.hrTable} style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '900px' }}>
+                                                <thead>
+                                                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                                        <th style={{ padding: '1rem 1.5rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Applicant Name</th>
+                                                        <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Applied Position</th>
+                                                        <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Phone Number</th>
+                                                        <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Age / Gender</th>
+                                                        <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Location (Native / Current)</th>
+                                                        <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Documents / CV</th>
+                                                        <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Interview Score</th>
+                                                        <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', textAlign: 'center' }}>Status</th>
+                                                        <th style={{ padding: '1rem 1.5rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', textAlign: 'center' }}>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {(() => {
+                                                        const filteredApps = workerApplications.filter(app => {
+                                                            const nameMatch = (app.fullName || '').toLowerCase().includes(appSearchQuery.toLowerCase());
+                                                            const phoneMatch = (app.phone || '').toLowerCase().includes(appSearchQuery.toLowerCase());
+                                                            const positionMatch = appPositionFilter === 'All' || app.appliedPosition === appPositionFilter;
+                                                            return (nameMatch || phoneMatch) && positionMatch;
+                                                        });
+
+                                                        if (filteredApps.length === 0) {
+                                                            return (
+                                                                <tr>
+                                                                    <td colSpan={9} style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
+                                                                        No job applications found matching your search or filters.
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        }
+
+                                                        return filteredApps.map(app => (
+                                                            <tr key={app.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                                <td style={{ padding: '1rem 1.5rem', fontWeight: 'bold', color: '#0f172a' }}>
+                                                                    {app.fullName}
+                                                                </td>
+                                                                <td style={{ padding: '1rem', color: '#009ceb', fontWeight: 'bold' }}>
+                                                                    {app.appliedPosition}
+                                                                </td>
+                                                                <td style={{ padding: '1rem', color: '#475569' }}>
+                                                                    {app.phone}
+                                                                </td>
+                                                                <td style={{ padding: '1rem', color: '#475569' }}>
+                                                                    {app.age} yrs • {app.gender}
+                                                                </td>
+                                                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem' }}>
+                                                                    <div>Current: {app.currentPlace}</div>
+                                                                    <div style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '2px' }}>Native: {app.nativePlace}</div>
+                                                                </td>
+                                                                <td style={{ padding: '1rem' }}>
+                                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                                                        {app.documents && app.documents.length > 0 ? (
+                                                                            app.documents.map((doc, idx) => (
+                                                                                <a key={idx} href={doc.url} target="_blank" rel="noreferrer" style={{ background: '#e0f2fe', color: '#0369a1', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', textDecoration: 'none' }}>
+                                                                                    📄 {doc.name.length > 15 ? doc.name.substring(0, 12) + '...' : doc.name}
+                                                                                </a>
+                                                                            ))
+                                                                        ) : (
+                                                                            <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>No Docs</span>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                                    {app.interviewScore ? (
+                                                                        <span style={{ background: '#fffbeb', color: '#b45309', padding: '3px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                                            ⭐ {app.interviewScore} / 10
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>Not Rated</span>
+                                                                    )}
+                                                                </td>
+                                                                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                                    <span style={{
+                                                                        padding: '4px 10px',
+                                                                        borderRadius: '20px',
+                                                                        fontSize: '0.72rem',
+                                                                        fontWeight: 'bold',
+                                                                        background: app.status === 'Pending' ? '#f1f5f9' : app.status === 'Interview Scheduled' ? '#e0f2fe' : app.status === 'Not Fit' ? '#fee2e2' : app.status === 'Selected' ? '#dcfce7' : '#fef3c7',
+                                                                        color: app.status === 'Pending' ? '#475569' : app.status === 'Interview Scheduled' ? '#0369a1' : app.status === 'Not Fit' ? '#ef4444' : app.status === 'Selected' ? '#15803d' : '#b45309'
+                                                                    }}>
+                                                                        {app.status || 'Pending'}
+                                                                    </span>
+                                                                </td>
+                                                                <td style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>
+                                                                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                                                        <button onClick={() => {
+                                                                            setShowInterviewModal(app);
+                                                                            setSelectedApplicationStatus(app.status || 'Pending');
+                                                                            setInterviewScoreInput(app.interviewScore || '');
+                                                                            setInterviewNotesInput(app.interviewNotes || '');
+                                                                        }} className={styles.editBtn} style={{ background: '#e0f2fe', color: '#0369a1', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}>
+                                                                            📝 Review
+                                                                        </button>
+                                                                        <button onClick={() => {
+                                                                            setShowJoinApprovalModal(app);
+                                                                            setJoinPositionInput(app.appliedPosition || 'Waiter');
+                                                                            setJoinSalaryInput('');
+                                                                            setJoinOutletInput('');
+                                                                        }} style={{ background: '#dcfce7', color: '#15803d', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}>
+                                                                            🤝 Onboard
+                                                                        </button>
+                                                                        <button onClick={async () => {
+                                                                            if (window.confirm(`Are you sure you want to delete the application of ${app.fullName}?`)) {
+                                                                                try {
+                                                                                    await db.deleteWorkerApplication(app.id);
+                                                                                    setWorkerApplications(prev => prev.filter(a => a.id !== app.id));
+                                                                                    showToast("Application deleted.");
+                                                                                } catch (err) {
+                                                                                    showToast("Failed to delete application: " + err.message, "error");
+                                                                                }
+                                                                            }
+                                                                        }} style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                            <TrashIcon />
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ));
+                                                    })()}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
                             )}
                         </div>
                     );
@@ -8008,12 +8215,19 @@ const AdminDashboard = () => {
                                 <h3>Manage Links</h3>
                                 <p style={{color: '#64748b', marginBottom: '20px', fontSize: '0.9rem'}}>These links power your public <a href="/connect" target="_blank" style={{color: '#0ea5e9'}}>Connect Page</a>.</p>
                                 
-                                {['instagram', 'whatsapp', 'linkedin', 'website', 'menu', 'orderZomato', 'orderSwiggy', 'orderMagicPin', 'orderOwnly'].map(field => (
-                                    <div className={styles.formGroup} key={field}>
-                                        <label style={{textTransform: 'capitalize'}}>{field.replace('order', 'Order ')} URL</label>
-                                        <input className={styles.input} type="text" value={socialLinks[field] || ''} onChange={e => setSocialLinks({...socialLinks, [field]: e.target.value})} placeholder={`Enter ${field} link...`} />
-                                    </div>
-                                ))}
+                                {['bannerTitle', 'bannerDescription', 'instagram', 'whatsapp', 'linkedin', 'website', 'menu', 'orderZomato', 'orderSwiggy', 'orderMagicPin', 'orderOwnly'].map(field => {
+                                    const getFieldLabel = (f) => {
+                                        if (f === 'bannerTitle') return 'Connect Page Banner Title';
+                                        if (f === 'bannerDescription') return 'Connect Page Banner Description';
+                                        return f.replace('order', 'Order ').replace(/([A-Z])/g, ' $1').trim() + ' URL';
+                                    };
+                                    return (
+                                        <div className={styles.formGroup} key={field}>
+                                            <label style={{textTransform: 'capitalize'}}>{getFieldLabel(field)}</label>
+                                            <input className={styles.input} type="text" value={socialLinks[field] || ''} onChange={e => setSocialLinks({...socialLinks, [field]: e.target.value})} placeholder={`Enter ${field} details...`} />
+                                        </div>
+                                    );
+                                })}
                                 
                                 <button className={styles.saveButton} onClick={handleLinksSave}>Save All Links</button>
                             </div>
@@ -8280,6 +8494,7 @@ const AdminDashboard = () => {
                                         <div className={styles.formGroup}>
                                             <label>Employment Status</label>
                                             <select value={editingStaff.status} onChange={e => setEditingStaff({ ...editingStaff, status: e.target.value })} className={styles.input}>
+                                                <option value="Onboarding">Onboarding</option>
                                                 <option value="Permanent">Permanent</option>
                                                 <option value="Temporary">Temporary</option>
                                                 <option value="Part-time">Part-time</option>
@@ -8630,6 +8845,7 @@ const AdminDashboard = () => {
                                         <div className={styles.formGroup}>
                                             <label>Employment Status</label>
                                             <select value={newStaff.status} onChange={e => setNewStaff({ ...newStaff, status: e.target.value })}>
+                                                 <option value="Onboarding">Onboarding</option>
                                                 <option value="Permanent">Permanent</option>
                                                 <option value="Temporary">Temporary</option>
                                                 <option value="Part-time">Part-time</option>
@@ -9456,7 +9672,7 @@ const AdminDashboard = () => {
                                             <span style={{ margin: '0 8px' }}>🖼️</span>
                                             Joined: {selectedDetailStaff.joinDate || 'N/A'}
                                             <span style={{ margin: '0 8px' }}>🖼️</span>
-                                            Status: <strong style={{ color: selectedDetailStaff.status === 'Terminated' ? '#ef4444' : '#10b981' }}>{selectedDetailStaff.status}</strong>
+                                            Status: <strong style={{ color: selectedDetailStaff.status === 'Terminated' ? '#ef4444' : selectedDetailStaff.status === 'Onboarding' ? '#d97706' : '#10b981' }}>{selectedDetailStaff.status}</strong>
                                         </p>
                                     </div>
                                     <button type="button" onClick={() => setSelectedDetailStaff(null)} style={{ background: 'none', border: 'none', fontSize: '1.75rem', cursor: 'pointer', color: '#94a3b8', padding: '0 0.5rem', lineHeight: 1 }}>&times;</button>
@@ -9473,7 +9689,7 @@ const AdminDashboard = () => {
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.9rem' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #ffe4e6', paddingBottom: '8px' }}>
                                                     <span style={{ color: '#be123c', fontWeight: 'bold' }}>Employment Status:</span>
-                                                    <span style={{ background: selectedDetailStaff.status === 'Terminated' ? '#ef4444' : '#10b981', color: 'white', padding: '2px 8px', borderRadius: '50px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                    <span style={{ background: selectedDetailStaff.status === 'Terminated' ? '#ef4444' : selectedDetailStaff.status === 'Onboarding' ? '#d97706' : '#10b981', color: 'white', padding: '2px 8px', borderRadius: '50px', fontSize: '0.75rem', fontWeight: 'bold' }}>
                                                         {selectedDetailStaff.status}
                                                     </span>
                                                 </div>
@@ -10088,6 +10304,242 @@ const AdminDashboard = () => {
                                 💰 Confirm Payment
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── WORKER INTERVIEW REVIEW MODAL ── */}
+            {showInterviewModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(4px)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+                    onClick={() => setShowInterviewModal(null)}>
+                    <div style={{ background: 'white', borderRadius: '20px', padding: '2rem', width: '100%', maxWidth: '480px', boxShadow: '0 25px 60px rgba(0,0,0,0.2)' }}
+                        onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
+                            <div style={{ width: 44, height: 44, borderRadius: '12px', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>📝</div>
+                            <div>
+                                <div style={{ fontWeight: '800', fontSize: '1.1rem', color: '#0f172a' }}>Review Applicant Interview</div>
+                                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>{showInterviewModal.fullName} · {showInterviewModal.appliedPosition}</div>
+                            </div>
+                            <button onClick={() => setShowInterviewModal(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', fontSize: '1.75rem', cursor: 'pointer', color: '#94a3b8', lineHeight: 1 }}>&times;</button>
+                        </div>
+
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            try {
+                                const updates = {
+                                    status: selectedApplicationStatus,
+                                    interviewScore: interviewScoreInput,
+                                    interviewNotes: interviewNotesInput
+                                };
+                                await db.updateWorkerApplication(showInterviewModal.id, updates);
+                                setWorkerApplications(prev => prev.map(a => a.id === showInterviewModal.id ? { ...a, ...updates } : a));
+                                setShowInterviewModal(null);
+                                showToast('Interview details updated successfully!');
+                            } catch (err) {
+                                showToast('Failed to update details: ' + err.message, 'error');
+                            }
+                        }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div className={styles.formGroup}>
+                                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>Application Status</label>
+                                    <select 
+                                        value={selectedApplicationStatus} 
+                                        onChange={e => setSelectedApplicationStatus(e.target.value)}
+                                        style={{ width: '100%', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none' }}
+                                    >
+                                        <option value="Pending">Pending</option>
+                                        <option value="Interview Scheduled">Interview Scheduled</option>
+                                        <option value="Not Fit">Not Fit</option>
+                                        <option value="Selected">Selected</option>
+                                        <option value="Coming">Coming</option>
+                                        <option value="Joined">Joined</option>
+                                    </select>
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>Interview Score (0 - 10)</label>
+                                    <input 
+                                        type="number" min="0" max="10" step="0.5"
+                                        value={interviewScoreInput} 
+                                        onChange={e => setInterviewScoreInput(e.target.value)}
+                                        placeholder="e.g. 8.5"
+                                        style={{ width: '100%', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', outline: 'none' }}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>Interview Notes / Evaluation</label>
+                                    <textarea 
+                                        rows={4}
+                                        value={interviewNotesInput} 
+                                        onChange={e => setInterviewNotesInput(e.target.value)}
+                                        placeholder="Enter details about communication skills, experience, availability..."
+                                        style={{ width: '100%', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit' }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+                                <button type="button" onClick={() => setShowInterviewModal(null)}
+                                    style={{ flex: 1, padding: '0.75rem', border: '1.5px solid #e2e8f0', background: 'white', borderRadius: '12px', cursor: 'pointer', fontWeight: '700', color: '#64748b', fontSize: '0.9rem' }}>
+                                    Cancel
+                                </button>
+                                <button type="submit"
+                                    style={{ flex: 2, padding: '0.75rem', border: 'none', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', borderRadius: '12px', cursor: 'pointer', fontWeight: '800', color: 'white', fontSize: '0.9rem', boxShadow: '0 4px 12px rgba(14,165,233,0.35)' }}>
+                                    Save Review
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ── WORKER JOIN APPROVAL / PROMOTION MODAL ── */}
+            {showJoinApprovalModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(4px)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+                    onClick={() => setShowJoinApprovalModal(null)}>
+                    <div style={{ background: 'white', borderRadius: '20px', padding: '2rem', width: '100%', maxWidth: '480px', boxShadow: '0 25px 60px rgba(0,0,0,0.2)' }}
+                        onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
+                            <div style={{ width: 44, height: 44, borderRadius: '12px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>🤝</div>
+                            <div>
+                                <div style={{ fontWeight: '800', fontSize: '1.1rem', color: '#0f172a' }}>Promote to Onboarding Staff</div>
+                                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>{showJoinApprovalModal.fullName} · {showJoinApprovalModal.phone}</div>
+                            </div>
+                            <button onClick={() => setShowJoinApprovalModal(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', fontSize: '1.75rem', cursor: 'pointer', color: '#94a3b8', lineHeight: 1 }}>&times;</button>
+                        </div>
+
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            try {
+                                const app = showJoinApprovalModal;
+                                
+                                // Format documents array for staff
+                                const formattedDocs = (app.documents || []).map(d => ({
+                                    name: d.name,
+                                    url: d.url
+                                }));
+                                
+                                // Check if Aadhaar is among documents
+                                const aadhaarDoc = formattedDocs.find(d => d.name.toLowerCase().includes('aadhaar'));
+                                const medicalDoc = formattedDocs.find(d => d.name.toLowerCase().includes('medical'));
+                                const panDoc = formattedDocs.find(d => d.name.toLowerCase().includes('pan'));
+                                
+                                const newStaff = {
+                                    fullName: app.fullName,
+                                    nickname: app.fullName.split(' ')[0].toUpperCase(),
+                                    phone: app.phone,
+                                    gender: app.gender,
+                                    dob: '',
+                                    email: '',
+                                    bloodGroup: '',
+                                    alternatePhone: '',
+                                    currentAddress: app.currentPlace || '',
+                                    permanentAddress: app.nativePlace || '',
+                                    emergencyContact: '',
+                                    emergencyPhone: '',
+                                    bankName: '',
+                                    accountNumber: '',
+                                    ifscCode: '',
+                                    
+                                    // Documents/Compliance
+                                    aadhaarCollected: !!aadhaarDoc,
+                                    aadhaarDocUrl: aadhaarDoc ? aadhaarDoc.url : '',
+                                    medicalCollected: !!medicalDoc,
+                                    medicalDocUrl: medicalDoc ? medicalDoc.url : '',
+                                    panCollected: !!panDoc,
+                                    documents: formattedDocs,
+                                    
+                                    // Job parameters
+                                    status: 'Onboarding', // Put them into Onboarding status
+                                    position: joinPositionInput,
+                                    salary: joinSalaryInput,
+                                    assignedOutlet: joinOutletInput,
+                                    joinDate: joinDateInput,
+                                    salaryHistory: [
+                                        {
+                                            date: joinDateInput,
+                                            amount: parseFloat(joinSalaryInput) || 0,
+                                            reason: 'Initial Hire'
+                                        }
+                                    ]
+                                };
+
+                                // 1. Save as staff
+                                const savedStaff = await db.addStaff(newStaff);
+                                
+                                // 2. Delete application
+                                await db.deleteWorkerApplication(app.id);
+
+                                // 3. Update local states
+                                setStaffList(prev => [...prev, savedStaff]);
+                                setWorkerApplications(prev => prev.filter(a => a.id !== app.id));
+                                setShowJoinApprovalModal(null);
+                                showToast(`${app.fullName} has been successfully promoted to Onboarding Staff!`);
+                            } catch (err) {
+                                showToast('Failed to onboard worker: ' + err.message, 'error');
+                            }
+                        }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div className={styles.formGroup}>
+                                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>Final Assigned Position *</label>
+                                    <select 
+                                        value={joinPositionInput} 
+                                        onChange={e => setJoinPositionInput(e.target.value)}
+                                        style={{ width: '100%', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none' }}
+                                    >
+                                        <option value="Waiter">Waiter / Waitress</option>
+                                        <option value="Chef">Chef / Cook</option>
+                                        <option value="Cashier">Cashier</option>
+                                        <option value="Manager">Manager</option>
+                                        <option value="Helper">Kitchen Helper</option>
+                                        <option value="Delivery">Delivery Boy</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>Starting Monthly Salary (INR) *</label>
+                                    <input 
+                                        type="number" required
+                                        value={joinSalaryInput} 
+                                        onChange={e => setJoinSalaryInput(e.target.value)}
+                                        placeholder="e.g. 18000"
+                                        style={{ width: '100%', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', outline: 'none' }}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>Assigned Outlet / Location *</label>
+                                    <select 
+                                        value={joinOutletInput} 
+                                        onChange={e => setJoinOutletInput(e.target.value)}
+                                        style={{ width: '100%', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none' }}
+                                    >
+                                        <option value="">Head Office / Unassigned</option>
+                                        {runningFranchises.map(outlet => (
+                                            <option key={outlet.id} value={outlet.outletName}>{outlet.outletName}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>Join Date *</label>
+                                    <input 
+                                        type="date" required
+                                        value={joinDateInput} 
+                                        onChange={e => setJoinDateInput(e.target.value)}
+                                        style={{ width: '100%', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', outline: 'none' }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+                                <button type="button" onClick={() => setShowJoinApprovalModal(null)}
+                                    style={{ flex: 1, padding: '0.75rem', border: '1.5px solid #e2e8f0', background: 'white', borderRadius: '12px', cursor: 'pointer', fontWeight: '700', color: '#64748b', fontSize: '0.9rem' }}>
+                                    Cancel
+                                </button>
+                                <button type="submit"
+                                    style={{ flex: 2, padding: '0.75rem', border: 'none', background: 'linear-gradient(135deg, #10b981, #059669)', borderRadius: '12px', cursor: 'pointer', fontWeight: '800', color: 'white', fontSize: '0.9rem', boxShadow: '0 4px 12px rgba(16,185,129,0.35)' }}>
+                                    Create Staff Entry
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
