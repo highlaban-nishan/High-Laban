@@ -4,13 +4,14 @@ import styles from './Footer.module.css';
 import logo from '../../assets/footer.png';
 import db from '../../utils/db';
 import { FaInstagram, FaFacebookF, FaWhatsapp, FaArrowUp, FaPaperPlane, FaLinkedinIn } from 'react-icons/fa';
-import { FiPhone } from 'react-icons/fi';
+import { FiPhone, FiMail, FiMapPin, FiX } from 'react-icons/fi';
 
 export default function Footer() {
     const navigate = useNavigate();
     const [isVisible, setIsVisible] = useState(false);
     const [email, setEmail] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isContactOpen, setIsContactOpen] = useState(false);
     const footerRef = useRef(null);
 
     const handleSubscribe = async (e) => {
@@ -84,7 +85,7 @@ export default function Footer() {
                         <a className={styles.navLink} href="/connect"        onClick={(e) => { e.preventDefault(); navigate('/connect'); }}>Social Profile</a>
                         <a className={styles.navLink} href="https://www.google.com/maps/search/High+Laban" target="_blank" rel="noopener noreferrer">Find Us</a>
                         <a className={styles.navLink} href="/apply"          onClick={(e) => { e.preventDefault(); navigate('/apply'); }}>Careers</a>
-                        <a className={styles.navLink} href="/contact"        onClick={(e) => { e.preventDefault(); navigate('/contact'); }}>Contact Us</a>
+                        <span className={styles.navLink} style={{ cursor: 'pointer' }} onClick={() => setIsContactOpen(true)}>Contact Us</span>
                     </div>
 
                 </div>
@@ -117,6 +118,54 @@ export default function Footer() {
                 </div>
 
             </div>
+
+            {/* ── Contact Us Pop Card Modal ── */}
+            {isContactOpen && (
+                <div className={styles.modalOverlay} onClick={() => setIsContactOpen(false)}>
+                    <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <h3 className={styles.modalTitle}>Contact HQ</h3>
+                            <button className={styles.modalCloseBtn} onClick={() => setIsContactOpen(false)}>
+                                <FiX />
+                            </button>
+                        </div>
+                        <div className={styles.modalBody}>
+                            <a href="tel:+917353100100" className={styles.modalItem}>
+                                <div className={styles.modalIcon}><FiPhone /></div>
+                                <div>
+                                    <div className={styles.modalLabel}>Phone Call</div>
+                                    <div className={styles.modalValue}>+91 73531 00100</div>
+                                </div>
+                            </a>
+
+                            <a href="https://wa.me/917353100100" target="_blank" rel="noopener noreferrer" className={styles.modalItem}>
+                                <div className={styles.modalIcon} style={{ color: '#25d366' }}><FaWhatsapp /></div>
+                                <div>
+                                    <div className={styles.modalLabel}>WhatsApp Chat</div>
+                                    <div className={styles.modalValue}>+91 73531 00100</div>
+                                </div>
+                            </a>
+
+                            <a href="mailto:info@highlaban.com" className={styles.modalItem}>
+                                <div className={styles.modalIcon} style={{ color: '#818cf8' }}><FiMail /></div>
+                                <div>
+                                    <div className={styles.modalLabel}>Email Inbox</div>
+                                    <div className={styles.modalValue}>info@highlaban.com</div>
+                                </div>
+                            </a>
+
+                            <a href="https://www.google.com/maps/search/High+Laban" target="_blank" rel="noopener noreferrer" className={styles.modalItem}>
+                                <div className={styles.modalIcon} style={{ color: '#f87171' }}><FiMapPin /></div>
+                                <div>
+                                    <div className={styles.modalLabel}>HQ Location</div>
+                                    <div className={styles.modalValue}>Bengaluru, India</div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            )}
         </footer>
     );
 }
+
