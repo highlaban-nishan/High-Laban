@@ -267,6 +267,8 @@ const AdminDashboard = () => {
     const [workerApplications, setWorkerApplications] = useState([]);
     const [contactMessages, setContactMessages] = useState([]);
     const [openingsList, setOpeningsList] = useState([]);
+    const [allPositions, setAllPositions] = useState([]);
+    const [newCustomPosition, setNewCustomPosition] = useState('');
     const [isSavingOpenings, setIsSavingOpenings] = useState(false);
     const [selectedApplication, setSelectedApplication] = useState(null);
     const [showInterviewModal, setShowInterviewModal] = useState(null); // application object
@@ -494,7 +496,8 @@ const AdminDashboard = () => {
             const msgs = await db.getContactMessages();
             setContactMessages(msgs);
             const jobsData = await db.getSiteContent('jobs');
-            setOpeningsList(jobsData?.positions || [
+            const activeJobs = jobsData?.positions || [];
+            const defaultPos = [
                 'Waiter / Waitress',
                 'Chef / Cook',
                 'Cashier',
@@ -502,7 +505,9 @@ const AdminDashboard = () => {
                 'Kitchen Helper',
                 'Delivery Boy',
                 'Cleaner / Steward'
-            ]);
+            ];
+            setAllPositions(Array.from(new Set([...defaultPos, ...activeJobs])));
+            setOpeningsList(activeJobs);
         } else if (activeTab === 'payroll') {
             const staff = await db.getStaff();
             setStaffList(staff);
@@ -4643,15 +4648,7 @@ const AdminDashboard = () => {
                                     </p>
                                     
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px', marginBottom: '2rem' }}>
-                                        {[
-                                            'Waiter / Waitress',
-                                            'Chef / Cook',
-                                            'Cashier',
-                                            'Manager',
-                                            'Kitchen Helper',
-                                            'Delivery Boy',
-                                            'Cleaner / Steward'
-                                        ].map(pos => {
+                                        {allPositions.map(pos => {
                                             const isChecked = openingsList.includes(pos);
                                             return (
                                                 <label key={pos} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>
@@ -4670,6 +4667,38 @@ const AdminDashboard = () => {
                                                 </label>
                                             );
                                         })}
+                                    </div>
+
+                                    {/* Add Custom Position Form */}
+                                    <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem', marginBottom: '2rem' }}>
+                                        <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#334155', marginBottom: '0.5rem' }}>Add Custom Position</h4>
+                                        <div style={{ display: 'flex', gap: '10px', maxWidth: '400px' }}>
+                                            <input 
+                                                type="text" 
+                                                className={styles.input} 
+                                                style={{ padding: '8px 12px', fontSize: '0.9rem' }}
+                                                placeholder="e.g. Dessert Artist" 
+                                                value={newCustomPosition} 
+                                                onChange={e => setNewCustomPosition(e.target.value)} 
+                                            />
+                                            <button 
+                                                onClick={() => {
+                                                    const trimmed = newCustomPosition.trim();
+                                                    if (!trimmed) return;
+                                                    if (allPositions.includes(trimmed)) {
+                                                        alert('Position already exists!');
+                                                        return;
+                                                    }
+                                                    setAllPositions(prev => [...prev, trimmed]);
+                                                    setOpeningsList(prev => [...prev, trimmed]);
+                                                    setNewCustomPosition('');
+                                                }}
+                                                className={styles.addButton}
+                                                style={{ margin: 0, padding: '8px 16px', fontSize: '0.85rem' }}
+                                            >
+                                                + Add Position
+                                            </button>
+                                        </div>
                                     </div>
                                     
                                     <button 
