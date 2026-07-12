@@ -55,7 +55,6 @@ const WorkerApplication = () => {
 
     // ── Education ─────────────────────────────────
     const [educationLevel, setEducationLevel] = useState('');
-    const [educationInstitute, setEducationInstitute] = useState('');
 
     // ── Languages ────────────────────────────────
     const [languages, setLanguages] = useState([]);
@@ -122,7 +121,6 @@ const WorkerApplication = () => {
                 } : null,
                 education: {
                     level: educationLevel,
-                    institute: educationInstitute.trim(),
                 },
                 languages,
                 documents: uploadedDocs,
@@ -289,16 +287,12 @@ const WorkerApplication = () => {
                     {/* ══ SECTION 5: EDUCATION ══ */}
                     <div className={styles.sectionTitle}>5. Education</div>
                     <div className={styles.grid}>
-                        <div className={styles.formGroup}>
+                        <div className={styles.formGroup} style={{ gridColumn: 'span 2' }}>
                             <label className={styles.label}>Highest Education Level *</label>
                             <select className={styles.input} value={educationLevel} onChange={e => setEducationLevel(e.target.value)} required>
                                 <option value="">Select your qualification</option>
                                 {EDUCATION_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
                             </select>
-                        </div>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>School / College / Institution</label>
-                            <input className={styles.input} type="text" value={educationInstitute} onChange={e => setEducationInstitute(e.target.value)} placeholder="e.g. St. Joseph's College, Bangalore" />
                         </div>
                     </div>
 

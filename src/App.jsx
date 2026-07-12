@@ -17,6 +17,7 @@ import Connect from './pages/Connect';
 import Blog from './pages/Blog';
 import StaffOnboarding from './pages/StaffOnboarding';
 import WorkerApplication from './pages/WorkerApplication';
+import ContactUs from './pages/ContactUs';
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -57,6 +58,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/franchise-inquiry" element={<FranchiseInquiry />} />
         <Route path="/connect" element={<Connect />} />
+        <Route path="/contact" element={<ContactUs />} />
         <Route path="/links" element={<Navigate to="/connect" replace />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/onboarding" element={<StaffOnboarding />} />

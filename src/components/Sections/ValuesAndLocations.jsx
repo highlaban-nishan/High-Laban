@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './ValuesAndLocations.module.css';
-import { FaMapMarkerAlt, FaTimes } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaTimes, FaWhatsapp, FaMapMarkedAlt } from 'react-icons/fa';
+import { FiPhone, FiShoppingBag, FiExternalLink, FiZap, FiStore } from 'react-icons/fi';
 import db from '../../utils/db';
 
 import useScrollReveal from '../../hooks/useScrollReveal';
@@ -302,143 +303,142 @@ export default function ValuesAndLocations() {
                         {/* Content Area */}
                         <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             
-                            {/* Store Details Card (Owner Details, Address, Phone) */}
-                            {(() => {
-                                const linkedFranchise = franchises.find(f => f.id === selectedLoc.franchiseId || f.locationId === selectedLoc.id);
-                                if (linkedFranchise) {
-                                    return (
-                                        <div style={{
-                                            background: '#f8fafc',
-                                            border: '1px solid #e2e8f0',
-                                            borderRadius: '16px',
-                                            padding: '16px',
-                                            fontSize: '0.9rem',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: '8px'
-                                        }}>
-                                            <div style={{ color: '#0ea5e9', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem', marginBottom: '2px' }}>🏪 Store Details</div>
-                                            <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Owner Name:</span> <strong>{selectedLoc.ownerName || linkedFranchise.ownerName}</strong></div>
-                                            {selectedLoc.phone && <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Store Phone:</span> <strong>{selectedLoc.phone}</strong></div>}
-                                            <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Franchise Contact:</span> <strong>{linkedFranchise.phone}</strong></div>
-                                            {(selectedLoc.ownerEmail || linkedFranchise.email) && <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Email:</span> <strong>{selectedLoc.ownerEmail || linkedFranchise.email}</strong></div>}
-                                            <div style={{ color: '#334155', display: 'flex', gap: '4px' }}>
-                                                <span style={{ color: '#64748b', flexShrink: 0 }}>Address:</span>
-                                                <strong style={{ color: '#1e293b' }}>{selectedLoc.address || linkedFranchise.address || selectedLoc.name}</strong>
-                                            </div>
-                                        </div>
-                                    );
-                                }
-                                return (
-                                    <div style={{
-                                        background: '#f8fafc',
-                                        border: '1px solid #e2e8f0',
-                                        borderRadius: '16px',
-                                        padding: '16px',
-                                        fontSize: '0.9rem',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: '6px'
-                                    }}>
-                                        <div style={{ color: '#0ea5e9', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem', marginBottom: '6px' }}>🏪 Store Details</div>
-                                        {selectedLoc.ownerName && <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Owner Name:</span> <strong>{selectedLoc.ownerName}</strong></div>}
-                                        {selectedLoc.phone && <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Store Phone:</span> <strong>{selectedLoc.phone}</strong></div>}
-                                        <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Contact Phone:</span> <strong>{selectedLoc.whatsapp || 'N/A'}</strong></div>
-                                        {selectedLoc.ownerEmail && <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Email:</span> <strong>{selectedLoc.ownerEmail}</strong></div>}
-                                        <div style={{ color: '#334155', marginTop: '4px', display: 'flex', gap: '4px' }}>
-                                            <span style={{ color: '#64748b', flexShrink: 0 }}>Address:</span>
-                                            <strong style={{ color: '#1e293b' }}>{selectedLoc.address || selectedLoc.area}</strong>
-                                        </div>
-                                    </div>
-                                );
-                            })()}
+                             {/* Store Details Card (Owner Details, Address, Phone) */}
+                             {(() => {
+                                 const linkedFranchise = franchises.find(f => f.id === selectedLoc.franchiseId || f.locationId === selectedLoc.id);
+                                 if (linkedFranchise) {
+                                     const contactPhone = selectedLoc.phone || linkedFranchise.phone;
+                                     return (
+                                         <div style={{
+                                             background: '#f8fafc',
+                                             border: '1px solid #e2e8f0',
+                                             borderRadius: '16px',
+                                             padding: '16px',
+                                             fontSize: '0.9rem',
+                                             display: 'flex',
+                                             flexDirection: 'column',
+                                             gap: '8px'
+                                         }}>
+                                             <div style={{ color: '#0ea5e9', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}><FiStore /> Store Details</div>
+                                             <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Owner Name:</span> <strong>{selectedLoc.ownerName || linkedFranchise.ownerName}</strong></div>
+                                             {contactPhone && <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Contact:</span> <strong>{contactPhone}</strong></div>}
+                                             {(selectedLoc.ownerEmail || linkedFranchise.email) && <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Email:</span> <strong>{selectedLoc.ownerEmail || linkedFranchise.email}</strong></div>}
+                                             <div style={{ color: '#334155', display: 'flex', gap: '4px' }}>
+                                                 <span style={{ color: '#64748b', flexShrink: 0 }}>Address:</span>
+                                                 <strong style={{ color: '#1e293b' }}>{selectedLoc.address || linkedFranchise.address || selectedLoc.name}</strong>
+                                             </div>
+                                         </div>
+                                     );
+                                 }
+                                 return (
+                                     <div style={{
+                                         background: '#f8fafc',
+                                         border: '1px solid #e2e8f0',
+                                         borderRadius: '16px',
+                                         padding: '16px',
+                                         fontSize: '0.9rem',
+                                         display: 'flex',
+                                         flexDirection: 'column',
+                                         gap: '6px'
+                                     }}>
+                                         <div style={{ color: '#0ea5e9', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}><FiStore /> Store Details</div>
+                                         {selectedLoc.ownerName && <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Owner Name:</span> <strong>{selectedLoc.ownerName}</strong></div>}
+                                         {(selectedLoc.phone || selectedLoc.whatsapp) && <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Contact:</span> <strong>{selectedLoc.phone || selectedLoc.whatsapp}</strong></div>}
+                                         {selectedLoc.ownerEmail && <div style={{ color: '#334155' }}><span style={{ color: '#64748b' }}>Email:</span> <strong>{selectedLoc.ownerEmail}</strong></div>}
+                                         <div style={{ color: '#334155', marginTop: '4px', display: 'flex', gap: '4px' }}>
+                                             <span style={{ color: '#64748b', flexShrink: 0 }}>Address:</span>
+                                             <strong style={{ color: '#1e293b' }}>{selectedLoc.address || selectedLoc.area}</strong>
+                                         </div>
+                                     </div>
+                                 );
+                             })()}
 
-                            {/* Delivery & Ordering Links */}
-                            <div>
-                                <h4 style={{ margin: '0 0 10px 0', color: '#475569', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>⚡ Order Online & Navigate</h4>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    
-                                    {/* Direct Phone Call Button */}
-                                    {selectedLoc.phone && (
-                                        <a 
-                                            href={`tel:${selectedLoc.phone}`}
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#0f172a', color: 'white', textDecoration: 'none', padding: '10px 16px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 'bold', transition: 'background 0.2s' }}
-                                        >
-                                            📞 Call Store ({selectedLoc.phone})
-                                        </a>
-                                    )}
-
-                                    {/* Maps Navigation */}
-                                    {selectedLoc.mapUrl && (
-                                        <a 
-                                            href={selectedLoc.mapUrl} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#0284c7', color: 'white', textDecoration: 'none', padding: '10px 16px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 'bold', transition: 'background 0.2s' }}
-                                        >
-                                            📍 Navigate on Google Maps
-                                        </a>
-                                    )}
-
-                                    {/* WhatsApp */}
-                                    {selectedLoc.whatsapp && (
-                                        <a 
-                                            href={selectedLoc.whatsapp.startsWith('http') ? selectedLoc.whatsapp : `https://wa.me/${selectedLoc.whatsapp.replace(/\D/g, '')}`}
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#25d366', color: 'white', textDecoration: 'none', padding: '10px 16px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 'bold', transition: 'background 0.2s' }}
-                                        >
-                                            💬 Order via WhatsApp
-                                        </a>
-                                    )}
-
-                                    {/* Zomato */}
-                                    {selectedLoc.zomato && (
-                                        <a 
-                                            href={selectedLoc.zomato} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#cb202d', color: 'white', textDecoration: 'none', padding: '10px 16px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 'bold', transition: 'background 0.2s' }}
-                                        >
-                                            🔴 Order on Zomato
-                                        </a>
-                                    )}
-
-                                    {/* Swiggy */}
-                                    {selectedLoc.swiggy && (
-                                        <a 
-                                            href={selectedLoc.swiggy} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#fc8019', color: 'white', textDecoration: 'none', padding: '10px 16px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 'bold', transition: 'background 0.2s' }}
-                                        >
-                                            🧡 Order on Swiggy
-                                        </a>
-                                    )}
-
-                                    {/* MagicPin */}
-                                    {selectedLoc.magicpin && (
-                                        <a 
-                                            href={selectedLoc.magicpin} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#ec4899', color: 'white', textDecoration: 'none', padding: '10px 16px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 'bold', transition: 'background 0.2s' }}
-                                        >
-                                            ✨ Order on Magicpin
-                                        </a>
-                                    )}
-
-                                    {/* ONDC */}
-                                    {selectedLoc.ondc && (
-                                        <a 
-                                            href={selectedLoc.ondc} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#6366f1', color: 'white', textDecoration: 'none', padding: '10px 16px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 'bold', transition: 'background 0.2s' }}
-                                        >
-                                            🛍️ Order via ONDC
-                                        </a>
-                                    )}
+                             {/* Delivery & Ordering Links */}
+                             <div>
+                                 <h4 style={{ margin: '0 0 10px 0', color: '#475569', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '6px' }}><FiZap style={{color:'#f59e0b'}}/> Order Online &amp; Navigate</h4>
+                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                     
+                                     {/* Direct Phone Call Button */}
+                                     {selectedLoc.phone && (
+                                         <a 
+                                             href={`tel:${selectedLoc.phone}`}
+                                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px', background: '#0f172a', color: 'white', textDecoration: 'none', padding: '11px 16px', borderRadius: '12px', fontSize: '0.88rem', fontWeight: '700', transition: 'opacity 0.2s' }}
+                                         >
+                                             <FiPhone style={{fontSize:'1rem'}}/> Call Store ({selectedLoc.phone})
+                                         </a>
+                                     )}
+ 
+                                     {/* Maps Navigation */}
+                                     {selectedLoc.mapUrl && (
+                                         <a 
+                                             href={selectedLoc.mapUrl} 
+                                             target="_blank" 
+                                             rel="noopener noreferrer"
+                                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px', background: 'linear-gradient(135deg,#0284c7,#0369a1)', color: 'white', textDecoration: 'none', padding: '11px 16px', borderRadius: '12px', fontSize: '0.88rem', fontWeight: '700', transition: 'opacity 0.2s' }}
+                                         >
+                                             <FaMapMarkedAlt style={{fontSize:'1rem'}}/> Navigate on Google Maps
+                                         </a>
+                                     )}
+ 
+                                     {/* WhatsApp */}
+                                     {selectedLoc.whatsapp && (
+                                         <a 
+                                             href={selectedLoc.whatsapp.startsWith('http') ? selectedLoc.whatsapp : `https://wa.me/${selectedLoc.whatsapp.replace(/\D/g, '')}`}
+                                             target="_blank" 
+                                             rel="noopener noreferrer"
+                                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px', background: 'linear-gradient(135deg,#25d366,#128c7e)', color: 'white', textDecoration: 'none', padding: '11px 16px', borderRadius: '12px', fontSize: '0.88rem', fontWeight: '700', transition: 'opacity 0.2s' }}
+                                         >
+                                             <FaWhatsapp style={{fontSize:'1.1rem'}}/> Order via WhatsApp
+                                         </a>
+                                     )}
+ 
+                                     {/* Zomato */}
+                                     {selectedLoc.zomato && (
+                                         <a 
+                                             href={selectedLoc.zomato} 
+                                             target="_blank" 
+                                             rel="noopener noreferrer"
+                                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px', background: 'linear-gradient(135deg,#cb202d,#a31a25)', color: 'white', textDecoration: 'none', padding: '11px 16px', borderRadius: '12px', fontSize: '0.88rem', fontWeight: '700', transition: 'opacity 0.2s' }}
+                                         >
+                                             <FiShoppingBag style={{fontSize:'1rem'}}/> Order on Zomato
+                                         </a>
+                                     )}
+ 
+                                     {/* Swiggy */}
+                                     {selectedLoc.swiggy && (
+                                         <a 
+                                             href={selectedLoc.swiggy} 
+                                             target="_blank" 
+                                             rel="noopener noreferrer"
+                                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px', background: 'linear-gradient(135deg,#fc8019,#e06b10)', color: 'white', textDecoration: 'none', padding: '11px 16px', borderRadius: '12px', fontSize: '0.88rem', fontWeight: '700', transition: 'opacity 0.2s' }}
+                                         >
+                                             <FiShoppingBag style={{fontSize:'1rem'}}/> Order on Swiggy
+                                         </a>
+                                     )}
+ 
+                                     {/* MagicPin */}
+                                     {selectedLoc.magicpin && (
+                                         <a 
+                                             href={selectedLoc.magicpin} 
+                                             target="_blank" 
+                                             rel="noopener noreferrer"
+                                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px', background: 'linear-gradient(135deg,#ec4899,#be185d)', color: 'white', textDecoration: 'none', padding: '11px 16px', borderRadius: '12px', fontSize: '0.88rem', fontWeight: '700', transition: 'opacity 0.2s' }}
+                                         >
+                                             <FiExternalLink style={{fontSize:'1rem'}}/> Order on Magicpin
+                                         </a>
+                                     )}
+ 
+                                     {/* ONDC */}
+                                     {selectedLoc.ondc && (
+                                         <a 
+                                             href={selectedLoc.ondc} 
+                                             target="_blank" 
+                                             rel="noopener noreferrer"
+                                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: 'white', textDecoration: 'none', padding: '11px 16px', borderRadius: '12px', fontSize: '0.88rem', fontWeight: '700', transition: 'opacity 0.2s' }}
+                                         >
+                                             <FiShoppingBag style={{fontSize:'1rem'}}/> Order via ONDC
+                                         </a>
+                                     )}
 
                                     {!selectedLoc.mapUrl && !selectedLoc.whatsapp && !selectedLoc.zomato && !selectedLoc.swiggy && !selectedLoc.magicpin && !selectedLoc.ondc && (
                                         <p style={{ margin: 0, textAlign: 'center', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.85rem', padding: '10px' }}>

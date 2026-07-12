@@ -4,6 +4,7 @@ import styles from './Footer.module.css';
 import logo from '../../assets/footer.png';
 import db from '../../utils/db';
 import { FaInstagram, FaFacebookF, FaWhatsapp, FaArrowUp, FaPaperPlane, FaLinkedinIn } from 'react-icons/fa';
+import { FiPhone } from 'react-icons/fi';
 
 export default function Footer() {
     const navigate = useNavigate();
@@ -69,7 +70,7 @@ export default function Footer() {
 
                     {/* Card A — Explore */}
                     <div className={styles.card}>
-                        <p className={styles.cardHeading}>🧭 Explore</p>
+                        <p className={styles.cardHeading}>Explore</p>
                         <a className={styles.navLink} href="/about-us"       onClick={(e) => { e.preventDefault(); navigate('/about-us'); }}>About Us</a>
                         <a className={styles.navLink} href="#story-section"  onClick={(e) => scrollToSection(e, 'story-section')}>Our Story</a>
                         <a className={styles.navLink} href="#menu-title"     onClick={(e) => scrollToSection(e, 'menu-title')}>Menu</a>
@@ -79,18 +80,18 @@ export default function Footer() {
 
                     {/* Card B — Quick Links */}
                     <div className={styles.card}>
-                        <p className={styles.cardHeading}>⚡ Quick Links</p>
+                        <p className={styles.cardHeading}>Quick Links</p>
                         <a className={styles.navLink} href="/connect"        onClick={(e) => { e.preventDefault(); navigate('/connect'); }}>Social Profile</a>
                         <a className={styles.navLink} href="https://www.google.com/maps/search/High+Laban" target="_blank" rel="noopener noreferrer">Find Us</a>
                         <a className={styles.navLink} href="/apply"          onClick={(e) => { e.preventDefault(); navigate('/apply'); }}>Careers</a>
-                        <a className={styles.navLink} href="tel:+917353100100">📞 +91 73531 00100</a>
+                        <a className={styles.navLink} href="/contact"        onClick={(e) => { e.preventDefault(); navigate('/contact'); }}>Contact Us</a>
                     </div>
 
                 </div>
 
                 {/* ── Row 3: Subscribe ─────────────────── */}
                 <div className={styles.subscribeBox}>
-                    <p className={styles.subscribeTitle}>STAY SWEET 🍯</p>
+                    <p className={styles.subscribeTitle}>STAY SWEET</p>
                     <p className={styles.subscribeSubtitle}>Get the latest drops and secret menu alerts.</p>
                     <form className={styles.subscribeForm} onSubmit={handleSubscribe}>
                         <input
