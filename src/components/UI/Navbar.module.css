@@ -32,8 +32,8 @@
 
 .logoOutside {
     position: absolute;
-    top: 1.25rem;
-    left: 4rem;
+    top: 0.5rem;
+    left: 3rem;
     pointer-events: auto;
     display: flex;
     align-items: center;
@@ -51,8 +51,10 @@
 }
 
 .logoOutside img {
-    height: 52px;
+    height: 90px;
+    width: auto;
     object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.18));
 }
 
 .logoOutside:hover {

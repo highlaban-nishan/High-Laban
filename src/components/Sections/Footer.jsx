@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import styles from './Footer.module.css';
 import logo from '../../assets/footer.png';
 import db from '../../utils/db';
-import { FaInstagram, FaFacebookF, FaWhatsapp, FaArrowUp, FaPaperPlane } from 'react-icons/fa';
+import { FaInstagram, FaFacebookF, FaWhatsapp, FaArrowUp, FaPaperPlane, FaLinkedinIn } from 'react-icons/fa';
 
 export default function Footer() {
     const navigate = useNavigate();
@@ -37,85 +37,71 @@ export default function Footer() {
             },
             { threshold: 0.1 }
         );
-
         if (footerRef.current) observer.observe(footerRef.current);
         return () => observer.disconnect();
     }, []);
 
-    const scrollToTop = () => {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
-    };
+    const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
     const scrollToSection = (e, id) => {
         e.preventDefault();
         const element = document.getElementById(id);
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
-        }
+        if (element) element.scrollIntoView({ behavior: 'smooth' });
     };
 
     return (
         <footer className={styles.footer}>
             <div className={`${styles.container} ${isVisible ? styles.contentVisible : styles.contentHidden}`} ref={footerRef}>
-                {/* Top Section */}
-                <div className={styles.topSection}>
-                    {/* Brand Column */}
-                    <div className={styles.brandCol}>
-                        <img src={logo} alt="High Laban" className={styles.logo} onClick={scrollToTop} style={{ cursor: 'pointer' }} />
-                        <p className={styles.tagline}>
-                            Crafting authentic Egyptian happiness, one droplet at a time. Experience the sweet revolution.
-                        </p>
+
+                {/* ── Brand Row ─────────────────────────────── */}
+                <div className={styles.brandRow}>
+                    <img src={logo} alt="High Laban" className={styles.logo} onClick={scrollToTop} style={{ cursor: 'pointer' }} />
+                    <p className={styles.tagline}>
+                        Crafting authentic Egyptian happiness, one droplet at a time. Experience the sweet revolution.
+                    </p>
+                    <div className={styles.socialIcons}>
+                        <a href="https://www.instagram.com/highlaban/" target="_blank" rel="noopener noreferrer" className={styles.socialIcon}><FaInstagram /></a>
+                        <a href="#" className={styles.socialIcon}><FaFacebookF /></a>
+                        <a href="https://wa.me/917353100100" target="_blank" rel="noopener noreferrer" className={styles.socialIcon}><FaWhatsapp /></a>
+                        <a href="https://www.linkedin.com/company/highlaban" target="_blank" rel="noopener noreferrer" className={styles.socialIcon}><FaLinkedinIn /></a>
+                    </div>
+                </div>
+
+                {/* ── Two Card Grid ──────────────────────────── */}
+                <div className={styles.cardGrid}>
+
+                    {/* Card 1 — Explore */}
+                    <div className={styles.linkCard}>
+                        <div className={styles.cardLabel}>🧭 Explore</div>
+                        <a href="/about-us" className={styles.cardLink} onClick={(e) => { e.preventDefault(); navigate('/about-us'); }}>About Us</a>
+                        <a href="#story-section" className={styles.cardLink} onClick={(e) => scrollToSection(e, 'story-section')}>Our Story</a>
+                        <a href="#products" className={styles.cardLink} onClick={(e) => scrollToSection(e, 'menu-title')}>Menu</a>
+                        <a href="/franchise-inquiry" className={styles.cardLink} onClick={(e) => { e.preventDefault(); navigate('/franchise-inquiry'); }}>Franchise</a>
+                        <a href="/blog" className={styles.cardLink} onClick={(e) => { e.preventDefault(); navigate('/blog'); }}>Blog</a>
+                        <a href="/about-us" className={styles.cardLink} onClick={(e) => { e.preventDefault(); navigate('/about-us'); }}>About Us</a>
                     </div>
 
-                    {/* Explore Column */}
-                    <div className={styles.linkList}>
-                        <h4 className={styles.columnTitle}>EXPLORE</h4>
-                        <a href="/about-us" className={styles.link} onClick={(e) => { e.preventDefault(); navigate('/about-us'); }}>About Us</a>
-                        <a href="#story-section" className={styles.link} onClick={(e) => scrollToSection(e, 'story-section')}>Our Story</a>
-                        <a href="#products" className={styles.link}>Menu</a>
-                        <a href="/franchise-inquiry" className={styles.link} onClick={(e) => { e.preventDefault(); navigate('/franchise-inquiry'); }}>Franchise</a>
-                        <a href="/blog" className={styles.link} onClick={(e) => { e.preventDefault(); navigate('/blog'); }}>Blog</a>
+                    {/* Card 2 — Quick Links */}
+                    <div className={styles.linkCard}>
+                        <div className={styles.cardLabel}>⚡ Quick Links</div>
+                        <a href="/connect" className={styles.cardLink} onClick={(e) => { e.preventDefault(); navigate('/connect'); }}>Social Profile</a>
+                        <a href="https://www.google.com/maps/search/High+Laban" target="_blank" rel="noopener noreferrer" className={styles.cardLink}>Find Us</a>
+                        <a href="/apply" className={styles.cardLink} onClick={(e) => { e.preventDefault(); navigate('/apply'); }}>Careers</a>
+                        <a href="/onboarding" className={styles.cardLink} onClick={(e) => { e.preventDefault(); navigate('/onboarding'); }}>Staff Portal</a>
+                        <a href="tel:+917353100100" className={`${styles.cardLink} ${styles.phoneLink}`}>📞 +91 73531 00100</a>
                     </div>
 
-                    {/* Quick Links Column */}
-                    <div className={styles.linkList}>
-                        <h4 className={styles.columnTitle}>QUICK LINKS</h4>
-                        <a href="/connect" className={styles.link} onClick={(e) => { e.preventDefault(); navigate('/connect'); }}>Social Profile</a>
-                        <a href="https://www.google.com/maps/search/High+Laban" target="_blank" rel="noopener noreferrer" className={styles.link}>Find Us</a>
-                        <a href="/apply" className={styles.link} onClick={(e) => { e.preventDefault(); navigate('/apply'); }}>Careers</a>
-                        <a href="/onboarding" className={styles.link} onClick={(e) => { e.preventDefault(); navigate('/onboarding'); }}>Staff Portal</a>
-                        <a href="tel:+917353100100" className={styles.link}>📞 +91 73531 00100</a>
-                    </div>
+                </div>
 
-                    {/* Connect Column */}
-                    <div className={styles.connectCol}>
-                        <h4 className={styles.columnTitle}>CONNECT</h4>
-                        <div className={styles.socialIcons}>
-                            <a href="https://www.instagram.com/highlaban/" target="_blank" rel="noopener noreferrer" className={styles.socialIcon}>
-                                <FaInstagram />
-                            </a>
-                            <a href="#" className={styles.socialIcon}>
-                                <FaFacebookF />
-                            </a>
-                            <a href="https://wa.me/917353100100" target="_blank" rel="noopener noreferrer" className={styles.socialIcon}>
-                                <FaWhatsapp />
-                            </a>
-                        </div>
-                    </div>
-
-                    {/* Stay Sweet Column */}
-                    <div className={styles.subscribeCol}>
-                        <h4 className={styles.columnTitle}>STAY SWEET</h4>
-                        <p className={styles.subscribeText}>
-                            Subscribe to get the latest drops and secret menu alerts.
-                        </p>
+                {/* ── Subscribe Row ──────────────────────────── */}
+                <div className={styles.subscribeRow}>
+                    <div className={styles.subscribeInner}>
+                        <h4 className={styles.columnTitle}>STAY SWEET 🍯</h4>
+                        <p className={styles.subscribeText}>Subscribe to get the latest drops and secret menu alerts.</p>
                         <form className={styles.subscribeForm} onSubmit={handleSubscribe}>
                             <input
                                 type="email"
-                                placeholder="Your email"
+                                placeholder="Your email address"
                                 className={styles.emailInput}
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
@@ -128,15 +114,14 @@ export default function Footer() {
                     </div>
                 </div>
 
-                {/* Bottom Bar */}
+                {/* ── Bottom Bar ─────────────────────────────── */}
                 <div className={styles.bottomBar}>
-                    <p className={styles.copyright}>
-                        © 2024 HighLaban. All Rights Reserved. Made with 💜 in Egypt
-                    </p>
+                    <p className={styles.copyright}>© 2025 HighLaban. All Rights Reserved. Made with 💜 in India</p>
                     <button className={styles.scrollTopBtn} onClick={scrollToTop} aria-label="Scroll to top">
                         <FaArrowUp />
                     </button>
                 </div>
+
             </div>
         </footer>
     );
