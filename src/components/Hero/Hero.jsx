@@ -154,23 +154,14 @@ export default function Hero() {
                 <canvas ref={canvasRef} className={styles.heroCanvas} />
 
                 <div className={styles.overlayContent}>
-                    <div 
-                        className={styles.glassCard}
+                <div
                         style={{
-                            background: `linear-gradient(135deg, ${heroSettings.gradientStart || '#27aae1'}22, ${heroSettings.gradientEnd || '#7c3aed'}22)`,
-                            backgroundColor: `rgba(255, 255, 255, ${parseFloat(heroSettings.glassOpacity) || 0.1})`,
-                            backdropFilter: 'blur(20px)',
-                            WebkitBackdropFilter: 'blur(20px)',
-                            border: '1px solid rgba(255, 255, 255, 0.15)',
-                            borderRadius: '24px',
-                            padding: '2.5rem',
-                            maxWidth: '650px',
-                            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.35)',
                             pointerEvents: 'auto',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'flex-start',
-                            textAlign: 'left'
+                            textAlign: 'left',
+                            maxWidth: '650px',
                         }}
                     >
                         <div className={styles.topBadge}>

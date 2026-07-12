@@ -20,6 +20,19 @@ const ensureAbsoluteUrl = (url) => {
     return `https://${trimmed}`;
 };
 
+// Always produce a valid https://wa.me/<digits> URL from any input
+const ensureWaUrl = (val) => {
+    if (!val) return '';
+    const v = val.trim();
+    // Already a full wa.me or whatsapp URL
+    if (v.startsWith('https://wa.me') || v.startsWith('https://api.whatsapp') || v.startsWith('https://whatsapp.com')) return v;
+    // Full https URL to something else — return as-is
+    if (v.startsWith('http')) return v;
+    // It's a raw phone number — strip non-digits and build wa.me
+    const digits = v.replace(/\D/g, '');
+    return digits ? `https://wa.me/${digits}` : '';
+};
+
 const getWebsiteUrl = (socialLinks) => {
     if (socialLinks?.website && !socialLinks.website.includes('highlaban.web.app') && socialLinks.website.trim() !== '') {
         return ensureAbsoluteUrl(socialLinks.website);
@@ -119,7 +132,10 @@ const Connect = () => {
                     magicpin: l.magicpin || (linkedFranchise ? linkedFranchise.magicpin : ''),
                     ownly: l.ownly || (linkedFranchise ? linkedFranchise.ownly : ''),
                     ondc: l.ondc || (linkedFranchise ? linkedFranchise.ondc : ''),
-                    whatsapp: l.whatsapp ? (l.whatsapp.startsWith('http') ? l.whatsapp : `https://wa.me/${l.whatsapp.replace(/\D/g, '')}`) : (linkedFranchise && linkedFranchise.whatsapp ? (linkedFranchise.whatsapp.startsWith('http') ? linkedFranchise.whatsapp : `https://wa.me/${linkedFranchise.whatsapp.replace(/\D/g, '')}`) : ''),
+                    whatsapp: (() => {
+                        const raw = l.whatsapp || (linkedFranchise?.whatsapp) || '';
+                        return ensureWaUrl(raw);
+                    })(),
                     mapUrl: mapUrl || '',
                     imageUrl: l.imageUrl || '',
                     imageUrls: l.imageUrls || [],
@@ -184,10 +200,23 @@ const Connect = () => {
                 {/* Header: Gradient Glassy Hero Banner */}
                 <div className={styles.profileHeader}>
                     <div className={styles.logoContainer}>
-                        <img src={logo} alt="highlaban Logo" className={styles.logo} />
+                        <img src={logo} alt="High Laban Logo" className={styles.logo} />
                     </div>
+                    <span style={{
+                        fontSize: '0.65rem',
+                        fontWeight: 900,
+                        letterSpacing: '2px',
+                        textTransform: 'uppercase',
+                        color: '#0ea5e9',
+                        background: 'rgba(14,165,233,0.1)',
+                        border: '1px solid rgba(14,165,233,0.25)',
+                        borderRadius: '20px',
+                        padding: '4px 14px',
+                        marginBottom: '0.5rem',
+                        zIndex: 1
+                    }}>✨ GET HIGH ON BITES</span>
                     <h1 className={styles.brandName}>
-                        {socialLinks?.bannerTitle || 'highlaban'}
+                        {socialLinks?.bannerTitle ? socialLinks.bannerTitle : 'High Laban'}
                     </h1>
                     <p className={styles.description}>
                         {socialLinks?.bannerDescription || 'Premium Egyptian Desserts in India'}
