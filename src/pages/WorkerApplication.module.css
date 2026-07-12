@@ -335,3 +335,59 @@
         padding: 1.5rem;
     }
 }
+
+/* ── Experience auto-expand block ─────────────────── */
+.experienceBlock {
+    background: rgba(14, 165, 233, 0.05);
+    border: 1px solid rgba(14, 165, 233, 0.2);
+    border-radius: 14px;
+    padding: 1.25rem;
+    margin-top: 0.75rem;
+    animation: slideDown 0.3s ease forwards;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Language chip picker ─────────────────────────── */
+.languageGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.languageChip {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid #cbd5e1;
+    background: white;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    user-select: none;
+}
+
+.languageChip:hover {
+    border-color: #0ea5e9;
+    color: #0ea5e9;
+}
+
+.languageChipActive {
+    background: #0ea5e9;
+    border-color: #0ea5e9;
+    color: white;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35);
+}
+
+.languageChipActive:hover {
+    background: #0284c7;
+    border-color: #0284c7;
+    color: white;
+}

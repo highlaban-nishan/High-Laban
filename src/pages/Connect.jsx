@@ -196,29 +196,27 @@ const Connect = () => {
                         <button onClick={scrollToLocations} className={styles.orderNowTopBtn} style={{ flex: 1, margin: 0 }}>
                             ORDER NOW
                         </button>
-                        {socialLinks?.whatsapp && (
-                            <a 
-                                href={ensureAbsoluteUrl(socialLinks.whatsapp)} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className={styles.orderNowTopBtn} 
-                                style={{ 
-                                    flex: 1, 
-                                    background: '#25D366', 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    justifyContent: 'center', 
-                                    gap: '8px',
-                                    textDecoration: 'none',
-                                    padding: '0.75rem 1rem',
-                                    fontSize: '0.9rem',
-                                    fontWeight: '800',
-                                    margin: 0
-                                }}
-                            >
-                                <FaWhatsapp style={{ fontSize: '1.1rem' }} /> WHATSAPP
-                            </a>
-                        )}
+                        <a 
+                            href="https://wa.me/917353100100" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className={styles.orderNowTopBtn} 
+                            style={{ 
+                                flex: 1, 
+                                background: '#25D366', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                gap: '8px',
+                                textDecoration: 'none',
+                                padding: '0.75rem 1rem',
+                                fontSize: '0.9rem',
+                                fontWeight: '800',
+                                margin: 0
+                            }}
+                        >
+                            <FaWhatsapp style={{ fontSize: '1.1rem' }} /> WHATSAPP
+                        </a>
                     </div>
                 </div>
 
@@ -246,7 +244,7 @@ const Connect = () => {
                 {/* Locations Section */}
                 <div className={styles.sectionTitle} ref={locationsRef} style={{marginTop: '2rem'}}>Select Location</div>
                 <div className={styles.cardList}>
-                    {locations.map((loc) => (
+                    {locations.filter(loc => loc.status === 'Open').map((loc) => (
                         <div key={loc.id} className={styles.glassCard} onClick={() => toggleCard(loc.id)}>
                             <div className={styles.cardHeader}>
                                 <div className={styles.cardTitleWrap}>
