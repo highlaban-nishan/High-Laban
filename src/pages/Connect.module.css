@@ -91,18 +91,19 @@
 
 
 .logoContainer {
-    height: 75px;
-    margin-bottom: 0.75rem;
+    position: absolute;
+    width: 80px;
+    height: 80px;
     display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
-    z-index: 1;
+    z-index: 2;
+    margin: 0;
 }
 
 .logo {
+    width: 100%;
     height: 100%;
-    width: auto;
     object-fit: contain;
 }
 
@@ -797,29 +798,21 @@
 }
 
 .rotatingBadgeContainer {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 9999;
+    position: relative;
+    z-index: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     pointer-events: none;
+    margin-bottom: 1rem;
+    width: 140px;
+    height: 140px;
 }
 
 .rotatingSvg {
     animation: rotateTextCircle 15s linear infinite;
-    filter: drop-shadow(0 4px 12px rgba(14, 165, 233, 0.45));
-}
-
-.badgeCenterStar {
-    position: absolute;
-    font-size: 1.15rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffffff;
-    filter: drop-shadow(0 0 6px #0ea5e9);
+    width: 100%;
+    height: 100%;
 }
 
 @keyframes rotateTextCircle {
