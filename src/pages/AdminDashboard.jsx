@@ -8706,10 +8706,10 @@ const AdminDashboard = () => {
 
                             <div className={styles.formCard} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', height: 'fit-content' }}>
                                 <h3>Permanent QR Code</h3>
-                                <p style={{color: '#64748b', marginBottom: '20px', fontSize: '0.9rem'}}>This QR directly links to <strong>highlaban.web.app/connect</strong> and never expires.</p>
+                                <p style={{color: '#64748b', marginBottom: '20px', fontSize: '0.9rem'}}>This QR directly links to <strong>highlaban.com/connect</strong> and never expires.</p>
                                 
                                 <div style={{ background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
-                                    <QRCodeCanvas id="qr-canvas" value="https://highlaban.web.app/connect" size={200} level="H" />
+                                    <QRCodeCanvas id="qr-canvas" value="https://highlaban.com/connect" size={200} level="H" />
                                 </div>
 
                                 <button onClick={downloadQR} className={styles.saveButton} style={{width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}>
