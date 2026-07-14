@@ -8083,12 +8083,20 @@ const AdminDashboard = () => {
                                                         </div>
                                                     );
                                                 })}
-                                                <button type="button" onClick={() => {
-                                                    const updated = [...(editingRecipe.packagingIngredients || []), { materialId: '', quantity: '' }];
-                                                    setEditingRecipe({ ...editingRecipe, packagingIngredients: updated });
-                                                }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', color: '#475569', fontSize: '0.8rem', marginTop: '5px' }}>
-                                                    + Add Packaging Material
-                                                </button>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <button type="button" onClick={() => {
+                                                        const updated = [...(editingRecipe.packagingIngredients || []), { materialId: '', quantity: '' }];
+                                                        setEditingRecipe({ ...editingRecipe, packagingIngredients: updated });
+                                                    }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', color: '#475569', fontSize: '0.8rem', marginTop: '5px' }}>
+                                                        + Add Packaging Material
+                                                    </button>
+                                                    <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.9rem' }}>
+                                                        Subtotal: ₹{ ((editingRecipe.packagingIngredients || []).reduce((sum, ing) => {
+                                                            const raw = rawMaterials.find(r => r.id === ing.materialId);
+                                                            return sum + (raw ? getRawMaterialUnitPrice(raw) * (parseFloat(ing.quantity) || 0) : 0);
+                                                        }, 0)).toFixed(2) }
+                                                    </div>
+                                                </div>
                                             </div>
  
                                             {/* Toppings Section */}
@@ -8180,13 +8188,22 @@ const AdminDashboard = () => {
                                                                     </div>
                                                                 );
                                                             })}
-                                                            <button type="button" onClick={() => {
-                                                                const updated = [...editingRecipe.toppings];
-                                                                updated[tIdx].ingredients = [...(updated[tIdx].ingredients || []), { type: 'raw', id: '', quantity: '', unit: '' }];
-                                                                setEditingRecipe({ ...editingRecipe, toppings: updated });
-                                                            }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: '700', color: '#475569', fontSize: '0.72rem', marginTop: '6px', display: 'block' }}>
-                                                                + Add Ingredient to Topping
-                                                            </button>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                                                                <button type="button" onClick={() => {
+                                                                    const updated = [...editingRecipe.toppings];
+                                                                    updated[tIdx].ingredients = [...(updated[tIdx].ingredients || []), { type: 'raw', id: '', quantity: '', unit: '' }];
+                                                                    setEditingRecipe({ ...editingRecipe, toppings: updated });
+                                                                }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: '700', color: '#475569', fontSize: '0.72rem' }}>
+                                                                    + Add Ingredient to Topping
+                                                                </button>
+                                                                <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.85rem' }}>
+                                                                    Topping Subtotal: ₹{ (topping.ingredients || []).reduce((acc, ing) => {
+                                                                        const match = ing.type === 'raw' ? rawMaterials.find(r => r.id === ing.id) : bundleItems.find(b => b.id === ing.id);
+                                                                        if(!match || !parseFloat(ing.quantity)) return acc;
+                                                                        return acc + (ing.type === 'raw' ? getRawMaterialUnitPrice(match) * parseFloat(ing.quantity) : getBundleIngredientCost(match, ing.quantity, ing.unit));
+                                                                    }, 0).toFixed(2) }
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
