@@ -103,6 +103,123 @@ const availableTabsList = [
     { id: 'costing', label: '🧮 Food Costing' }
 ];
 
+// Custom SearchableSelect component with built-in search filter
+const SearchableSelect = ({ value, onChange, options, placeholder = "Select option...", style = {} }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    
+    // Find the selected option to display its name
+    const selectedOption = options.find(opt => opt.value === value);
+    const displayText = selectedOption ? selectedOption.label : placeholder;
+
+    // Filter options based on search term
+    const filteredOptions = options.filter(opt => 
+        (opt.label || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Close dropdown on click outside
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleOutsideClick = (e) => {
+            if (!e.target.closest('.searchable-select-container')) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleOutsideClick);
+        return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }, [isOpen]);
+
+    return (
+        <div className="searchable-select-container" style={{ position: 'relative', display: 'inline-block', flex: 3, minWidth: '150px', ...style }}>
+            <div 
+                onClick={() => { setIsOpen(!isOpen); setSearchTerm(''); }}
+                style={{
+                    padding: '8px',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    background: 'white',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    minHeight: '38px',
+                    boxSizing: 'border-box'
+                }}
+            >
+                <span style={{ color: selectedOption ? '#0f172a' : '#64748b', fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayText}</span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', marginLeft: '4px' }}>▼</span>
+            </div>
+            
+            {isOpen && (
+                <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    zIndex: 9999,
+                    background: 'white',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)',
+                    marginTop: '4px',
+                    maxHeight: '220px',
+                    display: 'flex',
+                    flexDirection: 'column'
+                }}>
+                    <input 
+                        type="text"
+                        placeholder="Search..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        autoFocus
+                        style={{
+                            padding: '8px',
+                            border: 'none',
+                            borderBottom: '1px solid #cbd5e1',
+                            outline: 'none',
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            fontSize: '0.85rem'
+                        }}
+                        onClick={e => e.stopPropagation()}
+                    />
+                    <div style={{ overflowY: 'auto', flex: 1, maxHeight: '170px' }}>
+                        {filteredOptions.length === 0 ? (
+                            <div style={{ padding: '8px', color: '#64748b', fontSize: '0.85rem', textAlign: 'center' }}>
+                                No options found
+                            </div>
+                        ) : (
+                            filteredOptions.map(opt => (
+                                <div 
+                                    key={opt.value}
+                                    onClick={() => {
+                                        onChange({ target: { value: opt.value } });
+                                        setIsOpen(false);
+                                    }}
+                                    style={{
+                                        padding: '8px 12px',
+                                        cursor: 'pointer',
+                                        background: value === opt.value ? '#f1f5f9' : 'transparent',
+                                        fontSize: '0.85rem',
+                                        color: '#0f172a',
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis'
+                                    }}
+                                    onMouseEnter={e => e.target.style.background = '#f1f5f9'}
+                                    onMouseLeave={e => e.target.style.background = value === opt.value ? '#f1f5f9' : 'transparent'}
+                                >
+                                    {opt.label}
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const user = db.getUser(); // Check auth immediately
@@ -7318,7 +7435,7 @@ const AdminDashboard = () => {
                                             <select value={rawMaterialCategoryFilter} onChange={e => setRawMaterialCategoryFilter(e.target.value)}
                                                 style={{ padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white', fontSize: '0.78rem', fontWeight: '600', color: '#334155' }}>
                                                 <option value="All">All Categories</option>
-                                                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                                {Array.from(new Set([...CATEGORIES, ...rawMaterials.map(r => r.category).filter(Boolean)])).map(c => <option key={c} value={c}>{c}</option>)}
                                             </select>
                                         </div>
                                     </div>
@@ -7653,16 +7770,22 @@ const AdminDashboard = () => {
                                                     const raw = rawMaterials.find(r => r.id === ing.materialId);
                                                     return (
                                                         <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px' }}>
-                                                            <select value={ing.materialId} onChange={e => {
-                                                                const updated = [...newBundle.ingredients];
-                                                                updated[idx].materialId = e.target.value;
-                                                                setNewBundle({ ...newBundle, ingredients: updated });
-                                                            }} style={{ flex: 2, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white' }}>
-                                                                <option value="">-- Choose Material --</option>
-                                                                {rawMaterials
+                                                            <SearchableSelect
+                                                                value={ing.materialId}
+                                                                onChange={e => {
+                                                                    const updated = [...newBundle.ingredients];
+                                                                    updated[idx].materialId = e.target.value;
+                                                                    setNewBundle({ ...newBundle, ingredients: updated });
+                                                                }}
+                                                                placeholder="-- Choose Material --"
+                                                                options={rawMaterials
                                                                     .filter(r => r.id === ing.materialId || !newBundle.ingredients.some((otherIng, otherIdx) => otherIdx !== idx && otherIng.materialId === r.id))
-                                                                    .map(r => <option key={r.id} value={r.id}>{r.name} (₹{getRawMaterialUnitPrice(r).toFixed(3)}/{r.unit})</option>)}
-                                                            </select>
+                                                                    .map(r => ({
+                                                                        value: r.id,
+                                                                        label: `${r.name} (₹${getRawMaterialUnitPrice(r).toFixed(3)}/${r.unit})`
+                                                                    }))}
+                                                                style={{ flex: 2 }}
+                                                            />
                                                             <input type="number" step="0.01" placeholder="Quantity used" value={ing.quantity} onChange={e => {
                                                                 const updated = [...newBundle.ingredients];
                                                                 updated[idx].quantity = e.target.value;
@@ -7858,22 +7981,24 @@ const AdminDashboard = () => {
                                                                 <option value="raw">🌾 Raw Material</option>
                                                                 <option value="bundle">📦 Prep Bundle</option>
                                                             </select>
-                                                            <select value={ing.id} onChange={e => {
-                                                                const updated = [...editingRecipe.ingredients];
-                                                                updated[idx].id = e.target.value;
-                                                                const selectedOption = options.find(o => o.id === e.target.value);
-                                                                updated[idx].unit = ing.type === 'raw' ? (selectedOption?.unit || 'g') : (selectedOption?.yieldUnit || 'g');
-                                                                setEditingRecipe({ ...editingRecipe, ingredients: updated });
-                                                            }} style={{ flex: 3, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white' }}>
-                                                                <option value="">-- Choose Ingredient --</option>
-                                                                {options
+                                                            <SearchableSelect
+                                                                value={ing.id}
+                                                                onChange={e => {
+                                                                    const updated = [...editingRecipe.ingredients];
+                                                                    updated[idx].id = e.target.value;
+                                                                    const selectedOption = options.find(o => o.id === e.target.value);
+                                                                    updated[idx].unit = ing.type === 'raw' ? (selectedOption?.unit || 'g') : (selectedOption?.yieldUnit || 'g');
+                                                                    setEditingRecipe({ ...editingRecipe, ingredients: updated });
+                                                                }}
+                                                                placeholder="-- Choose Ingredient --"
+                                                                options={options
                                                                     .filter(o => o.id === ing.id || !editingRecipe.ingredients.some((otherIng, otherIdx) => otherIdx !== idx && otherIng.type === ing.type && otherIng.id === o.id))
-                                                                    .map(o => (
-                                                                        <option key={o.id} value={o.id}>
-                                                                            {o.name} (₹{ing.type === 'raw' ? getRawMaterialUnitPrice(o).toFixed(3) : getBundleItemUnitCost(o).toFixed(3)}/{ing.type === 'raw' ? o.unit : o.yieldUnit})
-                                                                        </option>
-                                                                    ))}
-                                                            </select>
+                                                                    .map(o => ({
+                                                                        value: o.id,
+                                                                        label: `${o.name} (₹${ing.type === 'raw' ? getRawMaterialUnitPrice(o).toFixed(3) : getBundleItemUnitCost(o).toFixed(3)}/${ing.type === 'raw' ? o.unit : o.yieldUnit})`
+                                                                    }))}
+                                                                style={{ flex: 3 }}
+                                                            />
                                                             <input type="number" step="0.001" placeholder="Qty used" value={ing.quantity} onChange={e => {
                                                                 const updated = [...editingRecipe.ingredients];
                                                                 updated[idx].quantity = e.target.value;
@@ -7926,20 +8051,22 @@ const AdminDashboard = () => {
                                                     const raw = rawMaterials.find(r => r.id === ing.materialId);
                                                     return (
                                                         <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px' }}>
-                                                            <select value={ing.materialId} onChange={e => {
-                                                                const updated = [...(editingRecipe.packagingIngredients || [])];
-                                                                updated[idx].materialId = e.target.value;
-                                                                setEditingRecipe({ ...editingRecipe, packagingIngredients: updated });
-                                                            }} style={{ flex: 3, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white' }}>
-                                                                <option value="">-- Choose Packaging Material --</option>
-                                                                {rawMaterials
+                                                            <SearchableSelect
+                                                                value={ing.materialId}
+                                                                onChange={e => {
+                                                                    const updated = [...(editingRecipe.packagingIngredients || [])];
+                                                                    updated[idx].materialId = e.target.value;
+                                                                    setEditingRecipe({ ...editingRecipe, packagingIngredients: updated });
+                                                                }}
+                                                                placeholder="-- Choose Packaging Material --"
+                                                                options={rawMaterials
                                                                     .filter(r => r.id === ing.materialId || !(editingRecipe.packagingIngredients || []).some((otherIng, otherIdx) => otherIdx !== idx && otherIng.materialId === r.id))
-                                                                    .map(r => (
-                                                                        <option key={r.id} value={r.id}>
-                                                                            {r.name} (₹{getRawMaterialUnitPrice(r).toFixed(3)}/{r.unit})
-                                                                        </option>
-                                                                    ))}
-                                                            </select>
+                                                                    .map(r => ({
+                                                                        value: r.id,
+                                                                        label: `${r.name} (₹${getRawMaterialUnitPrice(r).toFixed(3)}/${r.unit})`
+                                                                    }))}
+                                                                style={{ flex: 3 }}
+                                                            />
                                                             <input type="number" step="0.001" placeholder="Qty used" value={ing.quantity} onChange={e => {
                                                                 const updated = [...(editingRecipe.packagingIngredients || [])];
                                                                 updated[idx].quantity = e.target.value;
@@ -8004,18 +8131,24 @@ const AdminDashboard = () => {
                                                                             <option value="raw">🌾 Raw</option>
                                                                             <option value="bundle">📦 Prep</option>
                                                                         </select>
-                                                                        <select value={ing.id} onChange={e => {
-                                                                            const updated = [...editingRecipe.toppings];
-                                                                            updated[tIdx].ingredients[ingIdx].id = e.target.value;
-                                                                            const selectedOption = options.find(o => o.id === e.target.value);
-                                                                            updated[tIdx].ingredients[ingIdx].unit = ing.type === 'raw' ? (selectedOption?.unit || 'g') : (selectedOption?.yieldUnit || 'g');
-                                                                            setEditingRecipe({ ...editingRecipe, toppings: updated });
-                                                                        }} style={{ flex: 1, padding: '6px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', fontSize: '0.8rem' }}>
-                                                                            <option value="">-- Choose Ingredient --</option>
-                                                                            {options
+                                                                        <SearchableSelect
+                                                                            value={ing.id}
+                                                                            onChange={e => {
+                                                                                const updated = [...editingRecipe.toppings];
+                                                                                updated[tIdx].ingredients[ingIdx].id = e.target.value;
+                                                                                const selectedOption = options.find(o => o.id === e.target.value);
+                                                                                updated[tIdx].ingredients[ingIdx].unit = ing.type === 'raw' ? (selectedOption?.unit || 'g') : (selectedOption?.yieldUnit || 'g');
+                                                                                setEditingRecipe({ ...editingRecipe, toppings: updated });
+                                                                            }}
+                                                                            placeholder="-- Choose Ingredient --"
+                                                                            options={options
                                                                                 .filter(o => o.id === ing.id || !(topping.ingredients || []).some((otherIng, otherIdx) => otherIdx !== ingIdx && otherIng.type === ing.type && otherIng.id === o.id))
-                                                                                .map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-                                                                        </select>
+                                                                                .map(o => ({
+                                                                                    value: o.id,
+                                                                                    label: o.name
+                                                                                }))}
+                                                                            style={{ flex: 1 }}
+                                                                        />
                                                                         <input type="number" step="0.001" placeholder="Qty" value={ing.quantity} onChange={e => {
                                                                             const updated = [...editingRecipe.toppings];
                                                                             updated[tIdx].ingredients[ingIdx].quantity = e.target.value;
