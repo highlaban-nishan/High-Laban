@@ -90,18 +90,19 @@ const availableRoles = [
     { id: 'partner', label: 'Partner (All reports view-only)' }
 ];
 
-const availableTabsList = [
-    { id: 'products', label: '🛍️ Products' },
-    { id: 'content', label: '📝 Content' },
-    { id: 'locations', label: '📍 Locations' },
-    { id: 'customers', label: '👥 Users' },
-    { id: 'franchise', label: '🤝 Franchise' },
-    { id: 'staff', label: '🧑‍🍳 HR Staff' },
-    { id: 'payroll', label: '💵 Payroll' },
-    { id: 'vendors', label: '🏪 Vendors' },
-    { id: 'purchases', label: '🛒 Purchases' },
-    { id: 'costing', label: '🧮 Food Costing' },
-    { id: 'transfers', label: '🚚 Stock Transfers & Inventory' }
+const availableTabsList = [
+    { id: 'products', label: '🛍️ Products' },
+    { id: 'content', label: '📝 Content' },
+    { id: 'locations', label: '📍 Locations' },
+    { id: 'customers', label: '👥 Users' },
+    { id: 'franchise', label: '🤝 Franchise' },
+    { id: 'staff', label: '🧑‍🍳 HR Staff' },
+    { id: 'payroll', label: '💵 Payroll' },
+    { id: 'vendors', label: '🏪 Vendors' },
+    { id: 'purchases', label: '🛒 Purchases' },
+    { id: 'costing', label: '🧮 Food Costing' },
+    { id: 'transfers', label: '🚚 Stock Transfers & Inventory' },
+    { id: 'finance', label: '💰 Franchise Finance' }
 ];
 
 // Custom SearchableSelect component with built-in search filter
@@ -313,22 +314,55 @@ const AdminDashboard = () => {
     const [selectedKitchenId, setSelectedKitchenId] = useState('');
     
     // New transfer form state
-    const [newTransfer, setNewTransfer] = useState({
-        itemId: '',
-        itemType: 'product', // 'product' | 'raw'
-        quantity: '',
-        priceOverride: '',
-        destinationOutletId: ''
-    });
-
-    // New local purchase form state
-    const [newLocalPurchase, setNewLocalPurchase] = useState({
-        itemId: '',
-        itemType: 'raw', // 'raw' | 'product'
-        quantity: '',
-        price: '',
-        outletId: '',
-        date: new Date().toISOString().split('T')[0]
+    const [newLocalPurchase, setNewLocalPurchase] = useState({
+        itemId: '',
+        itemType: 'raw', // 'raw' | 'product'
+        quantity: '',
+        price: '',
+        outletId: '',
+        date: new Date().toISOString().split('T')[0]
+    });
+
+    // Custom Inventory Items, Daily Sales & Stock Sheet edit states
+    const [customInventoryItems, setCustomInventoryItems] = useState([]);
+    const [dailySales, setDailySales] = useState([]);
+    const [editedStocks, setEditedStocks] = useState({});
+    const [franchiseTransactions, setFranchiseTransactions] = useState([]);
+
+    const [newFranchiseTransaction, setNewFranchiseTransaction] = useState({
+        outletId: '',
+        date: new Date().toISOString().split('T')[0],
+        type: 'Payment Received', // 'Payment Received' | 'Debit Adjustment' | 'Credit Adjustment'
+        amount: '',
+        notes: ''
+    });
+
+    // Form states
+    const [newCustomItem, setNewCustomItem] = useState({
+        name: '',
+        unit: 'pcs',
+        defaultCost: ''
+    });
+
+    const [newDailySale, setNewDailySale] = useState({
+        outletId: '',
+        date: new Date().toISOString().split('T')[0],
+        itemId: '',
+        itemType: 'product',
+        quantitySold: '',
+        revenue: ''
+    });
+
+    // We extend newTransfer to support manual items and price overrides
+    const [newTransfer, setNewTransfer] = useState({
+        itemId: '',
+        itemType: 'product', // 'product' | 'raw' | 'prep' | 'custom'
+        quantity: '',
+        priceOverride: '',
+        destinationOutletId: '',
+        manualItemName: '',
+        manualItemPrice: '',
+        manualItemUnit: 'pcs'
     });
     const [purchaseFilterDate, setPurchaseFilterDate] = useState('');
     const [purchaseFilterPurchaser, setPurchaseFilterPurchaser] = useState('All');
@@ -689,29 +723,37 @@ const AdminDashboard = () => {
             setProducts(prods);
             setPurchases(p);
             setKitchens(kitch);
-        } else if (activeTab === 'transfers') {
-            const [raws, prods, t, lp, st, franchs, kitch] = await Promise.all([
-                db.getRawMaterials(),
-                db.getProducts(),
-                db.getTransfers(),
-                db.getLocalPurchases(),
-                db.getInventoryStocks(),
-                db.getFranchises(),
-                db.getKitchens()
-            ]);
-            setRawMaterials(raws);
-            setProducts(prods);
-            setTransfers(t);
-            setLocalPurchases(lp);
-            setInventoryStocks(st);
-            setRunningFranchises(franchs);
-            setKitchens(kitch);
-            if (franchs && franchs.length > 0 && !selectedOutletId) {
-                setSelectedOutletId(franchs[0].id);
-            }
-            if (kitch && kitch.length > 0 && !selectedKitchenId) {
-                setSelectedKitchenId(kitch[0].id);
-            }
+        } else if (activeTab === 'transfers' || activeTab === 'finance') {
+            const [raws, prods, t, lp, st, franchs, kitch, customItems, sales, txs, recs] = await Promise.all([
+                db.getRawMaterials(),
+                db.getProducts(),
+                db.getTransfers(),
+                db.getLocalPurchases(),
+                db.getInventoryStocks(),
+                db.getFranchises(),
+                db.getKitchens(),
+                db.getCustomInventoryItems(),
+                db.getDailySales(),
+                db.getFranchiseTransactions(),
+                db.getRecipes()
+            ]);
+            setRawMaterials(raws);
+            setProducts(prods);
+            setTransfers(t);
+            setLocalPurchases(lp);
+            setInventoryStocks(st);
+            setRunningFranchises(franchs);
+            setKitchens(kitch);
+            setCustomInventoryItems(customItems);
+            setDailySales(sales);
+            setFranchiseTransactions(txs);
+            setRecipesList(recs);
+            if (franchs && franchs.length > 0 && !selectedOutletId) {
+                setSelectedOutletId(franchs[0].id);
+            }
+            if (kitch && kitch.length > 0 && !selectedKitchenId) {
+                setSelectedKitchenId(kitch[0].id);
+            }
         }
     };
 
@@ -1004,7 +1046,129 @@ const AdminDashboard = () => {
         }
     };
 
-    const handleSaveStats = async (e) => {
+    const handleCreateCustomInventoryItem = async (e) => {
+        e.preventDefault();
+        if (isReadOnly) return;
+        if (!newCustomItem.name.trim() || !newCustomItem.defaultCost) {
+            showToast('Please fill all required fields', 'error');
+            return;
+        }
+        try {
+            const payload = {
+                name: newCustomItem.name.trim(),
+                unit: newCustomItem.unit,
+                defaultCost: parseFloat(newCustomItem.defaultCost) || 0
+            };
+            const added = await db.addCustomInventoryItem(payload);
+            setCustomInventoryItems([added, ...customInventoryItems]);
+            setNewCustomItem({ name: '', unit: 'pcs', defaultCost: '' });
+            showToast('Custom item added successfully! 📦');
+        } catch (err) {
+            showToast('Failed to add item: ' + err.message, 'error');
+        }
+    };
+
+    const handleDeleteCustomInventoryItem = async (id) => {
+        if (isReadOnly) return;
+        if (!window.confirm('Are you sure you want to delete this custom item?')) return;
+        try {
+            await db.deleteCustomInventoryItem(id);
+            setCustomInventoryItems(customInventoryItems.filter(item => item.id !== id));
+            showToast('Custom item deleted!');
+        } catch (err) {
+            showToast('Failed to delete item: ' + err.message, 'error');
+        }
+    };
+
+    const handleCreateDailySale = async (e) => {
+        e.preventDefault();
+        if (isReadOnly) return;
+        if (!newDailySale.itemId || !newDailySale.quantitySold || !newDailySale.outletId) {
+            showToast('Please fill all required fields', 'error');
+            return;
+        }
+        try {
+            const payload = {
+                outletId: newDailySale.outletId,
+                itemId: newDailySale.itemId,
+                itemType: newDailySale.itemType,
+                quantitySold: parseFloat(newDailySale.quantitySold) || 0,
+                revenue: parseFloat(newDailySale.revenue) || 0,
+                date: newDailySale.date
+            };
+            const added = await db.addDailySale(payload);
+            setDailySales([added, ...dailySales]);
+            setNewDailySale({
+                ...newDailySale,
+                itemId: '',
+                quantitySold: '',
+                revenue: ''
+            });
+            showToast('Daily sale logged successfully! 📈');
+            // Refetch inventory stock
+            const st = await db.getInventoryStocks();
+            setInventoryStocks(st);
+        } catch (err) {
+            showToast('Failed to log daily sale: ' + err.message, 'error');
+        }
+    };
+
+    const handleDeleteDailySale = async (id) => {
+        if (isReadOnly) return;
+        if (!window.confirm('Delete this daily sale log?')) return;
+        try {
+            await db.deleteDailySale(id);
+            setDailySales(dailySales.filter(s => s.id !== id));
+            showToast('Daily sale log deleted!');
+            // Refetch inventory stock
+            const st = await db.getInventoryStocks();
+            setInventoryStocks(st);
+        } catch (err) {
+            showToast('Failed to delete: ' + err.message, 'error');
+        }
+    };
+
+    const handleCreateFranchiseTransaction = async (e) => {
+        e.preventDefault();
+        if (isReadOnly) return;
+        if (!newFranchiseTransaction.outletId || !newFranchiseTransaction.amount) {
+            showToast('Please fill all required fields', 'error');
+            return;
+        }
+        try {
+            const payload = {
+                outletId: newFranchiseTransaction.outletId,
+                date: newFranchiseTransaction.date,
+                type: newFranchiseTransaction.type,
+                amount: parseFloat(newFranchiseTransaction.amount) || 0,
+                notes: newFranchiseTransaction.notes.trim()
+            };
+            const added = await db.addFranchiseTransaction(payload);
+            setFranchiseTransactions([added, ...franchiseTransactions]);
+            setNewFranchiseTransaction({
+                ...newFranchiseTransaction,
+                amount: '',
+                notes: ''
+            });
+            showToast('Financial transaction logged successfully! 💰');
+        } catch (err) {
+            showToast('Failed to log transaction: ' + err.message, 'error');
+        }
+    };
+
+    const handleDeleteFranchiseTransaction = async (id) => {
+        if (isReadOnly) return;
+        if (!window.confirm('Delete this transaction log?')) return;
+        try {
+            await db.deleteFranchiseTransaction(id);
+            setFranchiseTransactions(franchiseTransactions.filter(tx => tx.id !== id));
+            showToast('Transaction log deleted!');
+        } catch (err) {
+            showToast('Failed to delete transaction: ' + err.message, 'error');
+        }
+    };
+
+        const handleSaveStats = async (e) => {
         e.preventDefault();
         setIsSavingStats(true);
         try {
@@ -1994,11 +2158,25 @@ const AdminDashboard = () => {
                         </div>
                     )}
 
-                    {hasTabAccess('transfers') && (
-                        <div className={`${styles.navItem} ${activeTab === 'transfers' ? styles.active : ''}`} onClick={() => { setActiveTab('transfers'); setIsMobileOpen(false); }}>
-                            <FiTruck style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Stock Transfers & Inventory
-                            {activeTab === 'transfers' && <div className={styles.activeDot}></div>}
-                        </div>
+                    {hasTabAccess('transfers') && (
+                        <div className={`${styles.navItem} ${activeTab === 'transfers' ? styles.active : ''}`} onClick={() => { setActiveTab('transfers'); setIsMobileOpen(false); }}>
+                            <FiTruck style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Stock Transfers & Inventory
+                            {activeTab === 'transfers' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
+
+                    {hasTabAccess('finance') && (
+                        <div className={`${styles.navItem} ${activeTab === 'finance' ? styles.active : ''}`} onClick={() => { setActiveTab('finance'); setIsMobileOpen(false); }}>
+                            <FiDollarSign style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Franchise Finance
+                            {activeTab === 'finance' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
+
+                    {hasTabAccess('finance') && (
+                        <div className={`${styles.navItem} ${activeTab === 'finance' ? styles.active : ''}`} onClick={() => { setActiveTab('finance'); setIsMobileOpen(false); }}>
+                            <FiDollarSign style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Franchise Finance
+                            {activeTab === 'finance' && <div className={styles.activeDot}></div>}
+                        </div>
                     )}
 
                     {(user?.role === 'admin' || user?.role === 'partner') && (
@@ -9138,723 +9316,1390 @@ const AdminDashboard = () => {
                 );
             })()}
 
-            {activeTab === 'transfers' && (() => {
-                // Filter runningFranchises to get valid destinations
-                const destinations = runningFranchises || [];
-                const kitchensList = kitchens || [];
-                const currentOutlet = destinations.find(d => d.id === selectedOutletId);
-
-                // Self-contained pricing/costing helpers for transfers tab to prevent ReferenceError scoping issues
-                const getRawMaterialPriceLocal = (raw) => {
-                    if (!raw) return 0;
-                    const currentRecipe = recipesList.find(r => r.id === raw.id);
-                    if (currentRecipe && currentRecipe.isPrebundle && currentRecipe.ingredients && currentRecipe.ingredients.length > 0) {
-                        let cost = 0;
-                        currentRecipe.ingredients.forEach(ing => {
-                            const subRaw = rawMaterials.find(r => r.id === ing.materialId);
-                            if (subRaw) {
-                                cost += getRawMaterialUnitPriceLocal(subRaw) * (parseFloat(ing.quantity) || 0);
-                            }
-                        });
-                        return cost;
-                    }
-                    const matchingPurchases = (purchases || []).filter(
-                        p => p.item && p.item.toLowerCase().trim() === raw.name.toLowerCase().trim()
-                    );
-                    if (matchingPurchases.length > 0) {
-                        const total = matchingPurchases.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-                        return total / matchingPurchases.length;
-                    }
-                    return parseFloat(raw.price) || 0;
-                };
-
-                const getRawMaterialUnitPriceLocal = (raw) => {
-                    const price = getRawMaterialPriceLocal(raw);
-                    const qty = parseFloat(raw.quantity) || 1;
-                    return price / qty;
-                };
-
-                const getBundleItemTotalCostLocal = (bundle) => {
-                    let cost = 0;
-                    (bundle.ingredients || []).forEach(ing => {
-                        const raw = rawMaterials.find(r => r.id === ing.materialId);
-                        if (raw) {
-                            cost += getRawMaterialUnitPriceLocal(raw) * (parseFloat(ing.quantity) || 0);
-                        }
-                    });
-                    return cost;
-                };
-
-                const getBundleIngredientCostLocal = (bundle, quantity, unit) => {
-                    const totalCost = getBundleItemTotalCostLocal(bundle);
-                    const portions = parseFloat(bundle.portions) || 1;
-                    const yieldQty = parseFloat(bundle.yieldQuantity) || 1;
-                    const normalizedUnit = (unit || bundle.yieldUnit || 'g').toLowerCase();
-                    if (normalizedUnit === 'pcs' || normalizedUnit === 'pc' || normalizedUnit === 'piece' || normalizedUnit === 'pieces') {
-                        return (totalCost / portions) * (parseFloat(quantity) || 0);
-                    } else {
-                        return (totalCost / yieldQty) * (parseFloat(quantity) || 0);
-                    }
-                };
-
-                const getProductRecipeCostLocal = (productId, selectedToppingIndex = -1) => {
-                    const recipe = recipesList.find(r => r.id === productId);
-                    
-                    const recipeKitchen = kitchens.find(k => k.id === (recipe?.kitchenId));
-                    const totalKitchenFixedCost = recipeKitchen ? (recipeKitchen.fixedCosts || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) : 0;
-                    
-                    const globalMonthlyPieces = typeof monthlyPiecesSold !== 'undefined' ? monthlyPiecesSold : '1000';
-                    const fixedCostPerPiece = parseFloat(globalMonthlyPieces) > 0 ? (totalKitchenFixedCost / parseFloat(globalMonthlyPieces)) : 0;
-
-                    if (!recipe) return { ingredientsCost: 0, packagingCost: 0, overheadCost: 0, fixedCostPerPiece: fixedCostPerPiece, toppingCost: 0, totalUnitCost: fixedCostPerPiece };
-
-                    let ingCost = 0;
-                    (recipe.ingredients || []).forEach(ing => {
-                        if (ing.type === 'raw') {
-                            const raw = rawMaterials.find(r => r.id === ing.id);
-                            if (raw) ingCost += getRawMaterialUnitPriceLocal(raw) * (parseFloat(ing.quantity) || 0);
-                        } else if (ing.type === 'bundle') {
-                            const bundle = bundleItems.find(b => b.id === ing.id);
-                            if (bundle) ingCost += getBundleIngredientCostLocal(bundle, ing.quantity, ing.unit);
-                        }
-                    });
-
-                    let pkgCost = 0;
-                    if (recipe.packagingIngredients && recipe.packagingIngredients.length > 0) {
-                        recipe.packagingIngredients.forEach(pIng => {
-                            const raw = rawMaterials.find(r => r.id === pIng.materialId);
-                            if (raw) pkgCost += getRawMaterialUnitPriceLocal(raw) * (parseFloat(pIng.quantity) || 0);
-                        });
-                    } else {
-                        pkgCost = parseFloat(recipe.packagingCost) || 0;
-                    }
-
-                    const batch = parseFloat(recipe.batchSize) || 1;
-                    const overhead = parseFloat(recipe.overheadAllocation) || 0;
-
-                    let toppingCost = 0;
-                    if (selectedToppingIndex > -1 && recipe.toppings && recipe.toppings[selectedToppingIndex]) {
-                        const topping = recipe.toppings[selectedToppingIndex];
-                        (topping.ingredients || []).forEach(ing => {
-                            if (ing.type === 'raw') {
-                                const raw = rawMaterials.find(r => r.id === ing.id);
-                                if (raw) toppingCost += getRawMaterialUnitPriceLocal(raw) * (parseFloat(ing.quantity) || 0);
-                            } else if (ing.type === 'bundle') {
-                                const bundle = bundleItems.find(b => b.id === ing.id);
-                                if (bundle) toppingCost += getBundleIngredientCostLocal(bundle, ing.quantity, ing.unit);
-                            }
-                        });
-                    }
-
-                    const unitIngCost = ingCost;
-                    const unitPkgCost = pkgCost;
-                    const unitOverheadCost = (!recipeKitchen && batch > 0) ? (overhead / batch) : 0;
-                    const totalUnitCost = unitIngCost + unitPkgCost + unitOverheadCost + fixedCostPerPiece + toppingCost;
-
-                    return {
-                        ingredientsCost: unitIngCost,
-                        packagingCost: unitPkgCost,
-                        overheadCost: unitOverheadCost,
-                        fixedCostPerPiece: fixedCostPerPiece,
-                        toppingCost: toppingCost,
-                        totalUnitCost: totalUnitCost
-                    };
-                };
-
-                // Helper to get unit price of items (default raw unit price or product base cost)
-                const getItemDefaultPrice = (itemId, type) => {
-                    if (type === 'raw') {
-                        const raw = rawMaterials.find(r => r.id === itemId);
-                        return raw ? getRawMaterialUnitPriceLocal(raw) : 0;
-                    } else {
-                        const prod = products.find(p => p.id === itemId);
-                        if (!prod) return 0;
-                        const recipeCost = getProductRecipeCostLocal(prod.id, -1);
-                        return recipeCost.totalUnitCost || parseFloat(prod.price) || 0;
-                    }
-                };
-
-                const getItemName = (itemId, type) => {
-                    if (type === 'raw') {
-                        const raw = rawMaterials.find(r => r.id === itemId);
-                        return raw ? `${raw.name} (${raw.unit})` : 'Unknown Raw Material';
-                    } else {
-                        const prod = products.find(p => p.id === itemId);
-                        return prod ? `${prod.name}` : 'Unknown Product';
-                    }
-                };
-
-                const getItemUnit = (itemId, type) => {
-                    if (type === 'raw') {
-                        const raw = rawMaterials.find(r => r.id === itemId);
-                        return raw ? raw.unit : 'pcs';
-                    } else {
-                        return 'pcs';
-                    }
-                };
-
-                return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1.5rem', background: '#f8fafc', minHeight: '80vh', borderRadius: '16px', border: '1px solid #cbd5e1' }}>
-                        <div>
-                            <h2 style={{ margin: 0, color: '#0f172a', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                🚚 Kitchen Transfers & Outlet Stock Inventory
-                            </h2>
-                            <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.875rem' }}>
-                                Transfer raw materials/menu products from kitchen to outlets, log local purchases, and track stock levels.
-                            </p>
-                        </div>
-
-                        {/* Sub Tab Navigation */}
-                        <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-                            {[
-                                { id: 'transferForm', label: '🚚 Send Items', icon: '⚡' },
-                                { id: 'stockSheet', label: '📋 Outlets Stock Sheet', icon: '📊' },
-                                { id: 'localPurchases', label: '💸 Local Purchases', icon: '🛍️' },
-                                { id: 'logs', label: '📜 Transfer Logs', icon: '📝' }
-                            ].map(sub => (
-                                <button
-                                    key={sub.id}
-                                    type="button"
-                                    onClick={() => setTransfersSubTab(sub.id)}
-                                    style={{
-                                        border: transfersSubTab === sub.id ? '1px solid #0ea5e9' : '1px solid #e2e8f0',
-                                        background: transfersSubTab === sub.id ? '#0ea5e9' : 'white',
-                                        color: transfersSubTab === sub.id ? 'white' : '#475569',
-                                        padding: '10px 18px',
-                                        borderRadius: '8px',
-                                        fontWeight: '700',
-                                        cursor: 'pointer',
-                                        fontSize: '0.85rem',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '6px',
-                                        boxShadow: transfersSubTab === sub.id ? '0 4px 6px -1px rgba(14, 165, 233, 0.2)' : 'none',
-                                        transition: 'all 0.2s'
-                                    }}
-                                >
-                                    <span>{sub.icon}</span> {sub.label}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* SUB TAB: TRANSFER FORM */}
-                        {transfersSubTab === 'transferForm' && (
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-                                    <h3 style={{ margin: '0 0 10px 0', color: '#0f172a', fontWeight: '800' }}>🚚 Log Kitchen to Outlet Transfer</h3>
-                                    <form onSubmit={handleCreateTransfer} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Source Kitchen</label>
-                                            <select
-                                                value={selectedKitchenId}
-                                                onChange={e => setSelectedKitchenId(e.target.value)}
-                                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
-                                                required
-                                            >
-                                                {kitchensList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
-                                            </select>
-                                        </div>
-
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Destination Outlet</label>
-                                            <select
-                                                value={newTransfer.destinationOutletId}
-                                                onChange={e => setNewTransfer({ ...newTransfer, destinationOutletId: e.target.value })}
-                                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
-                                                required
-                                            >
-                                                <option value="">-- Select Destination Outlet --</option>
-                                                {destinations.map(d => <option key={d.id} value={d.id}>{d.name} ({d.city})</option>)}
-                                            </select>
-                                        </div>
-
-                                        <div style={{ display: 'flex', gap: '12px' }}>
-                                            <div style={{ flex: 1 }}>
-                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Item Type</label>
-                                                <select
-                                                    value={newTransfer.itemType}
-                                                    onChange={e => setNewTransfer({ ...newTransfer, itemType: e.target.value, itemId: '' })}
-                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
-                                                >
-                                                    <option value="product">🛍️ Final Product</option>
-                                                    <option value="raw">🌾 Raw Material / Packaging</option>
-                                                </select>
-                                            </div>
-
-                                            <div style={{ flex: 2 }}>
-                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Select Item</label>
-                                                <select
-                                                    value={newTransfer.itemId}
-                                                    onChange={e => setNewTransfer({ ...newTransfer, itemId: e.target.value })}
-                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
-                                                    required
-                                                >
-                                                    <option value="">-- Choose Item --</option>
-                                                    {newTransfer.itemType === 'product'
-                                                        ? products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)
-                                                        : rawMaterials.map(r => <option key={r.id} value={r.id}>{r.name} ({r.unit})</option>)
-                                                    }
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', gap: '12px' }}>
-                                            <div style={{ flex: 1 }}>
-                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Quantity Transferred</label>
-                                                <input
-                                                    type="number"
-                                                    step="0.001"
-                                                    placeholder="Qty"
-                                                    value={newTransfer.quantity}
-                                                    onChange={e => setNewTransfer({ ...newTransfer, quantity: e.target.value })}
-                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div style={{ flex: 1.5 }}>
-                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Manual Price Override (Optional)</label>
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    placeholder={`Default: ₹${getItemDefaultPrice(newTransfer.itemId, newTransfer.itemType).toFixed(2)}`}
-                                                    value={newTransfer.priceOverride}
-                                                    onChange={e => setNewTransfer({ ...newTransfer, priceOverride: e.target.value })}
-                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <button
-                                            type="submit"
-                                            style={{
-                                                marginTop: '10px',
-                                                background: '#0ea5e9',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '8px',
-                                                padding: '12px',
-                                                fontWeight: '800',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s'
-                                            }}
-                                        >
-                                            🚚 Log Stock Transfer
-                                        </button>
-                                    </form>
-                                </div>
-
-                                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem' }}>
-                                    <h3 style={{ margin: '0 0 10px 0', color: '#0f172a', fontWeight: '800' }}>ℹ️ Transfer Information</h3>
-                                    <p style={{ color: '#475569', fontSize: '0.85rem', lineHeight: '1.6' }}>
-                                        Use this panel to initiate transfers. Once a transfer is submitted, it goes into the log with status <strong>"Sent"</strong>.
-                                    </p>
-                                    <p style={{ color: '#475569', fontSize: '0.85rem', lineHeight: '1.6' }}>
-                                        To calculate stock level properly, the outlet manager must check the <strong>Transfer Logs</strong> tab and click <strong>"Receive"</strong> once the shipment physically arrives at the store.
-                                    </p>
-                                    {newTransfer.itemId && (
-                                        <div style={{ marginTop: '1.5rem', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '12px', padding: '12px' }}>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#0369a1', textTransform: 'uppercase' }}>Selected Item Valuation</span>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '0.85rem', fontWeight: '700' }}>
-                                                <span>Default Unit Cost:</span>
-                                                <span>₹{getItemDefaultPrice(newTransfer.itemId, newTransfer.itemType).toFixed(2)}</span>
-                                            </div>
-                                            {newTransfer.priceOverride && (
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '0.85rem', fontWeight: '700', color: '#b45309' }}>
-                                                    <span>Overridden Cost:</span>
-                                                    <span>₹{parseFloat(newTransfer.priceOverride).toFixed(2)}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* SUB TAB: STOCK SHEET */}
-                        {transfersSubTab === 'stockSheet' && (
-                            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-                                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                        <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569' }}>Select Outlet:</label>
-                                        <select
-                                            value={selectedOutletId}
-                                            onChange={e => setSelectedOutletId(e.target.value)}
-                                            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', fontWeight: '700' }}
-                                        >
-                                            {destinations.map(d => <option key={d.id} value={d.id}>{d.name} ({d.city})</option>)}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '700' }}>
-                                            Formula: Closing Stock = Opening + Transferred + Local Purchase - Sold - Wastage
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div style={{ overflowX: 'auto' }}>
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                                        <thead>
-                                            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
-                                                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '800', color: '#475569' }}>Item Type</th>
-                                                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '800', color: '#475569' }}>Item Name</th>
-                                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '800', color: '#475569' }}>Unit</th>
-                                                <th style={{ padding: '12px', textAlign: 'right', fontWeight: '800', color: '#475569' }}>Cost/Unit</th>
-                                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '800', color: '#475569', width: '100px' }}>Opening Stock</th>
-                                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '800', color: '#475569' }}>Transferred (Recv)</th>
-                                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '800', color: '#475569' }}>Local Purchase</th>
-                                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '800', color: '#475569', width: '100px' }}>Sold/Utilized</th>
-                                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '800', color: '#475569', width: '100px' }}>Wastage</th>
-                                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '800', color: '#475569' }}>Closing Stock</th>
-                                                <th style={{ padding: '12px', textAlign: 'right', fontWeight: '800', color: '#475569' }}>Stock Value</th>
-                                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '800', color: '#475569' }}>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {/* We list both products and raw materials */}
-                                            {[
-                                                ...products.map(p => ({ ...p, itemType: 'product' })),
-                                                ...rawMaterials.map(r => ({ ...r, itemType: 'raw' }))
-                                            ].map((item, idx) => {
-                                                const docId = `${selectedOutletId}_${item.id}`;
-                                                const stockRecord = inventoryStocks.find(s => s.id === docId) || { openingStock: 0, soldQty: 0, wastage: 0 };
-                                                
-                                                // Dynamic Opening Stock, Sold and Wastage inputs local states
-                                                // We can use local overrides or read directly
-                                                const [opStock, setOpStock] = useState(stockRecord.openingStock || 0);
-                                                const [sold, setSold] = useState(stockRecord.soldQty || 0);
-                                                const [waste, setWaste] = useState(stockRecord.wastage || 0);
-
-                                                // Update state if stock record changes or outlet changes
-                                                useEffect(() => {
-                                                    setOpStock(stockRecord.openingStock || 0);
-                                                    setSold(stockRecord.soldQty || 0);
-                                                    setWaste(stockRecord.wastage || 0);
-                                                }, [stockRecord.openingStock, stockRecord.soldQty, stockRecord.wastage, selectedOutletId]);
-
-                                                // Received Transferred sum
-                                                const totalTransferred = transfers
-                                                    .filter(t => t.destinationOutletId === selectedOutletId && t.itemId === item.id && t.itemType === item.itemType && t.status === 'Received')
-                                                    .reduce((sum, t) => sum + (parseFloat(t.quantity) || 0), 0);
-
-                                                // Local Purchase sum
-                                                const totalLocal = localPurchases
-                                                    .filter(lp => lp.outletId === selectedOutletId && lp.itemId === item.id && lp.itemType === item.itemType)
-                                                    .reduce((sum, lp) => sum + (parseFloat(lp.quantity) || 0), 0);
-
-                                                // Find if there is a transfer price override, otherwise default price
-                                                const receivedTransfers = transfers.filter(t => t.destinationOutletId === selectedOutletId && t.itemId === item.id && t.itemType === item.itemType && t.status === 'Received');
-                                                const unitCost = receivedTransfers.length > 0 && receivedTransfers[0].priceOverride !== null
-                                                    ? receivedTransfers[0].priceOverride
-                                                    : getItemDefaultPrice(item.id, item.itemType);
-
-                                                const closingStock = (parseFloat(opStock) || 0) + totalTransferred + totalLocal - (parseFloat(sold) || 0) - (parseFloat(waste) || 0);
-                                                const stockVal = closingStock * unitCost;
-
-                                                return (
-                                                    <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                                        <td style={{ padding: '10px' }}>
-                                                            {item.itemType === 'product' ? '🛍️ Menu Item' : '🌾 Raw Material'}
-                                                        </td>
-                                                        <td style={{ padding: '10px', fontWeight: '700' }}>{item.name}</td>
-                                                        <td style={{ padding: '10px', textAlign: 'center' }}>{item.itemType === 'raw' ? item.unit : 'pcs'}</td>
-                                                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: '600' }}>₹{unitCost.toFixed(2)}</td>
-                                                        <td style={{ padding: '10px', textAlign: 'center' }}>
-                                                            <input
-                                                                type="number"
-                                                                value={opStock}
-                                                                onChange={e => setOpStock(e.target.value)}
-                                                                style={{ width: '80px', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', textAlign: 'center' }}
-                                                            />
-                                                        </td>
-                                                        <td style={{ padding: '10px', textAlign: 'center', fontWeight: '600', color: '#0369a1' }}>
-                                                            {totalTransferred > 0 ? `+${totalTransferred.toFixed(1)}` : '0'}
-                                                        </td>
-                                                        <td style={{ padding: '10px', textAlign: 'center', fontWeight: '600', color: '#0d9488' }}>
-                                                            {totalLocal > 0 ? `+${totalLocal.toFixed(1)}` : '0'}
-                                                        </td>
-                                                        <td style={{ padding: '10px', textAlign: 'center' }}>
-                                                            <input
-                                                                type="number"
-                                                                value={sold}
-                                                                onChange={e => setSold(e.target.value)}
-                                                                style={{ width: '80px', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', textAlign: 'center' }}
-                                                            />
-                                                        </td>
-                                                        <td style={{ padding: '10px', textAlign: 'center' }}>
-                                                            <input
-                                                                type="number"
-                                                                value={waste}
-                                                                onChange={e => setWaste(e.target.value)}
-                                                                style={{ width: '80px', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', textAlign: 'center' }}
-                                                            />
-                                                        </td>
-                                                        <td style={{ padding: '10px', textAlign: 'center', fontWeight: '800', color: closingStock < 0 ? '#ef4444' : '#1e293b' }}>
-                                                            {closingStock.toFixed(2)}
-                                                        </td>
-                                                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: '800', color: '#0f172a' }}>
-                                                            ₹{stockVal.toFixed(2)}
-                                                        </td>
-                                                        <td style={{ padding: '10px', textAlign: 'center' }}>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleSaveInventoryStock(selectedOutletId, item.id, item.itemType, opStock, sold, waste)}
-                                                                style={{ background: '#0d9488', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 12px', fontWeight: '700', cursor: 'pointer', fontSize: '0.75rem' }}
-                                                            >
-                                                                Save
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* SUB TAB: LOCAL PURCHASES */}
-                        {transfersSubTab === 'localPurchases' && (
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '1.5rem' }}>
-                                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-                                    <h3 style={{ margin: '0 0 10px 0', color: '#0f172a', fontWeight: '800' }}>💸 Log Outlet Local Purchase</h3>
-                                    <form onSubmit={handleCreateLocalPurchase} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Select Outlet</label>
-                                            <select
-                                                value={newLocalPurchase.outletId}
-                                                onChange={e => setNewLocalPurchase({ ...newLocalPurchase, outletId: e.target.value })}
-                                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
-                                                required
-                                            >
-                                                <option value="">-- Choose Outlet --</option>
-                                                {destinations.map(d => <option key={d.id} value={d.id}>{d.name} ({d.city})</option>)}
-                                            </select>
-                                        </div>
-
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Purchase Date</label>
-                                            <input
-                                                type="date"
-                                                value={newLocalPurchase.date}
-                                                onChange={e => setNewLocalPurchase({ ...newLocalPurchase, date: e.target.value })}
-                                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                                                required
-                                            />
-                                        </div>
-
-                                        <div style={{ display: 'flex', gap: '12px' }}>
-                                            <div style={{ flex: 1 }}>
-                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Item Type</label>
-                                                <select
-                                                    value={newLocalPurchase.itemType}
-                                                    onChange={e => setNewLocalPurchase({ ...newLocalPurchase, itemType: e.target.value, itemId: '' })}
-                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
-                                                >
-                                                    <option value="raw">🌾 Raw Material / Packaging</option>
-                                                    <option value="product">🛍️ Final Product</option>
-                                                </select>
-                                            </div>
-
-                                            <div style={{ flex: 2 }}>
-                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Select Item</label>
-                                                <select
-                                                    value={newLocalPurchase.itemId}
-                                                    onChange={e => setNewLocalPurchase({ ...newLocalPurchase, itemId: e.target.value })}
-                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
-                                                    required
-                                                >
-                                                    <option value="">-- Choose Item --</option>
-                                                    {newLocalPurchase.itemType === 'product'
-                                                        ? products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)
-                                                        : rawMaterials.map(r => <option key={r.id} value={r.id}>{r.name} ({r.unit})</option>)
-                                                    }
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', gap: '12px' }}>
-                                            <div style={{ flex: 1 }}>
-                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Quantity Bought</label>
-                                                <input
-                                                    type="number"
-                                                    step="0.001"
-                                                    placeholder="Qty"
-                                                    value={newLocalPurchase.quantity}
-                                                    onChange={e => setNewLocalPurchase({ ...newLocalPurchase, quantity: e.target.value })}
-                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div style={{ flex: 1 }}>
-                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Unit Cost (₹)</label>
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    placeholder="Price per unit"
-                                                    value={newLocalPurchase.price}
-                                                    onChange={e => setNewLocalPurchase({ ...newLocalPurchase, price: e.target.value })}
-                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                                                    required
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <button
-                                            type="submit"
-                                            style={{
-                                                marginTop: '10px',
-                                                background: '#0d9488',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '8px',
-                                                padding: '12px',
-                                                fontWeight: '800',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s'
-                                            }}
-                                        >
-                                            💾 Save Local Purchase
-                                        </button>
-                                    </form>
-                                </div>
-
-                                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem' }}>
-                                    <h3 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontWeight: '800' }}>📜 Local Purchase Logs</h3>
-                                    <div style={{ overflowX: 'auto', maxHeight: '450px', overflowY: 'auto' }}>
-                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
-                                            <thead>
-                                                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1' }}>
-                                                    <th style={{ padding: '8px', textAlign: 'left' }}>Date</th>
-                                                    <th style={{ padding: '8px', textAlign: 'left' }}>Outlet</th>
-                                                    <th style={{ padding: '8px', textAlign: 'left' }}>Item</th>
-                                                    <th style={{ padding: '8px', textAlign: 'center' }}>Qty</th>
-                                                    <th style={{ padding: '8px', textAlign: 'right' }}>Price</th>
-                                                    <th style={{ padding: '8px', textAlign: 'center' }}>Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {localPurchases.map((lp, idx) => {
-                                                    const outlet = destinations.find(d => d.id === lp.outletId);
-                                                    return (
-                                                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                            <td style={{ padding: '8px' }}>{lp.date}</td>
-                                                            <td style={{ padding: '8px', fontWeight: '600' }}>{outlet ? outlet.name : 'Unknown Outlet'}</td>
-                                                            <td style={{ padding: '8px' }}>{getItemName(lp.itemId, lp.itemType)}</td>
-                                                            <td style={{ padding: '8px', textAlign: 'center' }}>{lp.quantity} {getItemUnit(lp.itemId, lp.itemType)}</td>
-                                                            <td style={{ padding: '8px', textAlign: 'right', fontWeight: '600' }}>₹{(lp.price || 0).toFixed(2)}</td>
-                                                            <td style={{ padding: '8px', textAlign: 'center' }}>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleDeleteLocalPurchase(lp.id)}
-                                                                    style={{ border: 'none', background: '#ef4444', color: 'white', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '0.7rem' }}
-                                                                >
-                                                                    Delete
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                                {localPurchases.length === 0 && (
-                                                    <tr>
-                                                        <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No local purchases logged yet.</td>
-                                                    </tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* SUB TAB: TRANSFER LOGS */}
-                        {transfersSubTab === 'logs' && (
-                            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem' }}>
-                                <h3 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontWeight: '800' }}>📜 Kitchen to Outlet Transfer History</h3>
-                                <div style={{ overflowX: 'auto' }}>
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-                                        <thead>
-                                            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
-                                                <th style={{ padding: '10px', textAlign: 'left' }}>Sent Date/Time</th>
-                                                <th style={{ padding: '10px', textAlign: 'left' }}>Kitchen</th>
-                                                <th style={{ padding: '10px', textAlign: 'left' }}>Outlet Destination</th>
-                                                <th style={{ padding: '10px', textAlign: 'left' }}>Item Details</th>
-                                                <th style={{ padding: '10px', textAlign: 'center' }}>Qty</th>
-                                                <th style={{ padding: '10px', textAlign: 'right' }}>Transfer Unit Price</th>
-                                                <th style={{ padding: '10px', textAlign: 'right' }}>Total Value</th>
-                                                <th style={{ padding: '10px', textAlign: 'center' }}>Status</th>
-                                                <th style={{ padding: '10px', textAlign: 'center' }}>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {transfers.map((t, idx) => {
-                                                const srcK = kitchensList.find(k => k.id === t.sourceKitchenId);
-                                                const destO = destinations.find(d => d.id === t.destinationOutletId);
-                                                const unitPrice = t.priceOverride !== null && t.priceOverride !== undefined
-                                                    ? t.priceOverride
-                                                    : getItemDefaultPrice(t.itemId, t.itemType);
-                                                const totalVal = (parseFloat(t.quantity) || 0) * unitPrice;
-
-                                                return (
-                                                    <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                                        <td style={{ padding: '10px' }}>{new Date(t.sentAt).toLocaleString()}</td>
-                                                        <td style={{ padding: '10px' }}>{srcK ? srcK.name : 'Central Kitchen'}</td>
-                                                        <td style={{ padding: '10px', fontWeight: '700' }}>{destO ? destO.name : 'Unknown Outlet'}</td>
-                                                        <td style={{ padding: '10px' }}>{getItemName(t.itemId, t.itemType)}</td>
-                                                        <td style={{ padding: '10px', textAlign: 'center', fontWeight: '700' }}>{t.quantity}</td>
-                                                        <td style={{ padding: '10px', textAlign: 'right' }}>₹{unitPrice.toFixed(2)}</td>
-                                                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: '700' }}>₹{totalVal.toFixed(2)}</td>
-                                                        <td style={{ padding: '10px', textAlign: 'center' }}>
-                                                            <span
-                                                                style={{
-                                                                    padding: '4px 8px',
-                                                                    borderRadius: '20px',
-                                                                    fontSize: '0.7rem',
-                                                                    fontWeight: '800',
-                                                                    background: t.status === 'Received' ? '#d1fae5' : '#fef3c7',
-                                                                    color: t.status === 'Received' ? '#065f46' : '#92400e'
-                                                                }}
-                                                            >
-                                                                {t.status}
-                                                            </span>
-                                                        </td>
-                                                        <td style={{ padding: '10px', textAlign: 'center' }}>
-                                                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                                                                {t.status === 'Sent' && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleUpdateTransferStatus(t.id, 'Received')}
-                                                                        style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.7rem' }}
-                                                                    >
-                                                                        Receive
-                                                                    </button>
-                                                                )}
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleDeleteTransfer(t.id)}
-                                                                    style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.7rem' }}
-                                                                >
-                                                                    Delete
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                            {transfers.length === 0 && (
-                                                <tr>
-                                                    <td colSpan="9" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>No transfers logged yet.</td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                );
-            })()}
+            {activeTab === 'transfers' && (() => {
+                const destinations = runningFranchises || [];
+                const kitchensList = kitchens || [];
+                const currentOutlet = destinations.find(d => d.id === selectedOutletId);
+
+                // Helper to get unit price of items
+                const getItemDefaultPrice = (itemId, type) => {
+                    if (type === 'raw') {
+                        const raw = rawMaterials.find(r => r.id === itemId);
+                        return raw ? getRawMaterialUnitPriceLocal(raw) : 0;
+                    } else if (type === 'product') {
+                        const prod = products.find(p => p.id === itemId);
+                        if (!prod) return 0;
+                        const recipeCost = getProductRecipeCostLocal(prod.id, -1);
+                        return recipeCost.totalUnitCost || parseFloat(prod.price) || 0;
+                    } else if (type === 'prep') {
+                        const raw = rawMaterials.find(r => r.id === itemId);
+                        return raw ? getRawMaterialUnitPriceLocal(raw) : 0;
+                    } else if (type === 'custom') {
+                        const item = customInventoryItems.find(i => i.id === itemId);
+                        return item ? parseFloat(item.defaultCost) || 0 : 0;
+                    }
+                    return 0;
+                };
+
+                const getItemName = (itemId, type) => {
+                    if (type === 'raw') {
+                        const raw = rawMaterials.find(r => r.id === itemId);
+                        return raw ? `${raw.name} (${raw.unit})` : 'Unknown Raw Material';
+                    } else if (type === 'product') {
+                        const prod = products.find(p => p.id === itemId);
+                        return prod ? `${prod.name}` : 'Unknown Product';
+                    } else if (type === 'prep') {
+                        const raw = rawMaterials.find(r => r.id === itemId);
+                        return raw ? `${raw.name} (${raw.unit})` : 'Unknown Prep Item';
+                    } else if (type === 'custom') {
+                        const item = customInventoryItems.find(i => i.id === itemId);
+                        return item ? `${item.name} (${item.unit})` : 'Unknown Custom Item';
+                    }
+                    return 'Unknown Item';
+                };
+
+                const getItemUnit = (itemId, type) => {
+                    if (type === 'raw' || type === 'prep') {
+                        const raw = rawMaterials.find(r => r.id === itemId);
+                        return raw ? raw.unit : 'pcs';
+                    } else if (type === 'custom') {
+                        const item = customInventoryItems.find(i => i.id === itemId);
+                        return item ? item.unit : 'pcs';
+                    }
+                    return 'pcs';
+                };
+
+                // Prepare list of prep items (recipes that are prebundles)
+                const prepItems = rawMaterials.filter(r => {
+                    const rec = recipesList.find(recipe => recipe.id === r.id);
+                    return rec && rec.isPrebundle;
+                });
+
+                // When user submits custom item transfer or daily sales, we handle saving custom item if type === 'custom' and itemId === 'new'
+                const handleCreateTransferLocal = async (e) => {
+                    e.preventDefault();
+                    if (isReadOnly) return;
+                    
+                    let finalItemId = newTransfer.itemId;
+                    let finalPrice = newTransfer.priceOverride !== '' ? parseFloat(newTransfer.priceOverride) : null;
+                    
+                    if (newTransfer.itemType === 'custom' && newTransfer.itemId === 'new') {
+                        // Create new custom inventory item first
+                        try {
+                            const addedItem = await db.addCustomInventoryItem({
+                                name: newTransfer.manualItemName.trim(),
+                                unit: newTransfer.manualItemUnit,
+                                defaultCost: parseFloat(newTransfer.manualItemPrice) || 0
+                            });
+                            setCustomInventoryItems([addedItem, ...customInventoryItems]);
+                            finalItemId = addedItem.id;
+                            finalPrice = parseFloat(newTransfer.manualItemPrice) || 0;
+                        } catch (err) {
+                            showToast('Failed to auto-save custom item: ' + err.message, 'error');
+                            return;
+                        }
+                    }
+
+                    try {
+                        const payload = {
+                            itemId: finalItemId,
+                            itemType: newTransfer.itemType,
+                            quantity: parseFloat(newTransfer.quantity) || 0,
+                            priceOverride: finalPrice,
+                            destinationOutletId: newTransfer.destinationOutletId,
+                            sourceKitchenId: selectedKitchenId || '',
+                            status: 'Sent',
+                            sentAt: new Date().toISOString()
+                        };
+                        const added = await db.addTransfer(payload);
+                        setTransfers([added, ...transfers]);
+                        setNewTransfer({
+                            itemId: '',
+                            itemType: 'product',
+                            quantity: '',
+                            priceOverride: '',
+                            destinationOutletId: newTransfer.destinationOutletId,
+                            manualItemName: '',
+                            manualItemPrice: '',
+                            manualItemUnit: 'pcs'
+                        });
+                        showToast('Transfer logged successfully! 🚚');
+                    } catch (err) {
+                        showToast('Failed to create transfer: ' + err.message, 'error');
+                    }
+                };
+
+                return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1.5rem', background: '#f8fafc', minHeight: '80vh', borderRadius: '16px', border: '1px solid #cbd5e1' }}>
+                        <div>
+                            <h2 style={{ margin: 0, color: '#0f172a', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                🚚 Kitchen Transfers & Outlet Stock Inventory
+                            </h2>
+                            <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.875rem' }}>
+                                Transfer raw materials/menu products/prep items to outlets, log daily sales, local purchases, and track stock levels.
+                            </p>
+                        </div>
+
+                        {/* Sub Tab Navigation */}
+                        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', flexWrap: 'wrap' }}>
+                            {[
+                                { id: 'transferForm', label: '🚚 Send Items', icon: '⚡' },
+                                { id: 'stockSheet', label: '📋 Outlets Stock Sheet', icon: '📊' },
+                                { id: 'dailySales', label: '📈 Daily Sales', icon: '🛍️' },
+                                { id: 'customItems', label: '📦 Custom Items', icon: '⚙️' },
+                                { id: 'stockSummary', label: '📊 Stock Summary', icon: '📈' },
+                                { id: 'localPurchases', label: '💸 Local Purchases', icon: '🛍️' },
+                                { id: 'logs', label: '📜 Transfer Logs', icon: '📝' }
+                            ].map(sub => (
+                                <button
+                                    key={sub.id}
+                                    type="button"
+                                    onClick={() => setTransfersSubTab(sub.id)}
+                                    style={{
+                                        background: transfersSubTab === sub.id ? '#0ea5e9' : 'white',
+                                        color: transfersSubTab === sub.id ? 'white' : '#475569',
+                                        padding: '8px 14px',
+                                        borderRadius: '8px',
+                                        fontWeight: '700',
+                                        cursor: 'pointer',
+                                        fontSize: '0.8rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        boxShadow: transfersSubTab === sub.id ? '0 4px 6px -1px rgba(14, 165, 233, 0.2)' : 'none',
+                                        transition: 'all 0.2s',
+                                        border: '1px solid #e2e8f0'
+                                    }}
+                                >
+                                    <span>{sub.icon}</span> {sub.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* SUB TAB: TRANSFER FORM */}
+                        {transfersSubTab === 'transferForm' && (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                                    <h3 style={{ margin: '0 0 10px 0', color: '#0f172a', fontWeight: '800' }}>🚚 Log Kitchen to Outlet Transfer</h3>
+                                    <form onSubmit={handleCreateTransferLocal} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Source Kitchen</label>
+                                            <select
+                                                value={selectedKitchenId}
+                                                onChange={e => setSelectedKitchenId(e.target.value)}
+                                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
+                                                required
+                                            >
+                                                {kitchensList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Destination Outlet</label>
+                                            <select
+                                                value={newTransfer.destinationOutletId}
+                                                onChange={e => setNewTransfer({ ...newTransfer, destinationOutletId: e.target.value })}
+                                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
+                                                required
+                                            >
+                                                <option value="">-- Select Destination Outlet --</option>
+                                                {destinations.map(d => <option key={d.id} value={d.id}>{d.name} ({d.city})</option>)}
+                                            </select>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '12px' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Item Type</label>
+                                                <select
+                                                    value={newTransfer.itemType}
+                                                    onChange={e => setNewTransfer({ ...newTransfer, itemType: e.target.value, itemId: '' })}
+                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
+                                                >
+                                                    <option value="product">🛍️ Final Product</option>
+                                                    <option value="raw">🌾 Raw Material / Packaging</option>
+                                                    <option value="prep">🍳 Prep Items (Prebundle)</option>
+                                                    <option value="custom">📦 Custom / Manual Items</option>
+                                                </select>
+                                            </div>
+
+                                            <div style={{ flex: 2 }}>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Select Item</label>
+                                                <select
+                                                    value={newTransfer.itemId}
+                                                    onChange={e => setNewTransfer({ ...newTransfer, itemId: e.target.value })}
+                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
+                                                    required
+                                                >
+                                                    <option value="">-- Choose Item --</option>
+                                                    {newTransfer.itemType === 'product' && products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                                    {newTransfer.itemType === 'raw' && rawMaterials.filter(r => !recipesList.find(rec => rec.id === r.id)?.isPrebundle).map(r => <option key={r.id} value={r.id}>{r.name} ({r.unit})</option>)}
+                                                    {newTransfer.itemType === 'prep' && prepItems.map(p => <option key={p.id} value={p.id}>{p.name} ({p.unit})</option>)}
+                                                    {newTransfer.itemType === 'custom' && (
+                                                        <>
+                                                            <option value="new">+ Enter Manually / Add Custom Item --</option>
+                                                            {customInventoryItems.map(i => <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}
+                                                        </>
+                                                    )}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {newTransfer.itemType === 'custom' && newTransfer.itemId === 'new' && (
+                                            <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#0284c7' }}>Manual Custom Item Parameters</span>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Item Name (e.g. Spoon)"
+                                                        value={newTransfer.manualItemName}
+                                                        onChange={e => setNewTransfer({ ...newTransfer, manualItemName: e.target.value })}
+                                                        style={{ flex: 2, padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                                                        required
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Unit (pcs)"
+                                                        value={newTransfer.manualItemUnit}
+                                                        onChange={e => setNewTransfer({ ...newTransfer, manualItemUnit: e.target.value })}
+                                                        style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'center' }}
+                                                        required
+                                                    />
+                                                    <input
+                                                        type="number"
+                                                        placeholder="Cost per unit"
+                                                        value={newTransfer.manualItemPrice}
+                                                        onChange={e => setNewTransfer({ ...newTransfer, manualItemPrice: e.target.value })}
+                                                        style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                                                        required
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div style={{ display: 'flex', gap: '12px' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Quantity Transferred</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.001"
+                                                    placeholder="Qty"
+                                                    value={newTransfer.quantity}
+                                                    onChange={e => setNewTransfer({ ...newTransfer, quantity: e.target.value })}
+                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                                    required
+                                                />
+                                            </div>
+
+                                            {!(newTransfer.itemType === 'custom' && newTransfer.itemId === 'new') && (
+                                                <div style={{ flex: 1.5 }}>
+                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Manual Price Override (Optional)</label>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        placeholder={newTransfer.itemId ? `Default: ₹${getItemDefaultPrice(newTransfer.itemId, newTransfer.itemType).toFixed(2)}` : "Price per unit"}
+                                                        value={newTransfer.priceOverride}
+                                                        onChange={e => setNewTransfer({ ...newTransfer, priceOverride: e.target.value })}
+                                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            style={{
+                                                marginTop: '10px',
+                                                background: '#0ea5e9',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                padding: '12px',
+                                                fontWeight: '800',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            🚚 Log Stock Transfer
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem' }}>
+                                    <h3 style={{ margin: '0 0 10px 0', color: '#0f172a', fontWeight: '800' }}>ℹ️ Transfer Information</h3>
+                                    <p style={{ color: '#475569', fontSize: '0.85rem', lineHeight: '1.6' }}>
+                                        Use this panel to initiate transfers. Once a transfer is submitted, it goes into the log with status <strong>"Sent"</strong>.
+                                    </p>
+                                    <p style={{ color: '#475569', fontSize: '0.85rem', lineHeight: '1.6' }}>
+                                        To calculate stock level properly, the outlet manager must check the <strong>Transfer Logs</strong> tab and click <strong>"Receive"</strong> once the shipment physically arrives at the store.
+                                    </p>
+                                    {newTransfer.itemId && newTransfer.itemId !== 'new' && (
+                                        <div style={{ marginTop: '1.5rem', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '12px', padding: '12px' }}>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#0369a1', textTransform: 'uppercase' }}>Selected Item Valuation</span>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '0.85rem', fontWeight: '700' }}>
+                                                <span>Default Unit Cost:</span>
+                                                <span>₹{getItemDefaultPrice(newTransfer.itemId, newTransfer.itemType).toFixed(2)}</span>
+                                            </div>
+                                            {newTransfer.priceOverride && (
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '0.85rem', fontWeight: '700', color: '#b45309' }}>
+                                                    <span>Overridden Cost:</span>
+                                                    <span>₹{parseFloat(newTransfer.priceOverride).toFixed(2)}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SUB TAB: STOCK SHEET */}
+                        {transfersSubTab === 'stockSheet' && (
+                            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                        <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569' }}>Select Outlet:</label>
+                                        <select
+                                            value={selectedOutletId}
+                                            onChange={e => setSelectedOutletId(e.target.value)}
+                                            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', fontWeight: '700' }}
+                                        >
+                                            {destinations.map(d => <option key={d.id} value={d.id}>{d.name} ({d.city})</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '700' }}>
+                                            Formula: Closing Stock = Opening + Transferred + Local Purchase - Sales - Wastage
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div style={{ overflowX: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                        <thead>
+                                            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
+                                                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '800', color: '#475569' }}>Item Type</th>
+                                                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '800', color: '#475569' }}>Item Name</th>
+                                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '800', color: '#475569' }}>Unit</th>
+                                                <th style={{ padding: '12px', textAlign: 'right', fontWeight: '800', color: '#475569' }}>Cost/Unit</th>
+                                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '800', color: '#475569', width: '100px' }}>Opening Stock</th>
+                                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '800', color: '#475569' }}>Transferred (Recv)</th>
+                                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '800', color: '#475569' }}>Local Purchase</th>
+                                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '800', color: '#475569' }}>Sold (Daily Sales)</th>
+                                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '800', color: '#475569', width: '100px' }}>Wastage</th>
+                                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '800', color: '#475569' }}>Closing Stock</th>
+                                                <th style={{ padding: '12px', textAlign: 'right', fontWeight: '800', color: '#475569' }}>Stock Value</th>
+                                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '800', color: '#475569' }}>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {[
+                                                ...products.map(p => ({ ...p, itemType: 'product' })),
+                                                ...rawMaterials.map(r => ({ ...r, itemType: 'raw' })),
+                                                ...customInventoryItems.map(i => ({ ...i, itemType: 'custom' }))
+                                            ].map((item, idx) => {
+                                                const docId = `${selectedOutletId}_${item.id}`;
+                                                const stockRecord = inventoryStocks.find(s => s.id === docId) || { openingStock: 0, soldQty: 0, wastage: 0 };
+                                                
+                                                const currentEdit = editedStocks[docId] || {};
+                                                const opStock = currentEdit.openingStock !== undefined ? currentEdit.openingStock : (stockRecord.openingStock || 0);
+                                                const waste = currentEdit.wastage !== undefined ? currentEdit.wastage : (stockRecord.wastage || 0);
+
+                                                // Received Transferred sum
+                                                const totalTransferred = transfers
+                                                    .filter(t => t.destinationOutletId === selectedOutletId && t.itemId === item.id && t.itemType === item.itemType && t.status === 'Received')
+                                                    .reduce((sum, t) => sum + (parseFloat(t.quantity) || 0), 0);
+
+                                                // Local Purchase sum
+                                                const totalLocal = localPurchases
+                                                    .filter(lp => lp.outletId === selectedOutletId && lp.itemId === item.id && lp.itemType === item.itemType)
+                                                    .reduce((sum, lp) => sum + (parseFloat(lp.quantity) || 0), 0);
+
+                                                // Daily Sales sum
+                                                const totalSold = dailySales
+                                                    .filter(s => s.outletId === selectedOutletId && s.itemId === item.id && s.itemType === item.itemType)
+                                                    .reduce((sum, s) => sum + (parseFloat(s.quantitySold) || 0), 0);
+
+                                                const unitCost = getItemDefaultPrice(item.id, item.itemType);
+                                                const closingStock = (parseFloat(opStock) || 0) + totalTransferred + totalLocal - totalSold - (parseFloat(waste) || 0);
+                                                const stockVal = closingStock * unitCost;
+
+                                                return (
+                                                    <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                                                        <td style={{ padding: '10px' }}>
+                                                            {item.itemType === 'product' ? '🛍️ Menu Item' : item.itemType === 'raw' ? '🌾 Raw Material' : '📦 Custom Item'}
+                                                        </td>
+                                                        <td style={{ padding: '10px', fontWeight: '700' }}>{item.name}</td>
+                                                        <td style={{ padding: '10px', textAlign: 'center' }}>{getItemUnit(item.id, item.itemType)}</td>
+                                                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: '600' }}>₹{unitCost.toFixed(2)}</td>
+                                                        <td style={{ padding: '10px', textAlign: 'center' }}>
+                                                            <input
+                                                                type="number"
+                                                                value={opStock}
+                                                                onChange={e => setEditedStocks({
+                                                                    ...editedStocks,
+                                                                    [docId]: { ...currentEdit, openingStock: e.target.value }
+                                                                })}
+                                                                style={{ width: '80px', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', textAlign: 'center' }}
+                                                            />
+                                                        </td>
+                                                        <td style={{ padding: '10px', textAlign: 'center', fontWeight: '600', color: '#0369a1' }}>
+                                                            {totalTransferred > 0 ? `+${totalTransferred.toFixed(1)}` : '0'}
+                                                        </td>
+                                                        <td style={{ padding: '10px', textAlign: 'center', fontWeight: '600', color: '#0d9488' }}>
+                                                            {totalLocal > 0 ? `+${totalLocal.toFixed(1)}` : '0'}
+                                                        </td>
+                                                        <td style={{ padding: '10px', textAlign: 'center', fontWeight: '600', color: '#e11d48' }}>
+                                                            {totalSold > 0 ? `-${totalSold.toFixed(1)}` : '0'}
+                                                        </td>
+                                                        <td style={{ padding: '10px', textAlign: 'center' }}>
+                                                            <input
+                                                                type="number"
+                                                                value={waste}
+                                                                onChange={e => setEditedStocks({
+                                                                    ...editedStocks,
+                                                                    [docId]: { ...currentEdit, wastage: e.target.value }
+                                                                })}
+                                                                style={{ width: '80px', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', textAlign: 'center' }}
+                                                            />
+                                                        </td>
+                                                        <td style={{ padding: '10px', textAlign: 'center', fontWeight: '800', color: closingStock < 0 ? '#ef4444' : '#1e293b' }}>
+                                                            {closingStock.toFixed(2)}
+                                                        </td>
+                                                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: '800', color: '#0f172a' }}>
+                                                            ₹{stockVal.toFixed(2)}
+                                                        </td>
+                                                        <td style={{ padding: '10px', textAlign: 'center' }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleSaveInventoryStock(selectedOutletId, item.id, item.itemType, opStock, totalSold, waste)}
+                                                                style={{ background: '#0d9488', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 12px', fontWeight: '700', cursor: 'pointer', fontSize: '0.75rem' }}
+                                                            >
+                                                                Save
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SUB TAB: DAILY SALES */}
+                        {transfersSubTab === 'dailySales' && (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '1.5rem' }}>
+                                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                                    <h3 style={{ margin: '0 0 10px 0', color: '#0f172a', fontWeight: '800' }}>📈 Log Outlet Daily Sales / Utilisation</h3>
+                                    <form onSubmit={handleCreateDailySale} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Select Outlet</label>
+                                            <select
+                                                value={newDailySale.outletId}
+                                                onChange={e => setNewDailySale({ ...newDailySale, outletId: e.target.value })}
+                                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
+                                                required
+                                            >
+                                                <option value="">-- Choose Outlet --</option>
+                                                {destinations.map(d => <option key={d.id} value={d.id}>{d.name} ({d.city})</option>)}
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Sales Date</label>
+                                            <input
+                                                type="date"
+                                                value={newDailySale.date}
+                                                onChange={e => setNewDailySale({ ...newDailySale, date: e.target.value })}
+                                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '12px' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Item Type</label>
+                                                <select
+                                                    value={newDailySale.itemType}
+                                                    onChange={e => setNewDailySale({ ...newDailySale, itemType: e.target.value, itemId: '' })}
+                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
+                                                >
+                                                    <option value="product">🛍️ Final Product</option>
+                                                    <option value="raw">🌾 Raw Material / Packaging</option>
+                                                    <option value="custom">📦 Custom Inventory Item</option>
+                                                </select>
+                                            </div>
+
+                                            <div style={{ flex: 2 }}>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Select Item</label>
+                                                <select
+                                                    value={newDailySale.itemId}
+                                                    onChange={e => setNewDailySale({ ...newDailySale, itemId: e.target.value })}
+                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
+                                                    required
+                                                >
+                                                    <option value="">-- Choose Item --</option>
+                                                    {newDailySale.itemType === 'product' && products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                                    {newDailySale.itemType === 'raw' && rawMaterials.map(r => <option key={r.id} value={r.id}>{r.name} ({r.unit})</option>)}
+                                                    {newDailySale.itemType === 'custom' && customInventoryItems.map(i => <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '12px' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Quantity Sold</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.001"
+                                                    placeholder="Qty"
+                                                    value={newDailySale.quantitySold}
+                                                    onChange={e => setNewDailySale({ ...newDailySale, quantitySold: e.target.value })}
+                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                                    required
+                                                />
+                                            </div>
+
+                                            <div style={{ flex: 1 }}>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Revenue Realised (₹)</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    placeholder="Total sales amount"
+                                                    value={newDailySale.revenue}
+                                                    onChange={e => setNewDailySale({ ...newDailySale, revenue: e.target.value })}
+                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            style={{
+                                                marginTop: '10px',
+                                                background: '#0d9488',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                padding: '12px',
+                                                fontWeight: '800',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            💾 Save Daily Sales Log
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem' }}>
+                                    <h3 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontWeight: '800' }}>📜 Daily Sales Logs</h3>
+                                    <div style={{ overflowX: 'auto', maxHeight: '450px', overflowY: 'auto' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                                            <thead>
+                                                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1' }}>
+                                                    <th style={{ padding: '8px', textAlign: 'left' }}>Date</th>
+                                                    <th style={{ padding: '8px', textAlign: 'left' }}>Outlet</th>
+                                                    <th style={{ padding: '8px', textAlign: 'left' }}>Item Details</th>
+                                                    <th style={{ padding: '8px', textAlign: 'center' }}>Qty Sold</th>
+                                                    <th style={{ padding: '8px', textAlign: 'right' }}>Revenue</th>
+                                                    <th style={{ padding: '8px', textAlign: 'center' }}>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {dailySales.map((sale, idx) => {
+                                                    const outlet = destinations.find(d => d.id === sale.outletId);
+                                                    return (
+                                                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                            <td style={{ padding: '8px' }}>{sale.date}</td>
+                                                            <td style={{ padding: '8px', fontWeight: '600' }}>{outlet ? outlet.name : 'Unknown Outlet'}</td>
+                                                            <td style={{ padding: '8px' }}>{getItemName(sale.itemId, sale.itemType)}</td>
+                                                            <td style={{ padding: '8px', textAlign: 'center' }}>{sale.quantitySold} {getItemUnit(sale.itemId, sale.itemType)}</td>
+                                                            <td style={{ padding: '8px', textAlign: 'right', fontWeight: '600' }}>₹{(sale.revenue || 0).toFixed(2)}</td>
+                                                            <td style={{ padding: '8px', textAlign: 'center' }}>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDeleteDailySale(sale.id)}
+                                                                    style={{ border: 'none', background: '#ef4444', color: 'white', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '0.7rem' }}
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                                {dailySales.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No sales logged yet.</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SUB TAB: CUSTOM ITEMS */}
+                        {transfersSubTab === 'customItems' && (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '1.5rem' }}>
+                                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                                    <h3 style={{ margin: '0 0 10px 0', color: '#0f172a', fontWeight: '800' }}>📦 Add Custom Non-Food Inventory Item</h3>
+                                    <form onSubmit={handleCreateCustomInventoryItem} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Item Name</label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. Spoons, Straws, Carry bags"
+                                                value={newCustomItem.name}
+                                                onChange={e => setNewCustomItem({ ...newCustomItem, name: e.target.value })}
+                                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '12px' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Measurement Unit</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="pcs, pack, box"
+                                                    value={newCustomItem.unit}
+                                                    onChange={e => setNewCustomItem({ ...newCustomItem, unit: e.target.value })}
+                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                                    required
+                                                />
+                                            </div>
+
+                                            <div style={{ flex: 1.5 }}>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Default Cost per unit (₹)</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.001"
+                                                    placeholder="e.g. 1.50"
+                                                    value={newCustomItem.defaultCost}
+                                                    onChange={e => setNewCustomItem({ ...newCustomItem, defaultCost: e.target.value })}
+                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            style={{
+                                                marginTop: '10px',
+                                                background: '#0ea5e9',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                padding: '12px',
+                                                fontWeight: '800',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            ➕ Save Custom Item
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem' }}>
+                                    <h3 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontWeight: '800' }}>📦 Registered Custom/Non-Food Items</h3>
+                                    <div style={{ overflowX: 'auto', maxHeight: '450px', overflowY: 'auto' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                            <thead>
+                                                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1' }}>
+                                                    <th style={{ padding: '10px', textAlign: 'left' }}>Item Name</th>
+                                                    <th style={{ padding: '10px', textAlign: 'center' }}>Unit</th>
+                                                    <th style={{ padding: '10px', textAlign: 'right' }}>Default Cost</th>
+                                                    <th style={{ padding: '10px', textAlign: 'center' }}>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {customInventoryItems.map((item, idx) => (
+                                                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                        <td style={{ padding: '10px', fontWeight: '700' }}>{item.name}</td>
+                                                        <td style={{ padding: '10px', textAlign: 'center' }}>{item.unit}</td>
+                                                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: '600' }}>₹{(item.defaultCost || 0).toFixed(2)}</td>
+                                                        <td style={{ padding: '10px', textAlign: 'center' }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDeleteCustomInventoryItem(item.id)}
+                                                                style={{ border: 'none', background: '#ef4444', color: 'white', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '0.75rem' }}
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {customInventoryItems.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan="4" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No custom items added yet.</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SUB TAB: STOCK SUMMARY */}
+                        {transfersSubTab === 'stockSummary' && (() => {
+                            const [filterOutlet, setFilterOutlet] = useState('All');
+                            const [sortBy, setSortBy] = useState('name'); // 'name' | 'value'
+
+                            // Compile items lists
+                            const allItems = [
+                                ...products.map(p => ({ ...p, itemType: 'product' })),
+                                ...rawMaterials.map(r => ({ ...r, itemType: 'raw' })),
+                                ...customInventoryItems.map(i => ({ ...i, itemType: 'custom' }))
+                            ];
+
+                            // Gather stock metrics per item per outlet
+                            const summaryData = [];
+                            destinations.forEach(outlet => {
+                                if (filterOutlet !== 'All' && outlet.id !== filterOutlet) return;
+                                
+                                allItems.forEach(item => {
+                                    const docId = `${outlet.id}_${item.id}`;
+                                    const stockRecord = inventoryStocks.find(s => s.id === docId) || { openingStock: 0, soldQty: 0, wastage: 0 };
+                                    
+                                    const opStock = stockRecord.openingStock || 0;
+                                    const waste = stockRecord.wastage || 0;
+
+                                    const totalTransferred = transfers
+                                        .filter(t => t.destinationOutletId === outlet.id && t.itemId === item.id && t.itemType === item.itemType && t.status === 'Received')
+                                        .reduce((sum, t) => sum + (parseFloat(t.quantity) || 0), 0);
+
+                                    const totalLocal = localPurchases
+                                        .filter(lp => lp.outletId === outlet.id && lp.itemId === item.id && lp.itemType === item.itemType)
+                                        .reduce((sum, lp) => sum + (parseFloat(lp.quantity) || 0), 0);
+
+                                    const totalSold = dailySales
+                                        .filter(s => s.outletId === outlet.id && s.itemId === item.id && s.itemType === item.itemType)
+                                        .reduce((sum, s) => sum + (parseFloat(s.quantitySold) || 0), 0);
+
+                                    const unitCost = getItemDefaultPrice(item.id, item.itemType);
+                                    const closingStock = opStock + totalTransferred + totalLocal - totalSold - waste;
+                                    const stockVal = closingStock * unitCost;
+
+                                    if (closingStock !== 0 || opStock !== 0 || totalTransferred !== 0 || totalLocal !== 0 || totalSold !== 0) {
+                                        summaryData.push({
+                                            outletName: outlet.name,
+                                            itemName: item.name,
+                                            itemType: item.itemType === 'product' ? 'Menu Item' : item.itemType === 'raw' ? 'Raw Material' : 'Custom Item',
+                                            unit: getItemUnit(item.id, item.itemType),
+                                            unitCost,
+                                            closingStock,
+                                            stockVal
+                                        });
+                                    }
+                                });
+                            });
+
+                            // Sorting logic
+                            summaryData.sort((a, b) => {
+                                if (sortBy === 'name') {
+                                    return a.itemName.localeCompare(b.itemName);
+                                } else {
+                                    return b.stockVal - a.stockVal;
+                                }
+                            });
+
+                            const grandTotalValue = summaryData.reduce((sum, d) => sum + d.stockVal, 0);
+
+                            return (
+                                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                                        <div style={{ display: 'flex', gap: '12px' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Filter by Outlet</label>
+                                                <select
+                                                    value={filterOutlet}
+                                                    onChange={e => setFilterOutlet(e.target.value)}
+                                                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', fontWeight: '700' }}
+                                                >
+                                                    <option value="All">🌐 All Outlets</option>
+                                                    {destinations.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Sort by</label>
+                                                <select
+                                                    value={sortBy}
+                                                    onChange={e => setSortBy(e.target.value)}
+                                                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', fontWeight: '700' }}
+                                                >
+                                                    <option value="name">🔤 Item Name</option>
+                                                    <option value="value">💰 Stock Value (High to Low)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ background: '#f0f9ff', padding: '12px 20px', borderRadius: '12px', border: '1px solid #bae6fd', textAlign: 'right' }}>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#0369a1', textTransform: 'uppercase' }}>Total Consolidated Valuation</span>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#0c4a6e' }}>₹{grandTotalValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ overflowX: 'auto' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                            <thead>
+                                                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
+                                                    <th style={{ padding: '10px', textAlign: 'left' }}>Outlet</th>
+                                                    <th style={{ padding: '10px', textAlign: 'left' }}>Item Type</th>
+                                                    <th style={{ padding: '10px', textAlign: 'left' }}>Item Name</th>
+                                                    <th style={{ padding: '10px', textAlign: 'center' }}>Unit</th>
+                                                    <th style={{ padding: '10px', textAlign: 'right' }}>Cost / Unit</th>
+                                                    <th style={{ padding: '10px', textAlign: 'center' }}>Closing Stock</th>
+                                                    <th style={{ padding: '10px', textAlign: 'right' }}>Stock Valuation</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {summaryData.map((row, idx) => (
+                                                    <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                                                        <td style={{ padding: '10px', fontWeight: '700' }}>{row.outletName}</td>
+                                                        <td style={{ padding: '10px', color: '#64748b' }}>{row.itemType}</td>
+                                                        <td style={{ padding: '10px', fontWeight: '700' }}>{row.itemName}</td>
+                                                        <td style={{ padding: '10px', textAlign: 'center' }}>{row.unit}</td>
+                                                        <td style={{ padding: '10px', textAlign: 'right' }}>₹{row.unitCost.toFixed(2)}</td>
+                                                        <td style={{ padding: '10px', textAlign: 'center', fontWeight: '700', color: row.closingStock < 0 ? '#ef4444' : '#1e293b' }}>
+                                                            {row.closingStock.toFixed(2)}
+                                                        </td>
+                                                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: '800' }}>₹{row.stockVal.toFixed(2)}</td>
+                                                    </tr>
+                                                ))}
+                                                {summaryData.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>No stock data matches filters.</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
+                        {/* SUB TAB: LOCAL PURCHASES */}
+                        {transfersSubTab === 'localPurchases' && (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '1.5rem' }}>
+                                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                                    <h3 style={{ margin: '0 0 10px 0', color: '#0f172a', fontWeight: '800' }}>💸 Log Outlet Local Purchase</h3>
+                                    <form onSubmit={handleCreateLocalPurchase} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Select Outlet</label>
+                                            <select
+                                                value={newLocalPurchase.outletId}
+                                                onChange={e => setNewLocalPurchase({ ...newLocalPurchase, outletId: e.target.value })}
+                                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
+                                                required
+                                            >
+                                                <option value="">-- Choose Outlet --</option>
+                                                {destinations.map(d => <option key={d.id} value={d.id}>{d.name} ({d.city})</option>)}
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Purchase Date</label>
+                                            <input
+                                                type="date"
+                                                value={newLocalPurchase.date}
+                                                onChange={e => setNewLocalPurchase({ ...newLocalPurchase, date: e.target.value })}
+                                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '12px' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Item Type</label>
+                                                <select
+                                                    value={newLocalPurchase.itemType}
+                                                    onChange={e => setNewLocalPurchase({ ...newLocalPurchase, itemType: e.target.value, itemId: '' })}
+                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
+                                                >
+                                                    <option value="raw">🌾 Raw Material / Packaging</option>
+                                                    <option value="product">🛍️ Final Product</option>
+                                                    <option value="custom">📦 Custom Item</option>
+                                                </select>
+                                            </div>
+
+                                            <div style={{ flex: 2 }}>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Select Item</label>
+                                                <select
+                                                    value={newLocalPurchase.itemId}
+                                                    onChange={e => setNewLocalPurchase({ ...newLocalPurchase, itemId: e.target.value })}
+                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
+                                                    required
+                                                >
+                                                    <option value="">-- Choose Item --</option>
+                                                    {newLocalPurchase.itemType === 'product' && products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                                    {newLocalPurchase.itemType === 'raw' && rawMaterials.map(r => <option key={r.id} value={r.id}>{r.name} ({r.unit})</option>)}
+                                                    {newLocalPurchase.itemType === 'custom' && customInventoryItems.map(i => <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '12px' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Quantity Bought</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.001"
+                                                    placeholder="Qty"
+                                                    value={newLocalPurchase.quantity}
+                                                    onChange={e => setNewLocalPurchase({ ...newLocalPurchase, quantity: e.target.value })}
+                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                                    required
+                                                />
+                                            </div>
+
+                                            <div style={{ flex: 1 }}>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Unit Cost (₹)</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    placeholder="Price per unit"
+                                                    value={newLocalPurchase.price}
+                                                    onChange={e => setNewLocalPurchase({ ...newLocalPurchase, price: e.target.value })}
+                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            style={{
+                                                marginTop: '10px',
+                                                background: '#0d9488',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                padding: '12px',
+                                                fontWeight: '800',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            💾 Save Local Purchase
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem' }}>
+                                    <h3 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontWeight: '800' }}>📜 Local Purchase Logs</h3>
+                                    <div style={{ overflowX: 'auto', maxHeight: '450px', overflowY: 'auto' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                                            <thead>
+                                                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1' }}>
+                                                    <th style={{ padding: '8px', textAlign: 'left' }}>Date</th>
+                                                    <th style={{ padding: '8px', textAlign: 'left' }}>Outlet</th>
+                                                    <th style={{ padding: '8px', textAlign: 'left' }}>Item</th>
+                                                    <th style={{ padding: '8px', textAlign: 'center' }}>Qty</th>
+                                                    <th style={{ padding: '8px', textAlign: 'right' }}>Price</th>
+                                                    <th style={{ padding: '8px', textAlign: 'center' }}>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {localPurchases.map((lp, idx) => {
+                                                    const outlet = destinations.find(d => d.id === lp.outletId);
+                                                    return (
+                                                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                            <td style={{ padding: '8px' }}>{lp.date}</td>
+                                                            <td style={{ padding: '8px', fontWeight: '600' }}>{outlet ? outlet.name : 'Unknown Outlet'}</td>
+                                                            <td style={{ padding: '8px' }}>{getItemName(lp.itemId, lp.itemType)}</td>
+                                                            <td style={{ padding: '8px', textAlign: 'center' }}>{lp.quantity} {getItemUnit(lp.itemId, lp.itemType)}</td>
+                                                            <td style={{ padding: '8px', textAlign: 'right', fontWeight: '600' }}>₹{(lp.price || 0).toFixed(2)}</td>
+                                                            <td style={{ padding: '8px', textAlign: 'center' }}>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDeleteLocalPurchase(lp.id)}
+                                                                    style={{ border: 'none', background: '#ef4444', color: 'white', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '0.7rem' }}
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                                {localPurchases.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No local purchases logged yet.</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SUB TAB: TRANSFER LOGS */}
+                        {transfersSubTab === 'logs' && (
+                            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem' }}>
+                                <h3 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontWeight: '800' }}>📜 Kitchen to Outlet Transfer History</h3>
+                                <div style={{ overflowX: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                                        <thead>
+                                            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
+                                                <th style={{ padding: '10px', textAlign: 'left' }}>Sent Date/Time</th>
+                                                <th style={{ padding: '10px', textAlign: 'left' }}>Kitchen</th>
+                                                <th style={{ padding: '10px', textAlign: 'left' }}>Outlet Destination</th>
+                                                <th style={{ padding: '10px', textAlign: 'left' }}>Item Details</th>
+                                                <th style={{ padding: '10px', textAlign: 'center' }}>Qty</th>
+                                                <th style={{ padding: '10px', textAlign: 'right' }}>Transfer Unit Price</th>
+                                                <th style={{ padding: '10px', textAlign: 'right' }}>Total Value</th>
+                                                <th style={{ padding: '10px', textAlign: 'center' }}>Status</th>
+                                                <th style={{ padding: '10px', textAlign: 'center' }}>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {transfers.map((t, idx) => {
+                                                const srcK = kitchensList.find(k => k.id === t.sourceKitchenId);
+                                                const destO = destinations.find(d => d.id === t.destinationOutletId);
+                                                const unitPrice = t.priceOverride !== null && t.priceOverride !== undefined
+                                                    ? t.priceOverride
+                                                    : getItemDefaultPrice(t.itemId, t.itemType);
+                                                const totalVal = (parseFloat(t.quantity) || 0) * unitPrice;
+
+                                                return (
+                                                    <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                                                        <td style={{ padding: '10px' }}>{new Date(t.sentAt).toLocaleString()}</td>
+                                                        <td style={{ padding: '10px' }}>{srcK ? srcK.name : 'Central Kitchen'}</td>
+                                                        <td style={{ padding: '10px', fontWeight: '700' }}>{destO ? destO.name : 'Unknown Outlet'}</td>
+                                                        <td style={{ padding: '10px' }}>{getItemName(t.itemId, t.itemType)}</td>
+                                                        <td style={{ padding: '10px', textAlign: 'center', fontWeight: '700' }}>{t.quantity}</td>
+                                                        <td style={{ padding: '10px', textAlign: 'right' }}>₹{unitPrice.toFixed(2)}</td>
+                                                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: '700' }}>₹{totalVal.toFixed(2)}</td>
+                                                        <td style={{ padding: '10px', textAlign: 'center' }}>
+                                                            <span
+                                                                style={{
+                                                                    padding: '4px 8px',
+                                                                    borderRadius: '20px',
+                                                                    fontSize: '0.7rem',
+                                                                    fontWeight: '800',
+                                                                    background: t.status === 'Received' ? '#d1fae5' : '#fef3c7',
+                                                                    color: t.status === 'Received' ? '#065f46' : '#92400e'
+                                                                }}
+                                                            >
+                                                                {t.status}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ padding: '10px', textAlign: 'center' }}>
+                                                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                                                                {t.status === 'Sent' && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleUpdateTransferStatus(t.id, 'Received')}
+                                                                        style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.7rem' }}
+                                                                    >
+                                                                        Receive
+                                                                    </button>
+                                                                )}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDeleteTransfer(t.id)}
+                                                                    style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.7rem' }}
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                            {transfers.length === 0 && (
+                                                <tr>
+                                                    <td colSpan="9" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>No transfers logged yet.</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
+
+            {activeTab === 'finance' && (() => {
+                const destinations = runningFranchises || [];
+                const currentOutlet = destinations.find(d => d.id === selectedOutletId);
+
+                // Helper to get unit price of items
+                const getItemDefaultPrice = (itemId, type) => {
+                    if (type === 'raw' || type === 'prep') {
+                        const raw = rawMaterials.find(r => r.id === itemId);
+                        return raw ? getRawMaterialUnitPriceLocal(raw) : 0;
+                    } else if (type === 'product') {
+                        const prod = products.find(p => p.id === itemId);
+                        if (!prod) return 0;
+                        const recipeCost = getProductRecipeCostLocal(prod.id, -1);
+                        return recipeCost.totalUnitCost || parseFloat(prod.price) || 0;
+                    } else if (type === 'custom') {
+                        const item = customInventoryItems.find(i => i.id === itemId);
+                        return item ? parseFloat(item.defaultCost) || 0 : 0;
+                    }
+                    return 0;
+                };
+
+                const getItemName = (itemId, type) => {
+                    if (type === 'raw') {
+                        const raw = rawMaterials.find(r => r.id === itemId);
+                        return raw ? `${raw.name} (${raw.unit})` : 'Unknown Raw Material';
+                    } else if (type === 'product') {
+                        const prod = products.find(p => p.id === itemId);
+                        return prod ? `${prod.name}` : 'Unknown Product';
+                    } else if (type === 'prep') {
+                        const raw = rawMaterials.find(r => r.id === itemId);
+                        return raw ? `${raw.name} (${raw.unit})` : 'Unknown Prep Item';
+                    } else if (type === 'custom') {
+                        const item = customInventoryItems.find(i => i.id === itemId);
+                        return item ? `${item.name} (${item.unit})` : 'Unknown Custom Item';
+                    }
+                    return 'Unknown Item';
+                };
+
+                // Calculate total food cost transferred to the selected outlet
+                const activeTransfers = transfers.filter(t => t.destinationOutletId === selectedOutletId && t.status === 'Received');
+                const totalFoodCostTransferred = activeTransfers.reduce((sum, t) => {
+                    const price = t.priceOverride !== null && t.priceOverride !== undefined
+                        ? t.priceOverride
+                        : getItemDefaultPrice(t.itemId, t.itemType);
+                    return sum + (parseFloat(t.quantity) || 0) * price;
+                }, 0);
+
+                // Transactions history for selected outlet
+                const outletTxHistory = franchiseTransactions.filter(tx => tx.outletId === selectedOutletId);
+
+                // Sum of payments received
+                const totalPaymentsReceived = outletTxHistory
+                    .filter(tx => tx.type === 'Payment Received')
+                    .reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0);
+
+                // Sum of debit adjustments
+                const totalDebits = outletTxHistory
+                    .filter(tx => tx.type === 'Debit Adjustment')
+                    .reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0);
+
+                // Sum of credit adjustments
+                const totalCredits = outletTxHistory
+                    .filter(tx => tx.type === 'Credit Adjustment')
+                    .reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0);
+
+                // Outstanding balance: Food Cost + Debits - Payments - Credits
+                const outstandingBalance = totalFoodCostTransferred + totalDebits - totalPaymentsReceived - totalCredits;
+
+                return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1.5rem', background: '#f8fafc', minHeight: '80vh', borderRadius: '16px', border: '1px solid #cbd5e1' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                            <div>
+                                <h2 style={{ margin: 0, color: '#0f172a', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    💰 Franchise Accounts & Outstanding Finance
+                                </h2>
+                                <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.875rem' }}>
+                                    Track food cost debt, log payments received, and manage credits/debits per franchise outlet.
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569' }}>Select Outlet:</label>
+                                <select
+                                    value={selectedOutletId}
+                                    onChange={e => setSelectedOutletId(e.target.value)}
+                                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', fontWeight: '700' }}
+                                >
+                                    {destinations.map(d => <option key={d.id} value={d.id}>{d.name} ({d.city})</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Financial Indicators Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.2rem' }}>
+                            <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1.2rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>🚚 Total Food Cost (Delivered)</span>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#0284c7', marginTop: '6px' }}>₹{totalFoodCostTransferred.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Based on received transfers</span>
+                            </div>
+
+                            <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1.2rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>💸 Payments Received</span>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#10b981', marginTop: '6px' }}>₹{totalPaymentsReceived.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Logged payment history</span>
+                            </div>
+
+                            <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1.2rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>📈 Adjustments (Net Net)</span>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#f59e0b', marginTop: '6px' }}>₹{(totalDebits - totalCredits).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Debits: ₹{totalDebits.toFixed(0)} | Credits: ₹{totalCredits.toFixed(0)}</span>
+                            </div>
+
+                            <div style={{ background: '#fef2f2', borderRadius: '12px', border: '1px solid #fee2e2', padding: '1.2rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#ef4444', textTransform: 'uppercase' }}>🚨 Net Outstanding Balance</span>
+                                <div style={{ fontSize: '1.6rem', fontWeight: '900', color: outstandingBalance > 0 ? '#b91c1c' : '#15803d', marginTop: '6px' }}>
+                                    ₹{outstandingBalance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                </div>
+                                <span style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: '700' }}>
+                                    {outstandingBalance > 0 ? '⚠️ Pending Payment' : '✅ Clear / Credit Balance'}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Transactions Section */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '1.5rem' }}>
+                            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                                <h3 style={{ margin: '0 0 10px 0', color: '#0f172a', fontWeight: '800' }}>💰 Log Payment / Adjustments</h3>
+                                <form onSubmit={handleCreateFranchiseTransaction} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Date</label>
+                                        <input
+                                            type="date"
+                                            value={newFranchiseTransaction.date}
+                                            onChange={e => setNewFranchiseTransaction({ ...newFranchiseTransaction, date: e.target.value })}
+                                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Transaction Type</label>
+                                        <select
+                                            value={newFranchiseTransaction.type}
+                                            onChange={e => setNewFranchiseTransaction({ ...newFranchiseTransaction, type: e.target.value })}
+                                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
+                                            required
+                                        >
+                                            <option value="Payment Received">💚 Payment Received (Reduces Balance)</option>
+                                            <option value="Debit Adjustment">⚠️ Debit Adjustment (Increases Balance / Add Debt)</option>
+                                            <option value="Credit Adjustment">💙 Credit Adjustment (Reduces Balance / Waiver)</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Amount (₹)</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="Enter amount"
+                                            value={newFranchiseTransaction.amount}
+                                            onChange={e => setNewFranchiseTransaction({ ...newFranchiseTransaction, amount: e.target.value })}
+                                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Reference / Notes</label>
+                                        <textarea
+                                            placeholder="Transaction notes (e.g. Bank Transfer Ref, Cash Receipt #)"
+                                            value={newFranchiseTransaction.notes}
+                                            onChange={e => setNewFranchiseTransaction({ ...newFranchiseTransaction, notes: e.target.value })}
+                                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', minHeight: '80px', fontFamily: 'inherit' }}
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        style={{
+                                            marginTop: '10px',
+                                            background: '#0ea5e9',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            padding: '12px',
+                                            fontWeight: '800',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        💾 Save Transaction
+                                    </button>
+                                </form>
+                            </div>
+
+                            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem' }}>
+                                <h3 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontWeight: '800' }}>📜 Ledger Statement</h3>
+                                <div style={{ overflowX: 'auto', maxHeight: '500px', overflowY: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                                        <thead>
+                                            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
+                                                <th style={{ padding: '8px', textAlign: 'left' }}>Date</th>
+                                                <th style={{ padding: '8px', textAlign: 'left' }}>Transaction Details</th>
+                                                <th style={{ padding: '8px', textAlign: 'right' }}>Debit (Dr)</th>
+                                                <th style={{ padding: '8px', textAlign: 'right' }}>Credit (Cr)</th>
+                                                <th style={{ padding: '8px', textAlign: 'center' }}>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {[
+                                                ...activeTransfers.map(t => {
+                                                    const unitPrice = t.priceOverride !== null && t.priceOverride !== undefined
+                                                        ? t.priceOverride
+                                                        : getItemDefaultPrice(t.itemId, t.itemType);
+                                                    const totalVal = (parseFloat(t.quantity) || 0) * unitPrice;
+                                                    return {
+                                                        id: t.id,
+                                                        date: t.receivedAt ? t.receivedAt.slice(0, 10) : t.sentAt.slice(0, 10),
+                                                        label: `🚚 Food Delivery: ${getItemName(t.itemId, t.itemType)} (Qty: ${t.quantity})`,
+                                                        debit: totalVal,
+                                                        credit: 0,
+                                                        isTransfer: true
+                                                    };
+                                                }),
+                                                ...outletTxHistory.map(tx => ({
+                                                    id: tx.id,
+                                                    date: tx.date,
+                                                    label: `${tx.type === 'Payment Received' ? '💸 Payment Recv' : tx.type === 'Debit Adjustment' ? '⚠️ Debit Adj' : '💙 Credit Adj'} - ${tx.notes}`,
+                                                    debit: tx.type === 'Debit Adjustment' ? tx.amount : 0,
+                                                    credit: (tx.type === 'Payment Received' || tx.type === 'Credit Adjustment') ? tx.amount : 0,
+                                                    isTransfer: false
+                                                }))
+                                            ]
+                                            .sort((a, b) => b.date.localeCompare(a.date))
+                                            .map((row, idx) => (
+                                                <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                                                    <td style={{ padding: '8px' }}>{row.date}</td>
+                                                    <td style={{ padding: '8px', fontWeight: '600' }}>{row.label}</td>
+                                                    <td style={{ padding: '8px', textAlign: 'right', color: row.debit > 0 ? '#b91c1c' : '#94a3b8', fontWeight: row.debit > 0 ? '700' : 'normal' }}>
+                                                        {row.debit > 0 ? `₹${row.debit.toFixed(2)}` : '-'}
+                                                    </td>
+                                                    <td style={{ padding: '8px', textAlign: 'right', color: row.credit > 0 ? '#15803d' : '#94a3b8', fontWeight: row.credit > 0 ? '700' : 'normal' }}>
+                                                        {row.credit > 0 ? `₹${row.credit.toFixed(2)}` : '-'}
+                                                    </td>
+                                                    <td style={{ padding: '8px', textAlign: 'center' }}>
+                                                        {!row.isTransfer ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDeleteFranchiseTransaction(row.id)}
+                                                                style={{ border: 'none', background: '#ef4444', color: 'white', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '0.7rem' }}
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        ) : (
+                                                            <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontStyle: 'italic' }}>Transfer Log</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {activeTransfers.length === 0 && outletTxHistory.length === 0 && (
+                                                <tr>
+                                                    <td colSpan="5" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>No transaction history found.</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            
 
             {activeTab === 'blogs' && (() => {
                 const handleBlogSave = async () => {

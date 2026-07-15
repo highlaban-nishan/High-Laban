@@ -1296,7 +1296,8 @@ const db = {
                 'products', 'raw_materials', 'recipes', 'bundle_items', 'purchases',
                 'kitchens', 'franchises', 'franchise_inquiries', 'locations', 'users',
                 'subscribers', 'payroll', 'vendors', 'transfers', 'local_purchases',
-                'inventory_stock', 'contact_messages', 'worker_applications'
+                'inventory_stock', 'contact_messages', 'worker_applications',
+                'custom_inventory_items', 'daily_sales', 'franchise_transactions'
             ];
             const backup = {};
             await Promise.all(collectionsToBackup.map(async (colName) => {
@@ -1313,6 +1314,117 @@ const db = {
             return backup;
         } catch (error) {
             console.error("Backup error:", error);
+            throw error;
+        }
+    },
+
+    getCustomInventoryItems: async () => {
+        try {
+            const querySnapshot = await getDocs(collection(firestore, 'custom_inventory_items'));
+            const list = [];
+            querySnapshot.forEach((doc) => {
+                list.push({ id: doc.id, ...doc.data() });
+            });
+            return list;
+        } catch (error) {
+            console.error("Error getting custom inventory items:", error);
+            return [];
+        }
+    },
+
+    addCustomInventoryItem: async (item) => {
+        try {
+            const docRef = await addDoc(collection(firestore, 'custom_inventory_items'), {
+                ...item,
+                createdAt: new Date().toISOString()
+            });
+            return { id: docRef.id, ...item };
+        } catch (error) {
+            console.error("Error adding custom inventory item:", error);
+            throw error;
+        }
+    },
+
+    deleteCustomInventoryItem: async (id) => {
+        try {
+            await deleteDoc(doc(firestore, 'custom_inventory_items', id));
+            return true;
+        } catch (error) {
+            console.error("Error deleting custom inventory item:", error);
+            throw error;
+        }
+    },
+
+    getDailySales: async () => {
+        try {
+            const querySnapshot = await getDocs(collection(firestore, 'daily_sales'));
+            const list = [];
+            querySnapshot.forEach((doc) => {
+                list.push({ id: doc.id, ...doc.data() });
+            });
+            return list;
+        } catch (error) {
+            console.error("Error getting daily sales:", error);
+            return [];
+        }
+    },
+
+    addDailySale: async (sale) => {
+        try {
+            const docRef = await addDoc(collection(firestore, 'daily_sales'), {
+                ...sale,
+                createdAt: new Date().toISOString()
+            });
+            return { id: docRef.id, ...sale };
+        } catch (error) {
+            console.error("Error adding daily sale:", error);
+            throw error;
+        }
+    },
+
+    deleteDailySale: async (id) => {
+        try {
+            await deleteDoc(doc(firestore, 'daily_sales', id));
+            return true;
+        } catch (error) {
+            console.error("Error deleting daily sale:", error);
+            throw error;
+        }
+    },
+
+    getFranchiseTransactions: async () => {
+        try {
+            const querySnapshot = await getDocs(collection(firestore, 'franchise_transactions'));
+            const list = [];
+            querySnapshot.forEach((doc) => {
+                list.push({ id: doc.id, ...doc.data() });
+            });
+            return list;
+        } catch (error) {
+            console.error("Error getting franchise transactions:", error);
+            return [];
+        }
+    },
+
+    addFranchiseTransaction: async (tx) => {
+        try {
+            const docRef = await addDoc(collection(firestore, 'franchise_transactions'), {
+                ...tx,
+                createdAt: new Date().toISOString()
+            });
+            return { id: docRef.id, ...tx };
+        } catch (error) {
+            console.error("Error adding franchise transaction:", error);
+            throw error;
+        }
+    },
+
+    deleteFranchiseTransaction: async (id) => {
+        try {
+            await deleteDoc(doc(firestore, 'franchise_transactions', id));
+            return true;
+        } catch (error) {
+            console.error("Error deleting franchise transaction:", error);
             throw error;
         }
     }
