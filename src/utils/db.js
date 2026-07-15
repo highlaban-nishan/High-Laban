@@ -1427,7 +1427,57 @@ const db = {
             console.error("Error deleting franchise transaction:", error);
             throw error;
         }
+    },
+
+    // --- Franchise Cash Management ---
+    getFranchiseCashEntries: async () => {
+        try {
+            const querySnapshot = await getDocs(collection(firestore, 'franchise_cash_entries'));
+            const list = [];
+            querySnapshot.forEach((docSnap) => {
+                list.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            return list.sort((a, b) => new Date(b.date) - new Date(a.date));
+        } catch (error) {
+            console.error("Error getting franchise cash entries:", error);
+            return [];
+        }
+    },
+
+    addFranchiseCashEntry: async (entry) => {
+        try {
+            const docRef = await addDoc(collection(firestore, 'franchise_cash_entries'), {
+                ...entry,
+                createdAt: new Date().toISOString()
+            });
+            return { id: docRef.id, ...entry };
+        } catch (error) {
+            console.error("Error adding franchise cash entry:", error);
+            throw error;
+        }
+    },
+
+    updateFranchiseCashEntry: async (id, entry) => {
+        try {
+            const ref = doc(firestore, 'franchise_cash_entries', id);
+            await updateDoc(ref, { ...entry, updatedAt: new Date().toISOString() });
+            return { id, ...entry };
+        } catch (error) {
+            console.error("Error updating franchise cash entry:", error);
+            throw error;
+        }
+    },
+
+    deleteFranchiseCashEntry: async (id) => {
+        try {
+            await deleteDoc(doc(firestore, 'franchise_cash_entries', id));
+            return true;
+        } catch (error) {
+            console.error("Error deleting franchise cash entry:", error);
+            throw error;
+        }
     }
 };
 
 export default db;
+
