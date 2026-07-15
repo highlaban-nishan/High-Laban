@@ -7631,7 +7631,7 @@ const AdminDashboard = () => {
                         let csvContent = "data:text/csv;charset=utf-8,";
                         csvContent += "Franchise Costing & Price List Export,,,,,,\r\n";
                         csvContent += `Export Date: ${new Date().toLocaleString()},,,,,,\r\n\r\n`;
-                        csvContent += "Product Name,Variant,Franchise Price (+Rs 20),Franchise Price (with 5% GST),Retail Price,Retail Price (with 5% GST),Franchise Profit (Rs),Franchise Margin (%)\r\n";
+                        csvContent += "Product Name,Variant,Franchise Price,Franchise Price (with 5% GST),Retail Price,Retail Price (with 5% GST),Franchise Profit (Rs),Franchise Margin (%)\r\n";
                         
                         products.forEach(prod => {
                             const currentRecipe = recipesList.find(r => r.id === prod.id);
