@@ -1177,6 +1177,117 @@ const db = {
             console.error("Error deleting contact message:", error);
             throw error;
         }
+    },
+
+    // --- Stock Transfers & Inventory ---
+    getTransfers: async () => {
+        try {
+            const q = query(collection(firestore, 'transfers'), orderBy('sentAt', 'desc'));
+            const querySnapshot = await getDocs(q);
+            const transfers = [];
+            querySnapshot.forEach((doc) => transfers.push({ id: doc.id, ...doc.data() }));
+            return transfers;
+        } catch (error) {
+            console.error("Error getting transfers:", error);
+            return [];
+        }
+    },
+
+    addTransfer: async (transferData) => {
+        try {
+            const docRef = await addDoc(collection(firestore, 'transfers'), {
+                ...transferData,
+                sentAt: new Date().toISOString()
+            });
+            return { id: docRef.id, ...transferData };
+        } catch (error) {
+            console.error("Error adding transfer:", error);
+            throw error;
+        }
+    },
+
+    updateTransfer: async (id, updatedData) => {
+        try {
+            const docRef = doc(firestore, 'transfers', id);
+            await updateDoc(docRef, updatedData);
+            return true;
+        } catch (error) {
+            console.error("Error updating transfer:", error);
+            throw error;
+        }
+    },
+
+    deleteTransfer: async (id) => {
+        try {
+            await deleteDoc(doc(firestore, 'transfers', id));
+            return id;
+        } catch (error) {
+            console.error("Error deleting transfer:", error);
+            throw error;
+        }
+    },
+
+    getLocalPurchases: async () => {
+        try {
+            const q = query(collection(firestore, 'local_purchases'), orderBy('date', 'desc'));
+            const querySnapshot = await getDocs(q);
+            const purchases = [];
+            querySnapshot.forEach((doc) => purchases.push({ id: doc.id, ...doc.data() }));
+            return purchases;
+        } catch (error) {
+            console.error("Error getting local purchases:", error);
+            return [];
+        }
+    },
+
+    addLocalPurchase: async (purchaseData) => {
+        try {
+            const docRef = await addDoc(collection(firestore, 'local_purchases'), purchaseData);
+            return { id: docRef.id, ...purchaseData };
+        } catch (error) {
+            console.error("Error adding local purchase:", error);
+            throw error;
+        }
+    },
+
+    deleteLocalPurchase: async (id) => {
+        try {
+            await deleteDoc(doc(firestore, 'local_purchases', id));
+            return id;
+        } catch (error) {
+            console.error("Error deleting local purchase:", error);
+            throw error;
+        }
+    },
+
+    getInventoryStocks: async () => {
+        try {
+            const querySnapshot = await getDocs(collection(firestore, 'inventory_stock'));
+            const stocks = [];
+            querySnapshot.forEach((doc) => stocks.push({ id: doc.id, ...doc.data() }));
+            return stocks;
+        } catch (error) {
+            console.error("Error getting inventory stock:", error);
+            return [];
+        }
+    },
+
+    saveInventoryStock: async (outletId, itemId, itemType, data) => {
+        try {
+            const docId = `${outletId}_${itemId}`;
+            const docRef = doc(firestore, 'inventory_stock', docId);
+            await setDoc(docRef, {
+                outletId,
+                itemId,
+                itemType,
+                ...data,
+                updatedAt: new Date().toISOString()
+            }, { merge: true });
+            return true;
+        } catch (error) {
+            console.error("Error saving inventory stock:", error);
+            throw error;
+        }
     }
 };
 
