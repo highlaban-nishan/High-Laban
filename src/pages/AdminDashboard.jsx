@@ -715,6 +715,267 @@ const AdminDashboard = () => {
         }
     };
 
+    const handleCreateTransfer = async (e) => {
+
+        e.preventDefault();
+
+        if (isReadOnly) return;
+
+        if (!newTransfer.itemId || !newTransfer.quantity || !newTransfer.destinationOutletId) {
+
+            showToast('Please fill all required fields', 'error');
+
+            return;
+
+        }
+
+        try {
+
+            const payload = {
+
+                itemId: newTransfer.itemId,
+
+                itemType: newTransfer.itemType,
+
+                quantity: parseFloat(newTransfer.quantity) || 0,
+
+                priceOverride: newTransfer.priceOverride !== '' ? parseFloat(newTransfer.priceOverride) : null,
+
+                destinationOutletId: newTransfer.destinationOutletId,
+
+                sourceKitchenId: selectedKitchenId || '',
+
+                status: 'Sent',
+
+                sentAt: new Date().toISOString()
+
+            };
+
+            const added = await db.addTransfer(payload);
+
+            setTransfers([added, ...transfers]);
+
+            setNewTransfer({
+
+                itemId: '',
+
+                itemType: 'product',
+
+                quantity: '',
+
+                priceOverride: '',
+
+                destinationOutletId: newTransfer.destinationOutletId
+
+            });
+
+            showToast('Transfer logged successfully! 🚚');
+
+        } catch (err) {
+
+            showToast('Failed to create transfer: ' + err.message, 'error');
+
+        }
+
+    };
+
+
+
+    const handleUpdateTransferStatus = async (id, status) => {
+
+        if (isReadOnly) return;
+
+        try {
+
+            const nextData = {
+
+                status,
+
+                receivedAt: status === 'Received' ? new Date().toISOString() : null
+
+            };
+
+            await db.updateTransfer(id, nextData);
+
+            setTransfers(transfers.map(t => t.id === id ? { ...t, ...nextData } : t));
+
+            showToast(`Transfer marked as ${status}!`);
+
+            
+
+            // Refetch inventory stocks to keep sheet updated
+
+            const st = await db.getInventoryStocks();
+
+            setInventoryStocks(st);
+
+        } catch (err) {
+
+            showToast('Failed to update status: ' + err.message, 'error');
+
+        }
+
+    };
+
+
+
+    const handleDeleteTransfer = async (id) => {
+
+        if (isReadOnly) return;
+
+        if (!window.confirm('Are you sure you want to delete this transfer log?')) return;
+
+        try {
+
+            await db.deleteTransfer(id);
+
+            setTransfers(transfers.filter(t => t.id !== id));
+
+            showToast('Transfer deleted!');
+
+        } catch (err) {
+
+            showToast('Failed to delete transfer: ' + err.message, 'error');
+
+        }
+
+    };
+
+
+
+    const handleSaveInventoryStock = async (outletId, itemId, itemType, openingStock, soldQty, wastage) => {
+
+        if (isReadOnly) return;
+
+        try {
+
+            const data = {
+
+                openingStock: parseFloat(openingStock) || 0,
+
+                soldQty: parseFloat(soldQty) || 0,
+
+                wastage: parseFloat(wastage) || 0
+
+            };
+
+            await db.saveInventoryStock(outletId, itemId, itemType, data);
+
+            
+
+            // Update local state
+
+            const docId = `${outletId}_${itemId}`;
+
+            const exists = inventoryStocks.some(s => s.id === docId);
+
+            if (exists) {
+
+                setInventoryStocks(inventoryStocks.map(s => s.id === docId ? { ...s, ...data, updatedAt: new Date().toISOString() } : s));
+
+            } else {
+
+                setInventoryStocks([...inventoryStocks, { id: docId, outletId, itemId, itemType, ...data, updatedAt: new Date().toISOString() }]);
+
+            }
+
+            showToast('Stock values updated! 💾');
+
+        } catch (err) {
+
+            showToast('Failed to save stock details: ' + err.message, 'error');
+
+        }
+
+    };
+
+
+
+    const handleCreateLocalPurchase = async (e) => {
+
+        e.preventDefault();
+
+        if (isReadOnly) return;
+
+        if (!newLocalPurchase.itemId || !newLocalPurchase.quantity || !newLocalPurchase.price || !newLocalPurchase.outletId) {
+
+            showToast('Please fill all fields', 'error');
+
+            return;
+
+        }
+
+        try {
+
+            const payload = {
+
+                itemId: newLocalPurchase.itemId,
+
+                itemType: newLocalPurchase.itemType,
+
+                quantity: parseFloat(newLocalPurchase.quantity) || 0,
+
+                price: parseFloat(newLocalPurchase.price) || 0,
+
+                outletId: newLocalPurchase.outletId,
+
+                date: newLocalPurchase.date
+
+            };
+
+            const added = await db.addLocalPurchase(payload);
+
+            setLocalPurchases([added, ...localPurchases]);
+
+            setNewLocalPurchase({
+
+                ...newLocalPurchase,
+
+                itemId: '',
+
+                quantity: '',
+
+                price: ''
+
+            });
+
+            showToast('Local purchase logged! 💸');
+
+        } catch (err) {
+
+            showToast('Failed to log purchase: ' + err.message, 'error');
+
+        }
+
+    };
+
+
+
+    const handleDeleteLocalPurchase = async (id) => {
+
+        if (isReadOnly) return;
+
+        if (!window.confirm('Are you sure you want to delete this purchase log?')) return;
+
+        try {
+
+            await db.deleteLocalPurchase(id);
+
+            setLocalPurchases(localPurchases.filter(lp => lp.id !== id));
+
+            showToast('Local purchase deleted!');
+
+        } catch (err) {
+
+            showToast('Failed to delete purchase: ' + err.message, 'error');
+
+        }
+
+    };
+
+
+
+
     const handleSaveStats = async (e) => {
         e.preventDefault();
         setIsSavingStats(true);
@@ -7374,136 +7635,6 @@ const AdminDashboard = () => {
                     } catch (err) {
                         console.error("Failed to export franchise pricing", err);
                         showToast("Export failed", "error");
-                    }
-                };
-
-                const handleCreateTransfer = async (e) => {
-                    e.preventDefault();
-                    if (isReadOnly) return;
-                    if (!newTransfer.itemId || !newTransfer.quantity || !newTransfer.destinationOutletId) {
-                        showToast('Please fill all required fields', 'error');
-                        return;
-                    }
-                    try {
-                        const payload = {
-                            itemId: newTransfer.itemId,
-                            itemType: newTransfer.itemType,
-                            quantity: parseFloat(newTransfer.quantity) || 0,
-                            priceOverride: newTransfer.priceOverride !== '' ? parseFloat(newTransfer.priceOverride) : null,
-                            destinationOutletId: newTransfer.destinationOutletId,
-                            sourceKitchenId: selectedKitchenId || '',
-                            status: 'Sent',
-                            sentAt: new Date().toISOString()
-                        };
-                        const added = await db.addTransfer(payload);
-                        setTransfers([added, ...transfers]);
-                        setNewTransfer({
-                            itemId: '',
-                            itemType: 'product',
-                            quantity: '',
-                            priceOverride: '',
-                            destinationOutletId: newTransfer.destinationOutletId
-                        });
-                        showToast('Transfer logged successfully! 🚚');
-                    } catch (err) {
-                        showToast('Failed to create transfer: ' + err.message, 'error');
-                    }
-                };
-
-                const handleUpdateTransferStatus = async (id, status) => {
-                    if (isReadOnly) return;
-                    try {
-                        const nextData = {
-                            status,
-                            receivedAt: status === 'Received' ? new Date().toISOString() : null
-                        };
-                        await db.updateTransfer(id, nextData);
-                        setTransfers(transfers.map(t => t.id === id ? { ...t, ...nextData } : t));
-                        showToast(`Transfer marked as ${status}!`);
-                        
-                        // Refetch inventory stocks to keep sheet updated
-                        const st = await db.getInventoryStocks();
-                        setInventoryStocks(st);
-                    } catch (err) {
-                        showToast('Failed to update status: ' + err.message, 'error');
-                    }
-                };
-
-                const handleDeleteTransfer = async (id) => {
-                    if (isReadOnly) return;
-                    if (!window.confirm('Are you sure you want to delete this transfer log?')) return;
-                    try {
-                        await db.deleteTransfer(id);
-                        setTransfers(transfers.filter(t => t.id !== id));
-                        showToast('Transfer deleted!');
-                    } catch (err) {
-                        showToast('Failed to delete transfer: ' + err.message, 'error');
-                    }
-                };
-
-                const handleSaveInventoryStock = async (outletId, itemId, itemType, openingStock, soldQty, wastage) => {
-                    if (isReadOnly) return;
-                    try {
-                        const data = {
-                            openingStock: parseFloat(openingStock) || 0,
-                            soldQty: parseFloat(soldQty) || 0,
-                            wastage: parseFloat(wastage) || 0
-                        };
-                        await db.saveInventoryStock(outletId, itemId, itemType, data);
-                        
-                        // Update local state
-                        const docId = `${outletId}_${itemId}`;
-                        const exists = inventoryStocks.some(s => s.id === docId);
-                        if (exists) {
-                            setInventoryStocks(inventoryStocks.map(s => s.id === docId ? { ...s, ...data, updatedAt: new Date().toISOString() } : s));
-                        } else {
-                            setInventoryStocks([...inventoryStocks, { id: docId, outletId, itemId, itemType, ...data, updatedAt: new Date().toISOString() }]);
-                        }
-                        showToast('Stock values updated! 💾');
-                    } catch (err) {
-                        showToast('Failed to save stock details: ' + err.message, 'error');
-                    }
-                };
-
-                const handleCreateLocalPurchase = async (e) => {
-                    e.preventDefault();
-                    if (isReadOnly) return;
-                    if (!newLocalPurchase.itemId || !newLocalPurchase.quantity || !newLocalPurchase.price || !newLocalPurchase.outletId) {
-                        showToast('Please fill all fields', 'error');
-                        return;
-                    }
-                    try {
-                        const payload = {
-                            itemId: newLocalPurchase.itemId,
-                            itemType: newLocalPurchase.itemType,
-                            quantity: parseFloat(newLocalPurchase.quantity) || 0,
-                            price: parseFloat(newLocalPurchase.price) || 0,
-                            outletId: newLocalPurchase.outletId,
-                            date: newLocalPurchase.date
-                        };
-                        const added = await db.addLocalPurchase(payload);
-                        setLocalPurchases([added, ...localPurchases]);
-                        setNewLocalPurchase({
-                            ...newLocalPurchase,
-                            itemId: '',
-                            quantity: '',
-                            price: ''
-                        });
-                        showToast('Local purchase logged! 💸');
-                    } catch (err) {
-                        showToast('Failed to log purchase: ' + err.message, 'error');
-                    }
-                };
-
-                const handleDeleteLocalPurchase = async (id) => {
-                    if (isReadOnly) return;
-                    if (!window.confirm('Are you sure you want to delete this purchase log?')) return;
-                    try {
-                        await db.deleteLocalPurchase(id);
-                        setLocalPurchases(localPurchases.filter(lp => lp.id !== id));
-                        showToast('Local purchase deleted!');
-                    } catch (err) {
-                        showToast('Failed to delete purchase: ' + err.message, 'error');
                     }
                 };
 
