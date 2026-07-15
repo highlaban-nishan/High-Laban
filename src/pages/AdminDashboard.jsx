@@ -7274,7 +7274,7 @@ const AdminDashboard = () => {
                         let csvContent = "data:text/csv;charset=utf-8,";
                         csvContent += "Franchise Costing & Price List Export,,,,,,\r\n";
                         csvContent += `Export Date: ${new Date().toLocaleString()},,,,,,\r\n\r\n`;
-                        csvContent += "Product Name,Variant,Total Unit Cost (Base),Franchise Cost (+Rs 20),Franchise Price (+Rs 20),Franchise Price (with 5% GST),Retail Price,Retail Price (with 5% GST),Franchise Margin (%)\r\n";
+                        csvContent += "Product Name,Variant,Franchise Price (+Rs 20),Franchise Price (with 5% GST),Retail Price,Retail Price (with 5% GST),Franchise Profit (Rs),Franchise Margin (%)\r\n";
                         
                         products.forEach(prod => {
                             const currentRecipe = recipesList.find(r => r.id === prod.id);
@@ -7284,9 +7284,10 @@ const AdminDashboard = () => {
                             const baseFranchisePriceGst = baseFranchisePrice * 1.05;
                             const baseRetailPrice = parseFloat(prod.price) || 0;
                             const baseRetailPriceGst = baseRetailPrice * 1.05;
-                            const baseFranchiseMargin = baseFranchisePrice > 0 ? ((baseFranchisePrice - baseFranchiseCost) / baseFranchisePrice) * 100 : 0;
+                            const baseProfit = baseRetailPrice - baseFranchisePrice;
+                            const baseMargin = baseRetailPrice > 0 ? (baseProfit / baseRetailPrice) * 100 : 0;
                             
-                            csvContent += `"${prod.name}","Base","${baseAnalysis.totalUnitCost.toFixed(2)}","${baseFranchiseCost.toFixed(2)}","${baseFranchisePrice.toFixed(2)}","${baseFranchisePriceGst.toFixed(2)}","${baseRetailPrice.toFixed(2)}","${baseRetailPriceGst.toFixed(2)}","${baseFranchiseMargin.toFixed(1)}%"\r\n`;
+                            csvContent += `"${prod.name}","Base","${baseFranchisePrice.toFixed(2)}","${baseFranchisePriceGst.toFixed(2)}","${baseRetailPrice.toFixed(2)}","${baseRetailPriceGst.toFixed(2)}","${baseProfit.toFixed(2)}","${baseMargin.toFixed(1)}%"\r\n`;
                             
                             if (currentRecipe?.toppings && currentRecipe.toppings.length > 0) {
                                 currentRecipe.toppings.forEach((top, tIdx) => {
@@ -7296,9 +7297,10 @@ const AdminDashboard = () => {
                                     const topFranchisePriceGst = topFranchisePrice * 1.05;
                                     const topRetailPrice = parseFloat(prod.price) || 0;
                                     const topRetailPriceGst = topRetailPrice * 1.05;
-                                    const topFranchiseMargin = topFranchisePrice > 0 ? ((topFranchisePrice - topFranchiseCost) / topFranchisePrice) * 100 : 0;
+                                    const topProfit = topRetailPrice - topFranchisePrice;
+                                    const topMargin = topRetailPrice > 0 ? (topProfit / topRetailPrice) * 100 : 0;
                                     
-                                    csvContent += `"${prod.name}","+ Topping: ${top.name}","${topAnalysis.totalUnitCost.toFixed(2)}","${topFranchiseCost.toFixed(2)}","${topFranchisePrice.toFixed(2)}","${topFranchisePriceGst.toFixed(2)}","${topRetailPrice.toFixed(2)}","${topRetailPriceGst.toFixed(2)}","${topFranchiseMargin.toFixed(1)}%"\r\n`;
+                                    csvContent += `"${prod.name}","+ Topping: ${top.name}","${topFranchisePrice.toFixed(2)}","${topFranchisePriceGst.toFixed(2)}","${topRetailPrice.toFixed(2)}","${topRetailPriceGst.toFixed(2)}","${topProfit.toFixed(2)}","${topMargin.toFixed(1)}%"\r\n`;
                                 });
                             }
                         });
