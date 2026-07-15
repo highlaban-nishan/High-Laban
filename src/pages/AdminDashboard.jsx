@@ -7269,6 +7269,54 @@ const AdminDashboard = () => {
                     }
                 };
 
+                const handleExportFranchiseRecipeCosts = () => {
+                    try {
+                        let csvContent = "data:text/csv;charset=utf-8,";
+                        csvContent += "Franchise Costing & Price List Export,,,,,,\r\n";
+                        csvContent += `Export Date: ${new Date().toLocaleString()},,,,,,\r\n\r\n`;
+                        csvContent += "Product Name,Variant,Total Unit Cost (Base),Franchise Cost (+Rs 20),Franchise Price (+Rs 20),Franchise Price (with 5% GST),Retail Price,Retail Price (with 5% GST),Franchise Margin (%)\r\n";
+                        
+                        products.forEach(prod => {
+                            const currentRecipe = recipesList.find(r => r.id === prod.id);
+                            const baseAnalysis = getProductRecipeCost(prod.id, -1);
+                            const baseFranchiseCost = baseAnalysis.totalUnitCost + 20;
+                            const baseFranchisePrice = baseFranchiseCost + 20;
+                            const baseFranchisePriceGst = baseFranchisePrice * 1.05;
+                            const baseRetailPrice = parseFloat(prod.price) || 0;
+                            const baseRetailPriceGst = baseRetailPrice * 1.05;
+                            const baseFranchiseMargin = baseFranchisePrice > 0 ? ((baseFranchisePrice - baseFranchiseCost) / baseFranchisePrice) * 100 : 0;
+                            
+                            csvContent += `"${prod.name}","Base","${baseAnalysis.totalUnitCost.toFixed(2)}","${baseFranchiseCost.toFixed(2)}","${baseFranchisePrice.toFixed(2)}","${baseFranchisePriceGst.toFixed(2)}","${baseRetailPrice.toFixed(2)}","${baseRetailPriceGst.toFixed(2)}","${baseFranchiseMargin.toFixed(1)}%"\r\n`;
+                            
+                            if (currentRecipe?.toppings && currentRecipe.toppings.length > 0) {
+                                currentRecipe.toppings.forEach((top, tIdx) => {
+                                    const topAnalysis = getProductRecipeCost(prod.id, tIdx);
+                                    const topFranchiseCost = topAnalysis.totalUnitCost + 20;
+                                    const topFranchisePrice = topFranchiseCost + 20;
+                                    const topFranchisePriceGst = topFranchisePrice * 1.05;
+                                    const topRetailPrice = parseFloat(prod.price) || 0;
+                                    const topRetailPriceGst = topRetailPrice * 1.05;
+                                    const topFranchiseMargin = topFranchisePrice > 0 ? ((topFranchisePrice - topFranchiseCost) / topFranchisePrice) * 100 : 0;
+                                    
+                                    csvContent += `"${prod.name}","+ Topping: ${top.name}","${topAnalysis.totalUnitCost.toFixed(2)}","${topFranchiseCost.toFixed(2)}","${topFranchisePrice.toFixed(2)}","${topFranchisePriceGst.toFixed(2)}","${topRetailPrice.toFixed(2)}","${topRetailPriceGst.toFixed(2)}","${topFranchiseMargin.toFixed(1)}%"\r\n`;
+                                });
+                            }
+                        });
+                        
+                        const encodedUri = encodeURI(csvContent);
+                        const link = document.createElement("a");
+                        link.setAttribute("href", encodedUri);
+                        link.setAttribute("download", `franchise_price_list_${new Date().toISOString().slice(0,10)}.csv`);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        showToast("Franchise price list exported successfully! 🤝");
+                    } catch (err) {
+                        console.error("Failed to export franchise pricing", err);
+                        showToast("Export failed", "error");
+                    }
+                };
+
                 const handleSaveRawMaterial = async (e) => {
                     e.preventDefault();
                     if (isReadOnly || isChef) return;
@@ -8088,7 +8136,7 @@ const AdminDashboard = () => {
                                                                 }}
                                                                 placeholder="-- Choose Packaging Material --"
                                                                 options={rawMaterials
-                                                                    .filter(r => r.id === ing.materialId || !(editingRecipe.packagingIngredients || []).some((otherIng, otherIdx) => otherIdx !== idx && otherIng.materialId === r.id))
+                                                                    .filter(r => r.category === 'Packaging' && (r.id === ing.materialId || !(editingRecipe.packagingIngredients || []).some((otherIng, otherIdx) => otherIdx !== idx && otherIng.materialId === r.id)))
                                                                     .map(r => ({
                                                                         value: r.id,
                                                                         label: `${r.name} (₹${getRawMaterialUnitPrice(r).toFixed(3)}/${r.unit})`
@@ -8272,9 +8320,11 @@ const AdminDashboard = () => {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '10px' }}>
                                     <h3 style={{ margin: 0, color: '#1e293b', fontWeight: '800' }}>Final Menu Product Cost Analysis</h3>
                                     <div style={{ display: 'flex', gap: '10px' }}>
-
                                         <button type="button" onClick={handleExportRecipeCosts} style={{ background: '#10b981', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             📊 Export Pricing CSV
+                                        </button>
+                                        <button type="button" onClick={handleExportFranchiseRecipeCosts} style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            🤝 Export Franchise CSV
                                         </button>
                                     </div>
                                 </div>
@@ -8321,8 +8371,11 @@ const AdminDashboard = () => {
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>Overhead Allocation</th>
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>Kitchen Overhead</th>
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#16a34a', fontSize: '0.85rem' }}>Total Cost</th>
-                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0284c7', fontSize: '0.85rem' }}>Suggested Price (2x)</th>
+                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#1e3a8a', fontSize: '0.85rem' }}>Franchise Cost (+₹20)</th>
+                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#3b82f6', fontSize: '0.85rem' }}>Franchise Price (+₹20)</th>
+                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#6366f1', fontSize: '0.85rem' }}>Franchise Price (5% GST)</th>
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#e11d48', fontSize: '0.85rem' }}>Retail Price</th>
+                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#ec4899', fontSize: '0.85rem' }}>Retail Price (5% GST)</th>
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0f766e', fontSize: '0.85rem' }}>Profit (₹)</th>
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#b45309', fontSize: '0.85rem' }}>Margin (%)</th>
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>Actions</th>
@@ -8376,8 +8429,11 @@ const AdminDashboard = () => {
                                                                 </span>
                                                             )}
                                                         </td>
-                                                        <td style={{ padding: '14px 20px', fontWeight: '800', color: '#0284c7' }}>₹{(analysis.totalUnitCost * 2).toFixed(2)}</td>
+                                                        <td style={{ padding: '14px 20px', fontWeight: '800', color: '#1e3a8a' }}>₹{(analysis.totalUnitCost + 20).toFixed(2)}</td>
+                                                        <td style={{ padding: '14px 20px', fontWeight: '800', color: '#3b82f6' }}>₹{(analysis.totalUnitCost + 40).toFixed(2)}</td>
+                                                        <td style={{ padding: '14px 20px', fontWeight: '800', color: '#6366f1' }}>₹{((analysis.totalUnitCost + 40) * 1.05).toFixed(2)}</td>
                                                         <td style={{ padding: '14px 20px', fontWeight: '800', color: '#e11d48' }}>₹{retailPrice.toFixed(2)}</td>
+                                                        <td style={{ padding: '14px 20px', fontWeight: '800', color: '#ec4899' }}>₹{(retailPrice * 1.05).toFixed(2)}</td>
                                                         {(() => {
                                                             const profit = retailPrice - analysis.totalUnitCost;
                                                             const margin = retailPrice > 0 ? (profit / retailPrice) * 100 : 0;
