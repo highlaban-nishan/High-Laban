@@ -976,6 +976,34 @@ const AdminDashboard = () => {
 
 
 
+        const handleExportDatabaseBackup = async () => {
+        try {
+            showToast("Generating database backup... Please wait. 💾");
+            const backup = await db.getBackupData();
+            const backupData = {
+                metadata: {
+                    appName: "High Laban ERP",
+                    version: "1.0.0",
+                    exportedAt: new Date().toISOString(),
+                    exportedBy: user?.email || "Admin"
+                },
+                collections: backup
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `highlaban_db_backup_${new Date().toISOString().slice(0, 10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            document.body.removeChild(downloadAnchor);
+            showToast("Database backup successfully downloaded! 💾");
+        } catch (err) {
+            console.error("Failed to generate database backup:", err);
+            showToast("Backup generation failed: " + err.message, "error");
+        }
+    };
+
     const handleSaveStats = async (e) => {
         e.preventDefault();
         setIsSavingStats(true);
@@ -1987,6 +2015,16 @@ const AdminDashboard = () => {
                     )}
                 </nav>
 
+                {user?.role === 'admin' && (
+                    <div 
+                        className={styles.signOut} 
+                        style={{ borderTop: 'none', borderBottom: '1px solid #cbd5e1', color: '#0ea5e9', cursor: 'pointer', display: 'flex', alignItems: 'center' }} 
+                        onClick={handleExportDatabaseBackup}
+                    >
+                        <FiDownload style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Backup Database
+                    </div>
+                )}
+
                 <div className={styles.signOut} onClick={handleLogout}>
                     <LogoutIcon /> Sign Out
                 </div>

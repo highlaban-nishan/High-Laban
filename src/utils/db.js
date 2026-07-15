@@ -1288,6 +1288,33 @@ const db = {
             console.error("Error saving inventory stock:", error);
             throw error;
         }
+    },
+
+    getBackupData: async () => {
+        try {
+            const collectionsToBackup = [
+                'products', 'raw_materials', 'recipes', 'bundle_items', 'purchases',
+                'kitchens', 'franchises', 'franchise_inquiries', 'locations', 'users',
+                'subscribers', 'payroll', 'vendors', 'transfers', 'local_purchases',
+                'inventory_stock', 'contact_messages', 'worker_applications'
+            ];
+            const backup = {};
+            await Promise.all(collectionsToBackup.map(async (colName) => {
+                try {
+                    const snapshot = await getDocs(collection(firestore, colName));
+                    const list = [];
+                    snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+                    backup[colName] = list;
+                } catch (err) {
+                    console.warn(`Could not backup collection ${colName}:`, err);
+                    backup[colName] = [];
+                }
+            }));
+            return backup;
+        } catch (error) {
+            console.error("Backup error:", error);
+            throw error;
+        }
     }
 };
 
