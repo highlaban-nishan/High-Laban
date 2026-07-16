@@ -194,8 +194,10 @@ const availableTabsList = [
     { id: 'purchases', label: '🛒 Purchases' },
     { id: 'costing', label: '🧮 Food Costing' },
     { id: 'transfers', label: '🚚 Stock Transfers & Inventory' },
-    { id: 'finance', label: '💰 Franchise Finance' }
+    { id: 'finance', label: '💰 Franchise Finance' },
+    { id: 'cashManagement', label: '💵 Cash Management' }
 ];
+
 
 
 
@@ -3964,6 +3966,14 @@ const AdminDashboard = () => {
                             {activeTab === 'finance' && <div className={styles.activeDot}></div>}
                         </div>
                     )}
+
+                    {hasTabAccess('finance') && (
+                        <div className={`${styles.navItem} ${activeTab === 'cashManagement' ? styles.active : ''}`} onClick={() => { setActiveTab('cashManagement'); setIsMobileOpen(false); }}>
+                            <FiDollarSign style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Cash Management
+                            {activeTab === 'cashManagement' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
+
 
 
 
@@ -15227,9 +15237,7 @@ const AdminDashboard = () => {
 
                             const baseAnalysis = getProductRecipeCost(prod.id, -1);
 
-                            const baseFranchiseCost = baseAnalysis.totalUnitCost + 20;
-
-                            const baseFranchisePrice = baseFranchiseCost + 20;
+                            const baseFranchisePrice = baseAnalysis.totalUnitCost + 20;
 
                             const baseFranchisePriceGst = baseFranchisePrice * 1.05;
 
@@ -15253,9 +15261,7 @@ const AdminDashboard = () => {
 
                                     const topAnalysis = getProductRecipeCost(prod.id, tIdx);
 
-                                    const topFranchiseCost = topAnalysis.totalUnitCost + 20;
-
-                                    const topFranchisePrice = topFranchiseCost + 20;
+                                    const topFranchisePrice = topAnalysis.totalUnitCost + 20;
 
                                     const topFranchisePriceGst = topFranchisePrice * 1.05;
 
@@ -17414,13 +17420,8 @@ const AdminDashboard = () => {
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>Kitchen Overhead</th>
 
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#16a34a', fontSize: '0.85rem' }}>Total Cost</th>
-
-                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#1e3a8a', fontSize: '0.85rem' }}>Franchise Cost (+₹20)</th>
-
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#3b82f6', fontSize: '0.85rem' }}>Franchise Price (+₹20)</th>
-
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#6366f1', fontSize: '0.85rem' }}>Franchise Price (5% GST)</th>
-
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#e11d48', fontSize: '0.85rem' }}>Retail Price</th>
 
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#ec4899', fontSize: '0.85rem' }}>Retail Price (5% GST)</th>
@@ -17531,11 +17532,9 @@ const AdminDashboard = () => {
 
                                                         </td>
 
-                                                        <td style={{ padding: '14px 20px', fontWeight: '800', color: '#1e3a8a' }}>₹{(analysis.totalUnitCost + 20).toFixed(2)}</td>
+                                                        <td style={{ padding: '14px 20px', fontWeight: '800', color: '#3b82f6' }}>₹{(analysis.totalUnitCost + 20).toFixed(2)}</td>
 
-                                                        <td style={{ padding: '14px 20px', fontWeight: '800', color: '#3b82f6' }}>₹{(analysis.totalUnitCost + 40).toFixed(2)}</td>
-
-                                                        <td style={{ padding: '14px 20px', fontWeight: '800', color: '#6366f1' }}>₹{((analysis.totalUnitCost + 40) * 1.05).toFixed(2)}</td>
+                                                        <td style={{ padding: '14px 20px', fontWeight: '800', color: '#6366f1' }}>₹{((analysis.totalUnitCost + 20) * 1.05).toFixed(2)}</td>
 
                                                         <td style={{ padding: '14px 20px', fontWeight: '800', color: '#e11d48' }}>₹{retailPrice.toFixed(2)}</td>
 
@@ -18342,8 +18341,14 @@ const AdminDashboard = () => {
                     }
                 };
 
+                const filteredLogs = (transfers || [])
+                    .filter(t => logFilterOutlet === 'All' || t.destinationOutletId === logFilterOutlet)
+                    .filter(t => !logFilterDate || (t.sentAt && t.sentAt.startsWith(logFilterDate)))
+                    .sort((a, b) => new Date(b.sentAt || 0) - new Date(a.sentAt || 0));
+
                 return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1.5rem', background: '#f8fafc', minHeight: '80vh', borderRadius: '16px', border: '1px solid #cbd5e1' }}>
+
                         <div>
                             <h2 style={{ margin: 0, color: '#0f172a', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 🚚 Kitchen Transfers & Outlet Stock Inventory
@@ -19259,8 +19264,29 @@ const AdminDashboard = () => {
                         {/* SUB TAB: TRANSFER LOGS */}
                         {transfersSubTab === 'logs' && (
                             <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem' }}>
-                                <h3 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontWeight: '800' }}>📜 Kitchen to Outlet Transfer History</h3>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+                                    <h3 style={{ margin: 0, color: '#0f172a', fontWeight: '800' }}>📜 Kitchen to Outlet Transfer History</h3>
+                                    
+                                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Date</label>
+                                            <input type="date" value={logFilterDate} onChange={e => setLogFilterDate(e.target.value)} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Outlet</label>
+                                            <select value={logFilterOutlet} onChange={e => setLogFilterOutlet(e.target.value)} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontWeight: '700', background: 'white' }}>
+                                                <option value="All">All Outlets</option>
+                                                {destinations.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                            </select>
+                                        </div>
+                                        {(logFilterDate || logFilterOutlet !== 'All') && (
+                                            <button type="button" onClick={() => { setLogFilterDate(''); setLogFilterOutlet('All'); }} style={{ padding: '8px 14px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', color: '#475569', fontSize: '0.8rem', marginTop: '16px' }}>✕ Clear</button>
+                                        )}
+                                        <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '700', marginTop: '16px' }}>{filteredLogs.length} records</span>
+                                    </div>
+                                </div>
                                 <div style={{ overflowX: 'auto' }}>
+
                                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                                         <thead>
                                             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
@@ -19272,10 +19298,12 @@ const AdminDashboard = () => {
                                                 <th style={{ padding: '10px', textAlign: 'right' }}>Transfer Unit Price</th>
                                                 <th style={{ padding: '10px', textAlign: 'right' }}>Total Value</th>
                                                 <th style={{ padding: '10px', textAlign: 'center' }}>Status</th>
+                                                <th style={{ padding: '10px', textAlign: 'left' }}>Logged By</th>
                                                 <th style={{ padding: '10px', textAlign: 'center' }}>Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
+
                                             {filteredLogs.map((t, idx) => {
                                                 const srcK = kitchensList.find(k => k.id === t.sourceKitchenId);
                                                 const destO = destinations.find(d => d.id === t.destinationOutletId);
@@ -19286,7 +19314,8 @@ const AdminDashboard = () => {
 
                                                 return (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                                        <td style={{ padding: '10px' }}>{new Date(t.sentAt).toLocaleString()}</td>
+                                                        <td style={{ padding: '10px' }}>{t.sentAt ? new Date(t.sentAt).toLocaleString() : '—'}</td>
+
                                                         <td style={{ padding: '10px' }}>{srcK ? srcK.name : 'Central Kitchen'}</td>
                                                         <td style={{ padding: '10px', fontWeight: '700' }}>{destO ? destO.name : 'Unknown Outlet'}</td>
                                                         <td style={{ padding: '10px' }}>{getItemName(t.itemId, t.itemType)}</td>
@@ -19333,13 +19362,14 @@ const AdminDashboard = () => {
                                                     </tr>
                                                 );
                                             })}
-                                            {transfers.length === 0 && (
+                                            {filteredLogs.length === 0 && (
                                                 <tr>
-                                                    <td colSpan="9" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>No transfers logged yet.</td>
+                                                    <td colSpan="10" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>No transfers match search criteria or none logged yet.</td>
                                                 </tr>
                                             )}
                                         </tbody>
                                     </table>
+
                                 </div>
                             </div>
                         )}
@@ -19794,9 +19824,179 @@ const AdminDashboard = () => {
                             );
                         })()}
                     </div>
-
                 );
             })()}
+
+
+            {activeTab === 'cashManagement' && (() => {
+                const destinations = runningFranchises || [];
+                const cashOutlet = destinations.find(f => f.id === selectedOutletId);
+                const outletCashEntries = franchiseCashEntries
+                    .filter(e => e.outletId === selectedOutletId)
+                    .sort((a, b) => (b.date > a.date ? 1 : -1));
+                const totalCollected = outletCashEntries.reduce((s, e) => s + (parseFloat(e.cashCollected) || 0), 0);
+                const totalDeposited = outletCashEntries.filter(e => e.deposited).reduce((s, e) => s + (parseFloat(e.depositAmount) || parseFloat(e.cashCollected) || 0), 0);
+                const cashInHand = totalCollected - totalDeposited;
+
+                const handleSaveCashEntry = async () => {
+                    const outletId = newCashEntry.outletId || selectedOutletId;
+                    if (!outletId || !newCashEntry.date || !newCashEntry.cashCollected) {
+                        showToast('Please fill outlet, date and cash collected', 'error'); return;
+                    }
+                    try {
+                        const entry = { ...newCashEntry, outletId, deposited: false, createdBy: db.getUser()?.email || 'admin', createdAt: new Date().toISOString() };
+                        const added = await db.addFranchiseCashEntry(entry);
+                        setFranchiseCashEntries(prev => [added, ...prev]);
+                        setNewCashEntry(prev => ({ ...prev, totalSales: '', cashCollected: '', posAmount: '', expenses: '', notes: '' }));
+                        showToast('Cash entry saved! 💵');
+                    } catch(err) { showToast('Error: ' + err.message, 'error'); }
+                };
+
+                const handleMarkDeposited = async (entry) => {
+                    const depositAmt = window.prompt('Enter deposit amount (₹):', entry.cashCollected || '0');
+                    if (depositAmt === null) return;
+                    try {
+                        const updated = { ...entry, deposited: true, depositAmount: parseFloat(depositAmt) || 0, depositDate: new Date().toISOString().slice(0,10) };
+                        await db.updateFranchiseCashEntry(entry.id, updated);
+                        setFranchiseCashEntries(prev => prev.map(e => e.id === entry.id ? updated : e));
+                        showToast('Marked as deposited! ✅');
+                    } catch(err) { showToast('Error: ' + err.message, 'error'); }
+                };
+
+                return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1.5rem', background: '#f8fafc', minHeight: '80vh', borderRadius: '16px', border: '1px solid #cbd5e1' }}>
+                        <div>
+                            <h2 style={{ margin: 0, color: '#0f172a', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                💵 Franchise Cash Management & Deposits
+                            </h2>
+                            <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.875rem' }}>
+                                Log cash collections, record expenses, track bank deposits and cash in hand for franchise outlets.
+                            </p>
+                        </div>
+
+                        {/* Outlet Selector */}
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                            <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569' }}>Outlet:</label>
+                            <select value={selectedOutletId} onChange={e => setSelectedOutletId(e.target.value)} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontWeight: '700', background: 'white' }}>
+                                {destinations.map(f => <option key={f.id} value={f.id}>{f.outletName}</option>)}
+                            </select>
+                        </div>
+
+                        {/* Cash Balance Cards */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                            {[
+                                { label: 'Total Cash Collected', value: totalCollected, color: '#0ea5e9', bg: '#f0f9ff', border: '#bae6fd' },
+                                { label: 'Total Deposited', value: totalDeposited, color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0' },
+                                { label: 'Cash In Hand', value: cashInHand, color: cashInHand > 0 ? '#f59e0b' : '#64748b', bg: cashInHand > 0 ? '#fffbeb' : '#f8fafc', border: cashInHand > 0 ? '#fde68a' : '#e2e8f0' }
+                            ].map(card => (
+                                <div key={card.label} style={{ background: card.bg, border: `1px solid ${card.border}`, borderRadius: '14px', padding: '1.2rem', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>{card.label}</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: '900', color: card.color }}>₹{card.value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '1.5rem' }}>
+                            {/* Record Daily Cash Form */}
+                            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <h3 style={{ margin: 0, fontWeight: '800', color: '#0f172a' }}>💵 Record Daily Cash</h3>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Outlet</label>
+                                    <select value={newCashEntry.outletId || selectedOutletId} onChange={e => setNewCashEntry(prev => ({ ...prev, outletId: e.target.value }))} style={{ width: '100%', padding: '9px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                                        <option value="">-- Select Outlet --</option>
+                                        {destinations.map(f => <option key={f.id} value={f.id}>{f.outletName}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Date *</label>
+                                    <input type="date" value={newCashEntry.date} onChange={e => setNewCashEntry(prev => ({ ...prev, date: e.target.value }))} style={{ width: '100%', padding: '9px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Total Sales (₹)</label>
+                                        <input type="number" step="0.01" placeholder="Billed amount" value={newCashEntry.totalSales} onChange={e => setNewCashEntry(prev => ({ ...prev, totalSales: e.target.value }))} style={{ width: '100%', padding: '9px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Cash Collected (₹) *</label>
+                                        <input type="number" step="0.01" placeholder="Physical cash" value={newCashEntry.cashCollected} onChange={e => setNewCashEntry(prev => ({ ...prev, cashCollected: e.target.value }))} style={{ width: '100%', padding: '9px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>POS / UPI (₹)</label>
+                                        <input type="number" step="0.01" placeholder="Card / online" value={newCashEntry.posAmount} onChange={e => setNewCashEntry(prev => ({ ...prev, posAmount: e.target.value }))} style={{ width: '100%', padding: '9px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Expenses (₹)</label>
+                                        <input type="number" step="0.01" placeholder="Local expenses" value={newCashEntry.expenses} onChange={e => setNewCashEntry(prev => ({ ...prev, expenses: e.target.value }))} style={{ width: '100%', padding: '9px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Notes</label>
+                                    <input type="text" placeholder="Any notes..." value={newCashEntry.notes} onChange={e => setNewCashEntry(prev => ({ ...prev, notes: e.target.value }))} style={{ width: '100%', padding: '9px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                                </div>
+                                <button type="button" onClick={handleSaveCashEntry} style={{ background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '10px', padding: '12px', fontWeight: '800', cursor: 'pointer' }}>
+                                    💾 Save Cash Entry
+                                </button>
+                            </div>
+
+                            {/* Cash Sheet */}
+                            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1.5rem' }}>
+                                <h3 style={{ margin: '0 0 1rem 0', fontWeight: '800', color: '#0f172a' }}>
+                                    📋 Cash Sheet — {cashOutlet ? cashOutlet.outletName : 'Select Outlet'}
+                                </h3>
+                                <div style={{ overflowX: 'auto', maxHeight: '440px', overflowY: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                                        <thead>
+                                            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                                                <th style={{ padding: '9px', textAlign: 'left' }}>Date</th>
+                                                <th style={{ padding: '9px', textAlign: 'right' }}>Sales</th>
+                                                <th style={{ padding: '9px', textAlign: 'right' }}>Cash</th>
+                                                <th style={{ padding: '9px', textAlign: 'right' }}>POS</th>
+                                                <th style={{ padding: '9px', textAlign: 'right' }}>Expenses</th>
+                                                <th style={{ padding: '9px', textAlign: 'center' }}>Deposit</th>
+                                                <th style={{ padding: '9px', textAlign: 'center' }}>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {outletCashEntries.map((entry, idx) => (
+                                                <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', background: entry.deposited ? '#f0fdf4' : 'white' }}>
+                                                    <td style={{ padding: '9px', fontWeight: '700' }}>{entry.date}</td>
+                                                    <td style={{ padding: '9px', textAlign: 'right' }}>₹{(parseFloat(entry.totalSales)||0).toFixed(2)}</td>
+                                                    <td style={{ padding: '9px', textAlign: 'right', color: '#0369a1', fontWeight: '700' }}>₹{(parseFloat(entry.cashCollected)||0).toFixed(2)}</td>
+                                                    <td style={{ padding: '9px', textAlign: 'right' }}>₹{(parseFloat(entry.posAmount)||0).toFixed(2)}</td>
+                                                    <td style={{ padding: '9px', textAlign: 'right', color: '#dc2626' }}>₹{(parseFloat(entry.expenses)||0).toFixed(2)}</td>
+                                                    <td style={{ padding: '9px', textAlign: 'center' }}>
+                                                        {entry.deposited ? (
+                                                            <div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#065f46' }}>
+                                                                ₹{(parseFloat(entry.depositAmount)||0).toFixed(2)}<br />
+                                                                <span style={{ fontWeight: '400', color: '#6b7280' }}>{entry.depositDate}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <button type="button" onClick={() => handleMarkDeposited(entry)} style={{ background: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', padding: '4px 10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.72rem' }}>
+                                                                Deposit
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                    <td style={{ padding: '9px', textAlign: 'center' }}>
+                                                        <span style={{ padding: '3px 8px', borderRadius: '20px', fontSize: '0.68rem', fontWeight: '800', background: entry.deposited ? '#d1fae5' : '#fef3c7', color: entry.deposited ? '#065f46' : '#92400e' }}>
+                                                            {entry.deposited ? '✅ Deposited' : '🟡 Pending'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {outletCashEntries.length === 0 && (
+                                                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No cash entries yet for this outlet.</td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
 
             
 
