@@ -854,6 +854,7 @@ const AdminDashboard = () => {
     const [showAddDirectorForm, setShowAddDirectorForm] = useState(false);
     const [newDirector, setNewDirector] = useState({
         fullName: '', designation: 'Director', dinNumber: '', panNumber: '', phone: '', email: '',
+        profilePictureUrl: '', dob: '',
         panUrl: '', aadhaarUrl: '', bankStatementUrl: '', signatureUrl: '', documents: []
     });
     const [editingDirector, setEditingDirector] = useState(null);
@@ -2445,11 +2446,9 @@ const AdminDashboard = () => {
                 setShowAddDirectorForm(false);
 
                 setNewDirector({
-
                     fullName: '', designation: 'Director', dinNumber: '', panNumber: '', phone: '', email: '',
-
+                    profilePictureUrl: '', dob: '',
                     panUrl: '', aadhaarUrl: '', bankStatementUrl: '', signatureUrl: '', documents: []
-
                 });
 
                 showToast("New Director added successfully! 👔");
@@ -8699,6 +8698,8 @@ const AdminDashboard = () => {
 
                                             fullName: '', designation: 'Director', dinNumber: '', panNumber: '', phone: '', email: '',
 
+                                            profilePictureUrl: '', dob: '',
+
                                             panUrl: '', aadhaarUrl: '', bankStatementUrl: '', signatureUrl: '', documents: []
 
                                         });
@@ -8727,16 +8728,20 @@ const AdminDashboard = () => {
 
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
 
-                                            <div>
-
-                                                <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#1e293b', fontWeight: 'bold' }}>{dir.fullName}</h3>
-
-                                                <span style={{ fontSize: '0.75rem', color: '#6366f1', fontWeight: '700', textTransform: 'uppercase', display: 'inline-block', marginTop: '2px' }}>
-
-                                                    💼 {dir.designation}
-
-                                                </span>
-
+                                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                                {dir.profilePictureUrl ? (
+                                                    <img src={dir.profilePictureUrl} alt={dir.fullName} style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #6366f1' }} />
+                                                ) : (
+                                                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#6366f1', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.2rem' }}>
+                                                        {dir.fullName ? dir.fullName.charAt(0).toUpperCase() : 'D'}
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#1e293b', fontWeight: 'bold' }}>{dir.fullName}</h3>
+                                                    <span style={{ fontSize: '0.75rem', color: '#6366f1', fontWeight: '700', textTransform: 'uppercase', display: 'inline-block', marginTop: '2px' }}>
+                                                        💼 {dir.designation}
+                                                    </span>
+                                                </div>
                                             </div>
 
                                             <div style={{ display: 'flex', gap: '0.35rem' }}>
@@ -8760,6 +8765,8 @@ const AdminDashboard = () => {
 
 
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem', color: '#475569' }}>
+
+                                            {dir.dob && <div>📅 <strong>DOB:</strong> {dir.dob}</div>}
 
                                             {dir.phone && <div>📞 {dir.phone}</div>}
 
@@ -8898,6 +8905,66 @@ const AdminDashboard = () => {
                                                         value={editingDirector ? editingDirector.designation : newDirector.designation}
 
                                                         onChange={e => editingDirector ? setEditingDirector({...editingDirector, designation: e.target.value}) : setNewDirector({...newDirector, designation: e.target.value})}
+
+                                                        className={styles.input}
+
+                                                    />
+
+                                                </div>
+
+                                            </div>
+
+
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+
+                                                <div className={styles.formGroup}>
+
+                                                    <label>Profile Picture / Photo</label>
+
+                                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+
+                                                        <input 
+
+                                                            type="file" 
+
+                                                            accept="image/*" 
+
+                                                            onChange={e => handleUploadDirectorDoc(e.target.files[0], 'profilePictureUrl')} 
+
+                                                            style={{ fontSize: '0.8rem' }} 
+
+                                                        />
+
+                                                        {(editingDirector ? editingDirector.profilePictureUrl : newDirector.profilePictureUrl) && (
+
+                                                            <img 
+
+                                                                src={editingDirector ? editingDirector.profilePictureUrl : newDirector.profilePictureUrl} 
+
+                                                                alt="Preview" 
+
+                                                                style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #cbd5e1' }} 
+
+                                                            />
+
+                                                        )}
+
+                                                    </div>
+
+                                                </div>
+
+                                                <div className={styles.formGroup}>
+
+                                                    <label>Date of Birth (DOB)</label>
+
+                                                    <input
+
+                                                        type="date"
+
+                                                        value={editingDirector ? editingDirector.dob : newDirector.dob}
+
+                                                        onChange={e => editingDirector ? setEditingDirector({...editingDirector, dob: e.target.value}) : setNewDirector({...newDirector, dob: e.target.value})}
 
                                                         className={styles.input}
 
