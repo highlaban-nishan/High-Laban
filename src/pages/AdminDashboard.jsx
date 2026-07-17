@@ -18580,7 +18580,7 @@ const AdminDashboard = () => {
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>Kitchen Overhead</th>
 
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#16a34a', fontSize: '0.85rem' }}>Total Cost</th>
-                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#6366f1', fontSize: '0.85rem' }}>Franchise Price (5% GST)</th>
+                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#6366f1', fontSize: '0.85rem' }}>Franchise Price (+₹20 & 5% GST)</th>
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#e11d48', fontSize: '0.85rem' }}>Retail Price</th>
 
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#ec4899', fontSize: '0.85rem' }}>Retail Price (5% GST)</th>
