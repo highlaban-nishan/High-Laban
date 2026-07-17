@@ -1476,6 +1476,81 @@ const db = {
             console.error("Error deleting franchise cash entry:", error);
             throw error;
         }
+    },
+
+    // --- Directors & Founders ---
+    getDirectors: async () => {
+        try {
+            const querySnapshot = await getDocs(collection(firestore, 'directors'));
+            const list = [];
+            querySnapshot.forEach((docSnap) => {
+                list.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            return list;
+        } catch (error) {
+            console.error("Error getting directors:", error);
+            return [];
+        }
+    },
+
+    addDirector: async (data) => {
+        try {
+            const docRef = await addDoc(collection(firestore, 'directors'), {
+                ...data,
+                createdAt: new Date().toISOString()
+            });
+            return { id: docRef.id, ...data };
+        } catch (error) {
+            console.error("Error adding director:", error);
+            throw error;
+        }
+    },
+
+    updateDirector: async (id, data) => {
+        try {
+            const ref = doc(firestore, 'directors', id);
+            await updateDoc(ref, { ...data, updatedAt: new Date().toISOString() });
+            return { id, ...data };
+        } catch (error) {
+            console.error("Error updating director:", error);
+            throw error;
+        }
+    },
+
+    deleteDirector: async (id) => {
+        try {
+            await deleteDoc(doc(firestore, 'directors', id));
+            return true;
+        } catch (error) {
+            console.error("Error deleting director:", error);
+            throw error;
+        }
+    },
+
+    // --- Company Registration Portal ---
+    getCompanyDetails: async () => {
+        try {
+            const docRef = doc(firestore, 'company_details', 'main');
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                return docSnap.data();
+            }
+            return null;
+        } catch (error) {
+            console.error("Error getting company details:", error);
+            return null;
+        }
+    },
+
+    saveCompanyDetails: async (data) => {
+        try {
+            const docRef = doc(firestore, 'company_details', 'main');
+            await setDoc(docRef, { ...data, updatedAt: new Date().toISOString() }, { merge: true });
+            return true;
+        } catch (error) {
+            console.error("Error saving company details:", error);
+            throw error;
+        }
     }
 };
 

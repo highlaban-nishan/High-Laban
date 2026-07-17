@@ -188,6 +188,8 @@ const availableTabsList = [
     { id: 'locations', label: '📍 Locations' },
     { id: 'customers', label: '👥 Users' },
     { id: 'franchise', label: '🤝 Franchise' },
+    { id: 'directors', label: '👔 Directors & Founders' },
+    { id: 'company', label: '🏢 Company Portal' },
     { id: 'staff', label: '🧑‍🍳 HR Staff' },
     { id: 'payroll', label: '💵 Payroll' },
     { id: 'vendors', label: '🏪 Vendors' },
@@ -847,6 +849,26 @@ const AdminDashboard = () => {
 
     const [activeStaffSubTab, setActiveStaffSubTab] = useState('directory'); // 'directory' | 'leads' | 'openings' | 'messages'
 
+    // Directors & Founders Tab States
+    const [directorsList, setDirectorsList] = useState([]);
+    const [showAddDirectorForm, setShowAddDirectorForm] = useState(false);
+    const [newDirector, setNewDirector] = useState({
+        fullName: '', designation: 'Director', dinNumber: '', panNumber: '', phone: '', email: '',
+        panUrl: '', aadhaarUrl: '', bankStatementUrl: '', signatureUrl: '', documents: []
+    });
+    const [editingDirector, setEditingDirector] = useState(null);
+    const [directorDocLabel, setDirectorDocLabel] = useState('');
+    const [directorDocLabelEdit, setDirectorDocLabelEdit] = useState('');
+
+    // Company Portal Tab States
+    const [companyDetails, setCompanyDetails] = useState({
+        companyName: '', registrationNumber: '', panNumber: '', gstinNumber: '',
+        address: '', email: '', phone: '',
+        incorporationUrl: '', gstUrl: '', aoeUrl: '', moeUrl: '', cancelledChequeUrl: '',
+        documents: []
+    });
+    const [companyDocLabel, setCompanyDocLabel] = useState('');
+
     const [workerApplications, setWorkerApplications] = useState([]);
 
     const [contactMessages, setContactMessages] = useState([]);
@@ -910,6 +932,10 @@ const AdminDashboard = () => {
         address: '', modelType: 'Standard', status: 'Running', openDate: '',
 
         agreementUrl: '', gstUrl: '', ownerIdUrl: '',
+
+        fssaiUrl: '', labourUrl: '', rentalAgreementUrl: '', employmentCertUrl: '',
+
+        bankName: '', bankAccName: '', bankAccNumber: '', ifscCode: '', outletNumber: '',
 
         mapUrl: '', imageUrl: '', whatsapp: '', zomato: '', swiggy: '', magicpin: '', ondc: '',
 
@@ -1288,6 +1314,22 @@ const AdminDashboard = () => {
                     varietiesSuffix: statsData.varietiesSuffix || '+'
 
                 });
+
+            }
+
+        } else if (activeTab === 'directors') {
+
+            const dirs = await db.getDirectors();
+
+            setDirectorsList(dirs);
+
+        } else if (activeTab === 'company') {
+
+            const details = await db.getCompanyDetails();
+
+            if (details) {
+
+                setCompanyDetails(prev => ({ ...prev, ...details }));
 
             }
 
@@ -2236,11 +2278,17 @@ const AdminDashboard = () => {
 
                 agreementUrl: '', gstUrl: '', ownerIdUrl: '',
 
+                fssaiUrl: '', labourUrl: '', rentalAgreementUrl: '', employmentCertUrl: '',
+
+                bankName: '', bankAccName: '', bankAccNumber: '', ifscCode: '', outletNumber: '',
+
                 mapUrl: '', imageUrl: '', whatsapp: '', zomato: '', swiggy: '', magicpin: '', ondc: '',
 
                 documents: [],
 
-                locationId: ''
+                locationId: '',
+
+                assignedKitchenId: ''
 
             });
 
@@ -2310,7 +2358,9 @@ const AdminDashboard = () => {
 
                     phone: editingFranchiseOutlet.phone || '',
 
-                    ownerEmail: editingFranchiseOutlet.email || ''
+                    ownerEmail: editingFranchiseOutlet.email || '',
+
+                    status: editingFranchiseOutlet.status === 'Running' ? 'Open' : editingFranchiseOutlet.status === 'Under Construction' ? 'Coming Soon' : editingFranchiseOutlet.status === 'Closed' ? 'Closed' : (linkedLoc.status || 'Open')
 
                 };
 
@@ -3402,7 +3452,9 @@ const AdminDashboard = () => {
 
                             ownerName: newLocation.ownerName || franchise.ownerName || '',
 
-                            email: newLocation.ownerEmail || franchise.email || ''
+                            email: newLocation.ownerEmail || franchise.email || '',
+
+                            status: newLocation.status === 'Open' ? 'Running' : newLocation.status === 'Coming Soon' ? 'Under Construction' : newLocation.status === 'Closed' ? 'Closed' : (franchise.status || 'Running')
 
                         };
 
@@ -3714,6 +3766,10 @@ const AdminDashboard = () => {
 
                 email: loc.ownerEmail || '',
 
+                address: loc.address || '',
+
+                status: loc.status === 'Open' ? 'Running' : loc.status === 'Coming Soon' ? 'Under Construction' : loc.status === 'Closed' ? 'Closed' : 'Running',
+
                 mapUrl: loc.mapUrl || ''
 
             }));
@@ -3861,6 +3917,34 @@ const AdminDashboard = () => {
                             <FiBriefcase style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Franchise
 
                             {activeTab === 'franchise' && <div className={styles.activeDot}></div>}
+
+                        </div>
+
+                    )}
+
+
+
+                    {hasTabAccess('directors') && (
+
+                        <div className={`${styles.navItem} ${activeTab === 'directors' ? styles.active : ''}`} onClick={() => { setActiveTab('directors'); setIsMobileOpen(false); }}>
+
+                            <FiUsers style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Directors & Founders
+
+                            {activeTab === 'directors' && <div className={styles.activeDot}></div>}
+
+                        </div>
+
+                    )}
+
+
+
+                    {hasTabAccess('company') && (
+
+                        <div className={`${styles.navItem} ${activeTab === 'company' ? styles.active : ''}`} onClick={() => { setActiveTab('company'); setIsMobileOpen(false); }}>
+
+                            <FiGlobe style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Company Portal
+
+                            {activeTab === 'company' && <div className={styles.activeDot}></div>}
 
                         </div>
 
@@ -6731,13 +6815,29 @@ const AdminDashboard = () => {
 
 
 
+                                                        {/* Bank Details Box */}
+
+                                                        <div style={{ padding: '10px', background: '#f0f9ff', borderRadius: '8px', fontSize: '0.85rem', border: '1px solid #bae6fd', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+
+                                                            <div>🏦 <strong>Bank:</strong> {outlet.bankName || 'N/A'} {outlet.outletNumber ? `(No: ${outlet.outletNumber})` : ''}</div>
+
+                                                            <div style={{ color: '#0369a1' }}>👤 <strong>A/c Name:</strong> {outlet.bankAccName || 'N/A'}</div>
+
+                                                            <div style={{ color: '#0369a1' }}>🔢 <strong>A/c No:</strong> {outlet.bankAccNumber || 'N/A'}</div>
+
+                                                            <div style={{ color: '#0369a1' }}>🔑 <strong>IFSC:</strong> {outlet.ifscCode || 'N/A'}</div>
+
+                                                        </div>
+
+
+
                                                         {/* Documents Box */}
 
                                                         <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.8rem', marginTop: '0.4rem' }}>
 
                                                             <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem' }}>📄 Saved Documents</div>
 
-                                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', rowGap: '8px' }}>
 
                                                                 {outlet.agreementUrl ? (
 
@@ -6766,6 +6866,30 @@ const AdminDashboard = () => {
                                                                 ) : (
 
                                                                     <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem' }}>No ID Copy</span>
+
+                                                                )}
+
+                                                                {outlet.fssaiUrl && (
+
+                                                                    <a href={outlet.fssaiUrl} target="_blank" rel="noreferrer" style={{ background: '#fef3c7', color: '#b45309', textDecoration: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold' }}>FSSAI License 📥</a>
+
+                                                                )}
+
+                                                                {outlet.labourUrl && (
+
+                                                                    <a href={outlet.labourUrl} target="_blank" rel="noreferrer" style={{ background: '#ffedd5', color: '#c2410c', textDecoration: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold' }}>Labour Cert 📥</a>
+
+                                                                )}
+
+                                                                {outlet.rentalAgreementUrl && (
+
+                                                                    <a href={outlet.rentalAgreementUrl} target="_blank" rel="noreferrer" style={{ background: '#e0e7ff', color: '#4338ca', textDecoration: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold' }}>Rental Agrmt 📥</a>
+
+                                                                )}
+
+                                                                {outlet.employmentCertUrl && (
+
+                                                                    <a href={outlet.employmentCertUrl} target="_blank" rel="noreferrer" style={{ background: '#fae8ff', color: '#a21caf', textDecoration: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold' }}>Emp Cert 📥</a>
 
                                                                 )}
 
@@ -17420,7 +17544,6 @@ const AdminDashboard = () => {
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>Kitchen Overhead</th>
 
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#16a34a', fontSize: '0.85rem' }}>Total Cost</th>
-                                                <th style={{ padding: '14px 20px', fontWeight: '800', color: '#3b82f6', fontSize: '0.85rem' }}>Franchise Price (+₹20)</th>
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#6366f1', fontSize: '0.85rem' }}>Franchise Price (5% GST)</th>
                                                 <th style={{ padding: '14px 20px', fontWeight: '800', color: '#e11d48', fontSize: '0.85rem' }}>Retail Price</th>
 
@@ -17531,8 +17654,6 @@ const AdminDashboard = () => {
                                                             )}
 
                                                         </td>
-
-                                                        <td style={{ padding: '14px 20px', fontWeight: '800', color: '#3b82f6' }}>₹{(analysis.totalUnitCost + 20).toFixed(2)}</td>
 
                                                         <td style={{ padding: '14px 20px', fontWeight: '800', color: '#6366f1' }}>₹{((analysis.totalUnitCost + 20) * 1.05).toFixed(2)}</td>
 
@@ -22604,6 +22725,54 @@ const AdminDashboard = () => {
 
 
 
+                                <h4 style={{ color: '#475569', fontSize: '0.85rem', textTransform: 'uppercase', marginTop: '1.2rem', marginBottom: '0.75rem', fontWeight: 'bold' }}>🏦 Outlet Number & Bank Account Details</h4>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #f1f5f9', marginBottom: '1.2rem' }}>
+
+                                    <div className={styles.formGroup}>
+
+                                        <label>Outlet Number</label>
+
+                                        <input type="text" value={newFranchiseOutlet.outletNumber || ''} onChange={e => setNewFranchiseOutlet({ ...newFranchiseOutlet, outletNumber: e.target.value })} className={styles.input} placeholder="e.g. BLR-01" />
+
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+
+                                        <label>Bank Name</label>
+
+                                        <input type="text" value={newFranchiseOutlet.bankName || ''} onChange={e => setNewFranchiseOutlet({ ...newFranchiseOutlet, bankName: e.target.value })} className={styles.input} placeholder="e.g. HDFC Bank" />
+
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+
+                                        <label>Account Beneficiary Name</label>
+
+                                        <input type="text" value={newFranchiseOutlet.bankAccName || ''} onChange={e => setNewFranchiseOutlet({ ...newFranchiseOutlet, bankAccName: e.target.value })} className={styles.input} placeholder="Beneficiary Name" />
+
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+
+                                        <label>Account Number</label>
+
+                                        <input type="text" value={newFranchiseOutlet.bankAccNumber || ''} onChange={e => setNewFranchiseOutlet({ ...newFranchiseOutlet, bankAccNumber: e.target.value })} className={styles.input} placeholder="Account Number" />
+
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+
+                                        <label>IFSC Code</label>
+
+                                        <input type="text" value={newFranchiseOutlet.ifscCode || ''} onChange={e => setNewFranchiseOutlet({ ...newFranchiseOutlet, ifscCode: e.target.value.toUpperCase() })} className={styles.input} placeholder="IFSC Code" />
+
+                                    </div>
+
+                                </div>
+
+
+
                                 {/* Documents Section */}
 
                                 <div style={{ marginTop: '1.2rem', padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
@@ -22622,6 +22791,8 @@ const AdminDashboard = () => {
 
                                         </div>
 
+
+
                                         <div className={styles.formGroup}>
 
                                             <label>GST Registration Certificate</label>
@@ -22632,6 +22803,8 @@ const AdminDashboard = () => {
 
                                         </div>
 
+
+
                                         <div className={styles.formGroup}>
 
                                             <label>Owner ID Card Copy</label>
@@ -22639,6 +22812,54 @@ const AdminDashboard = () => {
                                             <input type="file" onChange={e => handleFranchiseDocUpload(e, 'ownerIdUrl', false)} style={{ fontSize: '0.8rem' }} />
 
                                             {newFranchiseOutlet.ownerIdUrl && <span style={{ fontSize: '0.75rem', color: '#10b981', display: 'block', marginTop: '4px' }}>🟢 Owner ID Uploaded</span>}
+
+                                        </div>
+
+
+
+                                        <div className={styles.formGroup}>
+
+                                            <label>FSSAI License Copy</label>
+
+                                            <input type="file" onChange={e => handleFranchiseDocUpload(e, 'fssaiUrl', false)} style={{ fontSize: '0.8rem' }} />
+
+                                            {newFranchiseOutlet.fssaiUrl && <span style={{ fontSize: '0.75rem', color: '#10b981', display: 'block', marginTop: '4px' }}>🟢 FSSAI License Uploaded</span>}
+
+                                        </div>
+
+
+
+                                        <div className={styles.formGroup}>
+
+                                            <label>Labour Registration Certificate</label>
+
+                                            <input type="file" onChange={e => handleFranchiseDocUpload(e, 'labourUrl', false)} style={{ fontSize: '0.8rem' }} />
+
+                                            {newFranchiseOutlet.labourUrl && <span style={{ fontSize: '0.75rem', color: '#10b981', display: 'block', marginTop: '4px' }}>🟢 Labour Cert Uploaded</span>}
+
+                                        </div>
+
+
+
+                                        <div className={styles.formGroup}>
+
+                                            <label>Rental Agreement Copy</label>
+
+                                            <input type="file" onChange={e => handleFranchiseDocUpload(e, 'rentalAgreementUrl', false)} style={{ fontSize: '0.8rem' }} />
+
+                                            {newFranchiseOutlet.rentalAgreementUrl && <span style={{ fontSize: '0.75rem', color: '#10b981', display: 'block', marginTop: '4px' }}>🟢 Rental Agrmt Uploaded</span>}
+
+                                        </div>
+
+
+
+                                        <div className={styles.formGroup}>
+
+                                            <label>Employment Certificate</label>
+
+                                            <input type="file" onChange={e => handleFranchiseDocUpload(e, 'employmentCertUrl', false)} style={{ fontSize: '0.8rem' }} />
+
+                                            {newFranchiseOutlet.employmentCertUrl && <span style={{ fontSize: '0.75rem', color: '#10b981', display: 'block', marginTop: '4px' }}>🟢 Emp Cert Uploaded</span>}
 
                                         </div>
 
@@ -22920,6 +23141,54 @@ const AdminDashboard = () => {
 
 
 
+                                <h4 style={{ color: '#475569', fontSize: '0.85rem', textTransform: 'uppercase', marginTop: '1.2rem', marginBottom: '0.75rem', fontWeight: 'bold' }}>🏦 Outlet Number & Bank Account Details</h4>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #f1f5f9', marginBottom: '1.2rem' }}>
+
+                                    <div className={styles.formGroup}>
+
+                                        <label>Outlet Number</label>
+
+                                        <input type="text" value={editingFranchiseOutlet.outletNumber || ''} onChange={e => setEditingFranchiseOutlet({ ...editingFranchiseOutlet, outletNumber: e.target.value })} className={styles.input} />
+
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+
+                                        <label>Bank Name</label>
+
+                                        <input type="text" value={editingFranchiseOutlet.bankName || ''} onChange={e => setEditingFranchiseOutlet({ ...editingFranchiseOutlet, bankName: e.target.value })} className={styles.input} />
+
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+
+                                        <label>Account Beneficiary Name</label>
+
+                                        <input type="text" value={editingFranchiseOutlet.bankAccName || ''} onChange={e => setEditingFranchiseOutlet({ ...editingFranchiseOutlet, bankAccName: e.target.value })} className={styles.input} />
+
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+
+                                        <label>Account Number</label>
+
+                                        <input type="text" value={editingFranchiseOutlet.bankAccNumber || ''} onChange={e => setEditingFranchiseOutlet({ ...editingFranchiseOutlet, bankAccNumber: e.target.value })} className={styles.input} />
+
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+
+                                        <label>IFSC Code</label>
+
+                                        <input type="text" value={editingFranchiseOutlet.ifscCode || ''} onChange={e => setEditingFranchiseOutlet({ ...editingFranchiseOutlet, ifscCode: e.target.value.toUpperCase() })} className={styles.input} />
+
+                                    </div>
+
+                                </div>
+
+
+
                                 {/* Documents Section */}
 
                                 <div style={{ marginTop: '1.2rem', padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
@@ -22942,6 +23211,8 @@ const AdminDashboard = () => {
 
                                         </div>
 
+
+
                                         <div className={styles.formGroup}>
 
                                             <label>GST Registration Certificate</label>
@@ -22956,6 +23227,8 @@ const AdminDashboard = () => {
 
                                         </div>
 
+
+
                                         <div className={styles.formGroup}>
 
                                             <label>Owner ID Card Copy</label>
@@ -22965,6 +23238,70 @@ const AdminDashboard = () => {
                                             {editingFranchiseOutlet.ownerIdUrl && (
 
                                                 <a href={editingFranchiseOutlet.ownerIdUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#009ceb', fontWeight: 'bold', marginTop: '4px', display: 'inline-block' }}>📥 Download Owner ID</a>
+
+                                            )}
+
+                                        </div>
+
+
+
+                                        <div className={styles.formGroup}>
+
+                                            <label>FSSAI License Copy</label>
+
+                                            <input type="file" onChange={e => handleFranchiseDocUpload(e, 'fssaiUrl', true)} style={{ fontSize: '0.8rem' }} />
+
+                                            {editingFranchiseOutlet.fssaiUrl && (
+
+                                                <a href={editingFranchiseOutlet.fssaiUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#009ceb', fontWeight: 'bold', marginTop: '4px', display: 'inline-block' }}>📥 Download FSSAI License</a>
+
+                                            )}
+
+                                        </div>
+
+
+
+                                        <div className={styles.formGroup}>
+
+                                            <label>Labour Registration Certificate</label>
+
+                                            <input type="file" onChange={e => handleFranchiseDocUpload(e, 'labourUrl', true)} style={{ fontSize: '0.8rem' }} />
+
+                                            {editingFranchiseOutlet.labourUrl && (
+
+                                                <a href={editingFranchiseOutlet.labourUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#009ceb', fontWeight: 'bold', marginTop: '4px', display: 'inline-block' }}>📥 Download Labour Cert</a>
+
+                                            )}
+
+                                        </div>
+
+
+
+                                        <div className={styles.formGroup}>
+
+                                            <label>Rental Agreement Copy</label>
+
+                                            <input type="file" onChange={e => handleFranchiseDocUpload(e, 'rentalAgreementUrl', true)} style={{ fontSize: '0.8rem' }} />
+
+                                            {editingFranchiseOutlet.rentalAgreementUrl && (
+
+                                                <a href={editingFranchiseOutlet.rentalAgreementUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#009ceb', fontWeight: 'bold', marginTop: '4px', display: 'inline-block' }}>📥 Download Rental Agrmt</a>
+
+                                            )}
+
+                                        </div>
+
+
+
+                                        <div className={styles.formGroup}>
+
+                                            <label>Employment Certificate</label>
+
+                                            <input type="file" onChange={e => handleFranchiseDocUpload(e, 'employmentCertUrl', true)} style={{ fontSize: '0.8rem' }} />
+
+                                            {editingFranchiseOutlet.employmentCertUrl && (
+
+                                                <a href={editingFranchiseOutlet.employmentCertUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#009ceb', fontWeight: 'bold', marginTop: '4px', display: 'inline-block' }}>📥 Download Emp Cert</a>
 
                                             )}
 
