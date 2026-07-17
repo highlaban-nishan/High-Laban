@@ -2410,6 +2410,204 @@ const AdminDashboard = () => {
 
 
 
+    // --- Directors & Founders Handlers ---
+
+    const handleSaveDirector = async (e) => {
+
+        e.preventDefault();
+
+        try {
+
+            if (editingDirector) {
+
+                const updated = await db.updateDirector(editingDirector.id, editingDirector);
+
+                setDirectorsList(prev => prev.map(d => d.id === editingDirector.id ? updated : d));
+
+                setEditingDirector(null);
+
+                showToast("Director profile updated successfully! 👔");
+
+            } else {
+
+                if (!newDirector.fullName) {
+
+                    showToast("Please enter Full Name", "error");
+
+                    return;
+
+                }
+
+                const added = await db.addDirector(newDirector);
+
+                setDirectorsList(prev => [added, ...prev]);
+
+                setShowAddDirectorForm(false);
+
+                setNewDirector({
+
+                    fullName: '', designation: 'Director', dinNumber: '', panNumber: '', phone: '', email: '',
+
+                    panUrl: '', aadhaarUrl: '', bankStatementUrl: '', signatureUrl: '', documents: []
+
+                });
+
+                showToast("New Director added successfully! 👔");
+
+            }
+
+        } catch (error) {
+
+            console.error(error);
+
+            showToast("Failed to save Director profile", "error");
+
+        }
+
+    };
+
+
+
+    const handleDeleteDirector = async (id) => {
+
+        if (window.confirm("Are you sure you want to delete this Director profile?")) {
+
+            try {
+
+                await db.deleteDirector(id);
+
+                setDirectorsList(prev => prev.filter(d => d.id !== id));
+
+                showToast("Director profile deleted successfully!");
+
+            } catch (error) {
+
+                console.error(error);
+
+                showToast("Failed to delete Director", "error");
+
+            }
+
+        }
+
+    };
+
+
+
+    const handleUploadDirectorDoc = async (file, fieldType, customLabel = '') => {
+
+        if (!file) return;
+
+        try {
+
+            showToast("Uploading document...");
+
+            const url = await uploadMedia(file);
+
+            if (editingDirector) {
+
+                if (fieldType === 'custom') {
+
+                    const newDocs = [...(editingDirector.documents || []), { name: customLabel, url }];
+
+                    setEditingDirector({ ...editingDirector, documents: newDocs });
+
+                } else {
+
+                    setEditingDirector({ ...editingDirector, [fieldType]: url });
+
+                }
+
+            } else {
+
+                if (fieldType === 'custom') {
+
+                    const newDocs = [...(newDirector.documents || []), { name: customLabel, url }];
+
+                    setNewDirector({ ...newDirector, documents: newDocs });
+
+                } else {
+
+                    setNewDirector({ ...newDirector, [fieldType]: url });
+
+                }
+
+            }
+
+            showToast("Document uploaded successfully! 📄");
+
+        } catch (error) {
+
+            console.error(error);
+
+            showToast("Failed to upload document", "error");
+
+        }
+
+    };
+
+
+
+    // --- Company Portal Handlers ---
+
+    const handleSaveCompanyDetails = async (e) => {
+
+        e.preventDefault();
+
+        try {
+
+            await db.saveCompanyDetails(companyDetails);
+
+            showToast("Company details updated successfully! 🏢");
+
+        } catch (error) {
+
+            console.error(error);
+
+            showToast("Failed to save Company details", "error");
+
+        }
+
+    };
+
+
+
+    const handleUploadCompanyDoc = async (file, fieldType, customLabel = '') => {
+
+        if (!file) return;
+
+        try {
+
+            showToast("Uploading company document...");
+
+            const url = await uploadMedia(file);
+
+            if (fieldType === 'custom') {
+
+                const newDocs = [...(companyDetails.documents || []), { name: customLabel, url }];
+
+                setCompanyDetails({ ...companyDetails, documents: newDocs });
+
+            } else {
+
+                setCompanyDetails({ ...companyDetails, [fieldType]: url });
+
+            }
+
+            showToast("Company document uploaded successfully! 📄");
+
+        } catch (error) {
+
+            console.error(error);
+
+            showToast("Failed to upload document", "error");
+
+        }
+
+    };
+
+
+
     const handleSaveOutletFixedCosts = async (outletId) => {
 
         if (isReadOnly || isChef) return;
@@ -8460,6 +8658,844 @@ const AdminDashboard = () => {
                     </div>
 
                 )}
+
+
+
+                {/* Directors & Founders Portal */}
+
+                {activeTab === 'directors' && (() => {
+
+                    return (
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1.5rem', background: '#f8fafc', minHeight: '80vh', borderRadius: '16px', border: '1px solid #cbd5e1' }}>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+
+                                <div>
+
+                                    <h2 style={{ margin: 0, color: '#0f172a', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+
+                                        👔 Directors & Founders Vault
+
+                                    </h2>
+
+                                    <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.875rem' }}>
+
+                                        Manage corporate identities, government records, signatures, and personal credentials.
+
+                                    </p>
+
+                                </div>
+
+                                <button
+
+                                    className={styles.addButton}
+
+                                    onClick={() => {
+
+                                        setEditingDirector(null);
+
+                                        setNewDirector({
+
+                                            fullName: '', designation: 'Director', dinNumber: '', panNumber: '', phone: '', email: '',
+
+                                            panUrl: '', aadhaarUrl: '', bankStatementUrl: '', signatureUrl: '', documents: []
+
+                                        });
+
+                                        setShowAddDirectorForm(true);
+
+                                    }}
+
+                                >
+
+                                    + ADD NEW PROFILE
+
+                                </button>
+
+                            </div>
+
+
+
+                            {/* Grid of Directors */}
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem', marginTop: '1rem' }}>
+
+                                {directorsList.map((dir) => (
+
+                                    <div key={dir.id} className={styles.card} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem', position: 'relative', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+
+                                            <div>
+
+                                                <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#1e293b', fontWeight: 'bold' }}>{dir.fullName}</h3>
+
+                                                <span style={{ fontSize: '0.75rem', color: '#6366f1', fontWeight: '700', textTransform: 'uppercase', display: 'inline-block', marginTop: '2px' }}>
+
+                                                    💼 {dir.designation}
+
+                                                </span>
+
+                                            </div>
+
+                                            <div style={{ display: 'flex', gap: '0.35rem' }}>
+
+                                                <button onClick={() => { setEditingDirector(dir); setShowAddDirectorForm(true); }} className={styles.editBtn} style={{ width: '28px', height: '28px', padding: '4px', border: 'none', background: '#f1f5f9', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Edit Profile">
+
+                                                    <EditIcon />
+
+                                                </button>
+
+                                                <button onClick={() => handleDeleteDirector(dir.id)} className={styles.deleteButton} style={{ width: '28px', height: '28px', padding: '4px', border: 'none', background: '#fee2e2', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Delete Profile">
+
+                                                    <TrashIcon />
+
+                                                </button>
+
+                                            </div>
+
+                                        </div>
+
+
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem', color: '#475569' }}>
+
+                                            {dir.phone && <div>📞 {dir.phone}</div>}
+
+                                            {dir.email && <div>📧 {dir.email}</div>}
+
+                                            {dir.dinNumber && <div>🆔 <strong>DIN:</strong> {dir.dinNumber}</div>}
+
+                                            {dir.panNumber && <div>💳 <strong>PAN:</strong> {dir.panNumber}</div>}
+
+                                        </div>
+
+
+
+                                        {/* Documents Block */}
+
+                                        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.8rem', marginTop: '0.4rem' }}>
+
+                                            <div style={{ fontSize: '0.72rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem' }}>🔒 Government & Bank Records</div>
+
+                                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', rowGap: '6px' }}>
+
+                                                {dir.panUrl ? (
+
+                                                    <a href={dir.panUrl} target="_blank" rel="noreferrer" style={{ background: '#e0f2fe', color: '#0369a1', textDecoration: 'none', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>PAN Card 📥</a>
+
+                                                ) : <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem' }}>No PAN</span>}
+
+
+
+                                                {dir.aadhaarUrl ? (
+
+                                                    <a href={dir.aadhaarUrl} target="_blank" rel="noreferrer" style={{ background: '#e2fbee', color: '#15803d', textDecoration: 'none', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>Aadhaar 📥</a>
+
+                                                ) : <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem' }}>No Aadhaar</span>}
+
+
+
+                                                {dir.bankStatementUrl ? (
+
+                                                    <a href={dir.bankStatementUrl} target="_blank" rel="noreferrer" style={{ background: '#f3e8ff', color: '#6b21a8', textDecoration: 'none', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>Bank Stmt 📥</a>
+
+                                                ) : <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem' }}>No Stmt</span>}
+
+
+
+                                                {dir.signatureUrl ? (
+
+                                                    <a href={dir.signatureUrl} target="_blank" rel="noreferrer" style={{ background: '#ffedd5', color: '#c2410c', textDecoration: 'none', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>Signature 📥</a>
+
+                                                ) : <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem' }}>No Specimen</span>}
+
+
+
+                                                {dir.documents && dir.documents.map((doc, idx) => (
+
+                                                    <a key={idx} href={doc.url} target="_blank" rel="noreferrer" style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', textDecoration: 'none', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>{doc.name} 📥</a>
+
+                                                ))}
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                ))}
+
+                                {directorsList.length === 0 && (
+
+                                    <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '4rem', color: '#94a3b8' }}>
+
+                                        No Director/Founder profiles saved yet. Click "+ ADD NEW PROFILE" to begin.
+
+                                    </div>
+
+                                )}
+
+                            </div>
+
+
+
+                            {/* Add/Edit Modal */}
+
+                            {showAddDirectorForm && (
+
+                                <div className={styles.modalOverlay}>
+
+                                    <div className={styles.modalContent} style={{ maxWidth: '650px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+
+                                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '800', color: '#1e293b' }}>
+
+                                                {editingDirector ? '📝 Edit Director Profile' : '👔 Add Director Profile'}
+
+                                            </h3>
+
+                                            <button onClick={() => { setShowAddDirectorForm(false); setEditingDirector(null); }} style={{ border: 'none', background: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>&times;</button>
+
+                                        </div>
+
+
+
+                                        <form onSubmit={handleSaveDirector} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+
+                                                <div className={styles.formGroup}>
+
+                                                    <label>Full Name *</label>
+
+                                                    <input
+
+                                                        type="text"
+
+                                                        value={editingDirector ? editingDirector.fullName : newDirector.fullName}
+
+                                                        onChange={e => editingDirector ? setEditingDirector({...editingDirector, fullName: e.target.value}) : setNewDirector({...newDirector, fullName: e.target.value})}
+
+                                                        className={styles.input}
+
+                                                        required
+
+                                                    />
+
+                                                </div>
+
+                                                <div className={styles.formGroup}>
+
+                                                    <label>Designation</label>
+
+                                                    <input
+
+                                                        type="text"
+
+                                                        value={editingDirector ? editingDirector.designation : newDirector.designation}
+
+                                                        onChange={e => editingDirector ? setEditingDirector({...editingDirector, designation: e.target.value}) : setNewDirector({...newDirector, designation: e.target.value})}
+
+                                                        className={styles.input}
+
+                                                    />
+
+                                                </div>
+
+                                            </div>
+
+
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+
+                                                <div className={styles.formGroup}>
+
+                                                    <label>DIN Number</label>
+
+                                                    <input
+
+                                                        type="text"
+
+                                                        value={editingDirector ? editingDirector.dinNumber : newDirector.dinNumber}
+
+                                                        onChange={e => editingDirector ? setEditingDirector({...editingDirector, dinNumber: e.target.value}) : setNewDirector({...newDirector, dinNumber: e.target.value})}
+
+                                                        className={styles.input}
+
+                                                    />
+
+                                                </div>
+
+                                                <div className={styles.formGroup}>
+
+                                                    <label>PAN Number</label>
+
+                                                    <input
+
+                                                        type="text"
+
+                                                        value={editingDirector ? editingDirector.panNumber : newDirector.panNumber}
+
+                                                        onChange={e => editingDirector ? setEditingDirector({...editingDirector, panNumber: e.target.value}) : setNewDirector({...newDirector, panNumber: e.target.value})}
+
+                                                        className={styles.input}
+
+                                                    />
+
+                                                </div>
+
+                                            </div>
+
+
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+
+                                                <div className={styles.formGroup}>
+
+                                                    <label>Phone Number</label>
+
+                                                    <input
+
+                                                        type="text"
+
+                                                        value={editingDirector ? editingDirector.phone : newDirector.phone}
+
+                                                        onChange={e => editingDirector ? setEditingDirector({...editingDirector, phone: e.target.value}) : setNewDirector({...newDirector, phone: e.target.value})}
+
+                                                        className={styles.input}
+
+                                                    />
+
+                                                </div>
+
+                                                <div className={styles.formGroup}>
+
+                                                    <label>Email Address</label>
+
+                                                    <input
+
+                                                        type="email"
+
+                                                        value={editingDirector ? editingDirector.email : newDirector.email}
+
+                                                        onChange={e => editingDirector ? setEditingDirector({...editingDirector, email: e.target.value}) : setNewDirector({...newDirector, email: e.target.value})}
+
+                                                        className={styles.input}
+
+                                                    />
+
+                                                </div>
+
+                                            </div>
+
+
+
+                                            {/* Files Upload Grid */}
+
+                                            <div style={{ borderTop: '1px solid #cbd5e1', paddingTop: '1rem', marginTop: '0.5rem' }}>
+
+                                                <h4 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: '#475569' }}>📁 Upload Secure Documents</h4>
+
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+
+                                                    <div className={styles.formGroup}>
+
+                                                        <label>PAN Card Copy</label>
+
+                                                        <input type="file" onChange={e => handleUploadDirectorDoc(e.target.files[0], 'panUrl')} style={{ fontSize: '0.8rem' }} />
+
+                                                        {(editingDirector ? editingDirector.panUrl : newDirector.panUrl) && <span style={{ color: '#16a34a', fontSize: '0.75rem', fontWeight: 'bold' }}>✓ Uploaded</span>}
+
+                                                    </div>
+
+                                                    <div className={styles.formGroup}>
+
+                                                        <label>Aadhaar Card Copy</label>
+
+                                                        <input type="file" onChange={e => handleUploadDirectorDoc(e.target.files[0], 'aadhaarUrl')} style={{ fontSize: '0.8rem' }} />
+
+                                                        {(editingDirector ? editingDirector.aadhaarUrl : newDirector.aadhaarUrl) && <span style={{ color: '#16a34a', fontSize: '0.75rem', fontWeight: 'bold' }}>✓ Uploaded</span>}
+
+                                                    </div>
+
+                                                    <div className={styles.formGroup}>
+
+                                                        <label>Bank Statement / Cancelled Cheque</label>
+
+                                                        <input type="file" onChange={e => handleUploadDirectorDoc(e.target.files[0], 'bankStatementUrl')} style={{ fontSize: '0.8rem' }} />
+
+                                                        {(editingDirector ? editingDirector.bankStatementUrl : newDirector.bankStatementUrl) && <span style={{ color: '#16a34a', fontSize: '0.75rem', fontWeight: 'bold' }}>✓ Uploaded</span>}
+
+                                                    </div>
+
+                                                    <div className={styles.formGroup}>
+
+                                                        <label>Specimen Signature</label>
+
+                                                        <input type="file" onChange={e => handleUploadDirectorDoc(e.target.files[0], 'signatureUrl')} style={{ fontSize: '0.8rem' }} />
+
+                                                        {(editingDirector ? editingDirector.signatureUrl : newDirector.signatureUrl) && <span style={{ color: '#16a34a', fontSize: '0.75rem', fontWeight: 'bold' }}>✓ Uploaded</span>}
+
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+
+
+
+                                            {/* Custom uploads */}
+
+                                            <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
+
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '8px' }}>Attach Custom File:</span>
+
+                                                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+
+                                                    <div className={styles.formGroup} style={{ flex: 1, margin: 0 }}>
+
+                                                        <label style={{ fontSize: '0.7rem' }}>Label / Document Name</label>
+
+                                                        <input
+
+                                                            type="text"
+
+                                                            placeholder="e.g. GST registration, passport"
+
+                                                            value={directorDocLabel}
+
+                                                            onChange={e => setDirectorDocLabel(e.target.value)}
+
+                                                            className={styles.input}
+
+                                                            style={{ padding: '6px' }}
+
+                                                        />
+
+                                                    </div>
+
+                                                    <div className={styles.formGroup} style={{ flex: 1, margin: 0 }}>
+
+                                                        <label style={{ fontSize: '0.7rem' }}>Select File</label>
+
+                                                        <input
+
+                                                            type="file"
+
+                                                            id="director-custom-file-input"
+
+                                                            style={{ fontSize: '0.75rem' }}
+
+                                                            onChange={async e => {
+
+                                                                if (!directorDocLabel.trim()) {
+
+                                                                    alert("Please enter a label for the custom file first.");
+
+                                                                    e.target.value = '';
+
+                                                                    return;
+
+                                                                }
+
+                                                                await handleUploadDirectorDoc(e.target.files[0], 'custom', directorDocLabel.trim());
+
+                                                                setDirectorDocLabel('');
+
+                                                                e.target.value = '';
+
+                                                            }}
+
+                                                        />
+
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+
+
+
+                                            <button type="submit" className={styles.addButton} style={{ marginTop: '1rem' }}>
+
+                                                {editingDirector ? 'Save Changes' : 'Create Profile'}
+
+                                            </button>
+
+                                        </form>
+
+                                    </div>
+
+                                </div>
+
+                            )}
+
+                        </div>
+
+                    );
+
+                })()}
+
+
+
+                {/* Company Registration Portal */}
+
+                {activeTab === 'company' && (() => {
+
+                    return (
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1.5rem', background: '#f8fafc', minHeight: '80vh', borderRadius: '16px', border: '1px solid #cbd5e1' }}>
+
+                            <div>
+
+                                <h2 style={{ margin: 0, color: '#0f172a', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+
+                                    🏢 Corporate & Registration Portal
+
+                                </h2>
+
+                                <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.875rem' }}>
+
+                                    Manage corporate registration details, taxation records, incorporation certificates, and legal documentation.
+
+                                </p>
+
+                            </div>
+
+
+
+                            <form onSubmit={handleSaveCompanyDetails} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '850px', background: 'white', padding: '2rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+
+                                    <div className={styles.formGroup}>
+
+                                        <label>Company Legal Name *</label>
+
+                                        <input
+
+                                            type="text"
+
+                                            value={companyDetails.companyName || ''}
+
+                                            onChange={e => setCompanyDetails({ ...companyDetails, companyName: e.target.value })}
+
+                                            className={styles.input}
+
+                                            required
+
+                                        />
+
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+
+                                        <label>Registration Number (CIN / UEN)</label>
+
+                                        <input
+
+                                            type="text"
+
+                                            value={companyDetails.registrationNumber || ''}
+
+                                            onChange={e => setCompanyDetails({ ...companyDetails, registrationNumber: e.target.value })}
+
+                                            className={styles.input}
+
+                                        />
+
+                                    </div>
+
+                                </div>
+
+
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+
+                                    <div className={styles.formGroup}>
+
+                                        <label>Company PAN Number</label>
+
+                                        <input
+
+                                            type="text"
+
+                                            value={companyDetails.panNumber || ''}
+
+                                            onChange={e => setCompanyDetails({ ...companyDetails, panNumber: e.target.value })}
+
+                                            className={styles.input}
+
+                                        />
+
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+
+                                        <label>GSTIN Number</label>
+
+                                        <input
+
+                                            type="text"
+
+                                            value={companyDetails.gstinNumber || ''}
+
+                                            onChange={e => setCompanyDetails({ ...companyDetails, gstinNumber: e.target.value })}
+
+                                            className={styles.input}
+
+                                        />
+
+                                    </div>
+
+                                </div>
+
+
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+
+                                    <div className={styles.formGroup}>
+
+                                        <label>Registered Office Address</label>
+
+                                        <input
+
+                                            type="text"
+
+                                            value={companyDetails.address || ''}
+
+                                            onChange={e => setCompanyDetails({ ...companyDetails, address: e.target.value })}
+
+                                            className={styles.input}
+
+                                        />
+
+                                    </div>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+
+                                        <div className={styles.formGroup}>
+
+                                            <label>Corporate Phone</label>
+
+                                            <input
+
+                                                type="text"
+
+                                                value={companyDetails.phone || ''}
+
+                                                onChange={e => setCompanyDetails({ ...companyDetails, phone: e.target.value })}
+
+                                                className={styles.input}
+
+                                            />
+
+                                        </div>
+
+                                        <div className={styles.formGroup}>
+
+                                            <label>Corporate Email</label>
+
+                                            <input
+
+                                                type="email"
+
+                                                value={companyDetails.email || ''}
+
+                                                onChange={e => setCompanyDetails({ ...companyDetails, email: e.target.value })}
+
+                                                className={styles.input}
+
+                                            />
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+
+                                {/* Upload corporate documents */}
+
+                                <div style={{ borderTop: '1px solid #cbd5e1', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
+
+                                    <h4 style={{ margin: '0 0 15px 0', fontSize: '0.95rem', color: '#334155' }}>📁 Corporate Vault Attachments</h4>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1.5rem' }}>
+
+                                        <div className={styles.formGroup} style={{ border: '1px solid #f1f5f9', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
+
+                                            <label style={{ fontWeight: 'bold' }}>Certificate of Incorporation</label>
+
+                                            <input type="file" onChange={e => handleUploadCompanyDoc(e.target.files[0], 'incorporationUrl')} style={{ fontSize: '0.75rem', marginTop: '6px' }} />
+
+                                            {companyDetails.incorporationUrl && <a href={companyDetails.incorporationUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: '6px', fontSize: '0.75rem', color: '#6366f1', fontWeight: 'bold', textDecoration: 'none' }}>Download File 📥</a>}
+
+                                        </div>
+
+                                        <div className={styles.formGroup} style={{ border: '1px solid #f1f5f9', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
+
+                                            <label style={{ fontWeight: 'bold' }}>GST Certificate</label>
+
+                                            <input type="file" onChange={e => handleUploadCompanyDoc(e.target.files[0], 'gstUrl')} style={{ fontSize: '0.75rem', marginTop: '6px' }} />
+
+                                            {companyDetails.gstUrl && <a href={companyDetails.gstUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: '6px', fontSize: '0.75rem', color: '#6366f1', fontWeight: 'bold', textDecoration: 'none' }}>Download File 📥</a>}
+
+                                        </div>
+
+                                        <div className={styles.formGroup} style={{ border: '1px solid #f1f5f9', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
+
+                                            <label style={{ fontWeight: 'bold' }}>Articles of Association (AOA)</label>
+
+                                            <input type="file" onChange={e => handleUploadCompanyDoc(e.target.files[0], 'aoeUrl')} style={{ fontSize: '0.75rem', marginTop: '6px' }} />
+
+                                            {companyDetails.aoeUrl && <a href={companyDetails.aoeUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: '6px', fontSize: '0.75rem', color: '#6366f1', fontWeight: 'bold', textDecoration: 'none' }}>Download File 📥</a>}
+
+                                        </div>
+
+                                        <div className={styles.formGroup} style={{ border: '1px solid #f1f5f9', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
+
+                                            <label style={{ fontWeight: 'bold' }}>Memorandum of Association (MOA)</label>
+
+                                            <input type="file" onChange={e => handleUploadCompanyDoc(e.target.files[0], 'moeUrl')} style={{ fontSize: '0.75rem', marginTop: '6px' }} />
+
+                                            {companyDetails.moeUrl && <a href={companyDetails.moeUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: '6px', fontSize: '0.75rem', color: '#6366f1', fontWeight: 'bold', textDecoration: 'none' }}>Download File 📥</a>}
+
+                                        </div>
+
+                                        <div className={styles.formGroup} style={{ border: '1px solid #f1f5f9', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
+
+                                            <label style={{ fontWeight: 'bold' }}>Cancelled Cheque / Bank Proof</label>
+
+                                            <input type="file" onChange={e => handleUploadCompanyDoc(e.target.files[0], 'cancelledChequeUrl')} style={{ fontSize: '0.75rem', marginTop: '6px' }} />
+
+                                            {companyDetails.cancelledChequeUrl && <a href={companyDetails.cancelledChequeUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: '6px', fontSize: '0.75rem', color: '#6366f1', fontWeight: 'bold', textDecoration: 'none' }}>Download File 📥</a>}
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+
+                                {/* Custom documents list */}
+
+                                {companyDetails.documents && companyDetails.documents.length > 0 && (
+
+                                    <div style={{ borderTop: '1px solid #cbd5e1', paddingTop: '1rem' }}>
+
+                                        <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>Other Attachments:</label>
+
+                                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+
+                                            {companyDetails.documents.map((doc, idx) => (
+
+                                                <a key={idx} href={doc.url} target="_blank" rel="noreferrer" style={{ padding: '6px 12px', background: '#f1f5f9', borderRadius: '6px', fontSize: '0.8rem', color: '#334155', fontWeight: 'bold', textDecoration: 'none', border: '1px solid #cbd5e1' }}>
+
+                                                    📄 {doc.name} 📥
+
+                                                </a>
+
+                                            ))}
+
+                                        </div>
+
+                                    </div>
+
+                                )}
+
+
+
+                                {/* Attach custom company document */}
+
+                                <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
+
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '8px' }}>Add Other Registration Documents:</span>
+
+                                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+
+                                        <div className={styles.formGroup} style={{ flex: 1, margin: 0 }}>
+
+                                            <label style={{ fontSize: '0.7rem' }}>Label / Document Label</label>
+
+                                            <input
+
+                                                type="text"
+
+                                                placeholder="e.g. FSSAI, ISO Certificate"
+
+                                                value={companyDocLabel}
+
+                                                onChange={e => setCompanyDocLabel(e.target.value)}
+
+                                                className={styles.input}
+
+                                                style={{ padding: '6px' }}
+
+                                            />
+
+                                        </div>
+
+                                        <div className={styles.formGroup} style={{ flex: 1, margin: 0 }}>
+
+                                            <label style={{ fontSize: '0.7rem' }}>Select File</label>
+
+                                            <input
+
+                                                type="file"
+
+                                                onChange={async e => {
+
+                                                    if (!companyDocLabel.trim()) {
+
+                                                        alert("Please enter a label name for the document.");
+
+                                                        e.target.value = '';
+
+                                                        return;
+
+                                                    }
+
+                                                    await handleUploadCompanyDoc(e.target.files[0], 'custom', companyDocLabel.trim());
+
+                                                    setCompanyDocLabel('');
+
+                                                    e.target.value = '';
+
+                                                }}
+
+                                                style={{ fontSize: '0.75rem' }}
+
+                                            />
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+
+                                <button type="submit" className={styles.addButton} style={{ padding: '12px 24px', alignSelf: 'flex-start' }}>
+
+                                    Save Company Details
+
+                                </button>
+
+                            </form>
+
+                        </div>
+
+                    );
+
+                })()}
+
+
 
 
 
