@@ -7800,7 +7800,7 @@ const AdminDashboard = () => {
 
                                                 {runningFranchises.map(f => (
 
-                                                    <option key={f.id} value={f.id}>{f.outletName}</option>
+                                                    <option key={f.id} value={f.id}>{f.outletName} ({f.city || "Bengaluru"})</option>
 
                                                 ))}
 
@@ -10044,7 +10044,7 @@ const AdminDashboard = () => {
 
                                     {runningFranchises.map(outlet => (
 
-                                        <option key={outlet.id} value={outlet.outletName}>{outlet.outletName}</option>
+                                        <option key={outlet.id} value={outlet.outletName}>{outlet.outletName} ({outlet.city || "Bengaluru"})</option>
 
                                     ))}
 
@@ -20932,7 +20932,7 @@ const AdminDashboard = () => {
                                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                     <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569' }}>Outlet:</label>
                                     <select value={selectedOutletId} onChange={e => setSelectedOutletId(e.target.value)} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontWeight: '700', background: 'white' }}>
-                                        {(runningFranchises || []).map(f => <option key={f.id} value={f.id}>{f.outletName}</option>)}
+                                        {(runningFranchises || []).map(f => <option key={f.id} value={f.id}>{f.outletName} ({f.city || "Bengaluru"})</option>)}
                                     </select>
                                 </div>
 
@@ -20958,7 +20958,7 @@ const AdminDashboard = () => {
                                             <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Outlet</label>
                                             <select value={newCashEntry.outletId || selectedOutletId} onChange={e => setNewCashEntry(prev => ({ ...prev, outletId: e.target.value }))} style={{ width: '100%', padding: '9px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
                                                 <option value="">-- Select Outlet --</option>
-                                                {(runningFranchises || []).map(f => <option key={f.id} value={f.id}>{f.outletName}</option>)}
+                                                {(runningFranchises || []).map(f => <option key={f.id} value={f.id}>{f.outletName} ({f.city || "Bengaluru"})</option>)}
                                             </select>
                                         </div>
                                         <div>
@@ -21105,7 +21105,7 @@ const AdminDashboard = () => {
                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                             <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569' }}>Outlet:</label>
                             <select value={selectedOutletId} onChange={e => setSelectedOutletId(e.target.value)} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontWeight: '700', background: 'white' }}>
-                                {destinations.map(f => <option key={f.id} value={f.id}>{f.outletName}</option>)}
+                                {destinations.map(f => <option key={f.id} value={f.id}>{f.outletName} ({f.city || "Bengaluru"})</option>)}
                             </select>
                         </div>
 
@@ -21131,7 +21131,7 @@ const AdminDashboard = () => {
                                     <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Outlet</label>
                                     <select value={newCashEntry.outletId || selectedOutletId} onChange={e => setNewCashEntry(prev => ({ ...prev, outletId: e.target.value }))} style={{ width: '100%', padding: '9px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
                                         <option value="">-- Select Outlet --</option>
-                                        {destinations.map(f => <option key={f.id} value={f.id}>{f.outletName}</option>)}
+                                        {destinations.map(f => <option key={f.id} value={f.id}>{f.outletName} ({f.city || "Bengaluru"})</option>)}
                                     </select>
                                 </div>
                                 <div>
@@ -22237,7 +22237,7 @@ const AdminDashboard = () => {
 
                                                 {runningFranchises.map(outlet => (
 
-                                                    <option key={outlet.id} value={outlet.outletName}>{outlet.outletName}</option>
+                                                    <option key={outlet.id} value={outlet.outletName}>{outlet.outletName} ({outlet.city || "Bengaluru"})</option>
 
                                                 ))}
 
@@ -22935,7 +22935,7 @@ const AdminDashboard = () => {
 
                                                 {runningFranchises.map(outlet => (
 
-                                                    <option key={outlet.id} value={outlet.outletName}>{outlet.outletName}</option>
+                                                    <option key={outlet.id} value={outlet.outletName}>{outlet.outletName} ({outlet.city || "Bengaluru"})</option>
 
                                                 ))}
 
@@ -26329,7 +26329,7 @@ const AdminDashboard = () => {
 
                                         {runningFranchises.map(outlet => (
 
-                                            <option key={outlet.id} value={outlet.outletName}>{outlet.outletName}</option>
+                                            <option key={outlet.id} value={outlet.outletName}>{outlet.outletName} ({outlet.city || "Bengaluru"})</option>
 
                                         ))}
 
