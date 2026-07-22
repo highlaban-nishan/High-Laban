@@ -8811,6 +8811,11 @@ const AdminDashboard = () => {
                                         <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.8rem', marginTop: '0.4rem' }}>
                                             <div style={{ fontSize: '0.72rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem' }}>🔒 Government & Bank Records</div>
                                             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', rowGap: '6px' }}>
+                                                {/* Profile Photo */}
+                                                {dir.profilePictureUrl ? (
+                                                    renderDocLink(dir.profilePictureUrl, "Profile Pic", "#fee2e2", "#be123c")
+                                                ) : <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem' }}>No Photo</span>}
+
                                                 {/* PAN Front & Back */}
                                                 {(dir.panUrlFront || dir.panUrl) ? (
                                                     renderDocLink(dir.panUrlFront || dir.panUrl, "PAN Front", "#e0f2fe", "#0369a1")
