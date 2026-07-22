@@ -855,7 +855,8 @@ const AdminDashboard = () => {
     const [newDirector, setNewDirector] = useState({
         fullName: '', designation: 'Director', dinNumber: '', panNumber: '', phone: '', email: '',
         profilePictureUrl: '', dob: '',
-        panUrl: '', aadhaarUrl: '', bankStatementUrl: '', signatureUrl: '', documents: []
+        panUrl: '', aadhaarUrl: '', bankStatementUrl: '', signatureUrl: '', documents: [],
+        panUrlFront: '', panUrlBack: '', aadhaarUrlFront: '', aadhaarUrlBack: ''
     });
     const [editingDirector, setEditingDirector] = useState(null);
     const [directorDocLabel, setDirectorDocLabel] = useState('');
@@ -2448,7 +2449,8 @@ const AdminDashboard = () => {
                 setNewDirector({
                     fullName: '', designation: 'Director', dinNumber: '', panNumber: '', phone: '', email: '',
                     profilePictureUrl: '', dob: '',
-                    panUrl: '', aadhaarUrl: '', bankStatementUrl: '', signatureUrl: '', documents: []
+                    panUrl: '', aadhaarUrl: '', bankStatementUrl: '', signatureUrl: '', documents: [],
+                    panUrlFront: '', panUrlBack: '', aadhaarUrlFront: '', aadhaarUrlBack: ''
                 });
 
                 showToast("New Director added successfully! 👔");
@@ -8663,6 +8665,28 @@ const AdminDashboard = () => {
                 {/* Directors & Founders Portal */}
 
                 {activeTab === 'directors' && (() => {
+                    const renderDocLink = (url, label, colorBg, colorText) => {
+                        if (!url) return null;
+                        return (
+                            <div style={{ display: 'flex', alignItems: 'center', background: colorBg, padding: '3px 8px', borderRadius: '4px', gap: '6px', border: `1px solid ${colorText}22` }}>
+                                <span style={{ color: colorText, fontSize: '0.7rem', fontWeight: 'bold' }}>{label}</span>
+                                <a href={url} target="_blank" rel="noreferrer" style={{ color: colorText, fontSize: '0.7rem', textDecoration: 'underline', fontWeight: 'bold' }}>View</a>
+                                <span style={{ color: colorText, opacity: 0.5 }}>|</span>
+                                <a href={url} download target="_blank" rel="noreferrer" style={{ color: colorText, fontSize: '0.7rem', textDecoration: 'underline', fontWeight: 'bold' }}>Download</a>
+                            </div>
+                        );
+                    };
+
+                    const renderFormDocPreview = (url) => {
+                        if (!url) return null;
+                        return (
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
+                                <span style={{ color: '#16a34a', fontSize: '0.75rem', fontWeight: 'bold' }}>✓ Uploaded</span>
+                                <a href={url} target="_blank" rel="noreferrer" style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', textDecoration: 'none', fontWeight: 'bold' }}>👁️ View</a>
+                                <a href={url} download target="_blank" rel="noreferrer" style={{ background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', textDecoration: 'none', fontWeight: 'bold' }}>📥 Download</a>
+                            </div>
+                        );
+                    };
 
                     return (
 
@@ -8700,7 +8724,9 @@ const AdminDashboard = () => {
 
                                             profilePictureUrl: '', dob: '',
 
-                                            panUrl: '', aadhaarUrl: '', bankStatementUrl: '', signatureUrl: '', documents: []
+                                            panUrl: '', aadhaarUrl: '', bankStatementUrl: '', signatureUrl: '', documents: [],
+
+                                            panUrlFront: '', panUrlBack: '', aadhaarUrlFront: '', aadhaarUrlBack: ''
 
                                         });
 
@@ -8783,51 +8809,41 @@ const AdminDashboard = () => {
                                         {/* Documents Block */}
 
                                         <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.8rem', marginTop: '0.4rem' }}>
-
                                             <div style={{ fontSize: '0.72rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem' }}>🔒 Government & Bank Records</div>
-
                                             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', rowGap: '6px' }}>
+                                                {/* PAN Front & Back */}
+                                                {(dir.panUrlFront || dir.panUrl) ? (
+                                                    renderDocLink(dir.panUrlFront || dir.panUrl, "PAN Front", "#e0f2fe", "#0369a1")
+                                                ) : <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem' }}>No PAN Front</span>}
+                                                
+                                                {dir.panUrlBack ? (
+                                                    renderDocLink(dir.panUrlBack, "PAN Back", "#e0f2fe", "#0369a1")
+                                                ) : <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem' }}>No PAN Back</span>}
 
-                                                {dir.panUrl ? (
+                                                {/* Aadhaar Front & Back */}
+                                                {(dir.aadhaarUrlFront || dir.aadhaarUrl) ? (
+                                                    renderDocLink(dir.aadhaarUrlFront || dir.aadhaarUrl, "Aadhaar Front", "#e2fbee", "#15803d")
+                                                ) : <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem' }}>No Aadhaar Front</span>}
+                                                
+                                                {dir.aadhaarUrlBack ? (
+                                                    renderDocLink(dir.aadhaarUrlBack, "Aadhaar Back", "#e2fbee", "#15803d")
+                                                ) : <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem' }}>No Aadhaar Back</span>}
 
-                                                    <a href={dir.panUrl} target="_blank" rel="noreferrer" style={{ background: '#e0f2fe', color: '#0369a1', textDecoration: 'none', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>PAN Card 📥</a>
-
-                                                ) : <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem' }}>No PAN</span>}
-
-
-
-                                                {dir.aadhaarUrl ? (
-
-                                                    <a href={dir.aadhaarUrl} target="_blank" rel="noreferrer" style={{ background: '#e2fbee', color: '#15803d', textDecoration: 'none', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>Aadhaar 📥</a>
-
-                                                ) : <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem' }}>No Aadhaar</span>}
-
-
-
+                                                {/* Bank Statement */}
                                                 {dir.bankStatementUrl ? (
-
-                                                    <a href={dir.bankStatementUrl} target="_blank" rel="noreferrer" style={{ background: '#f3e8ff', color: '#6b21a8', textDecoration: 'none', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>Bank Stmt 📥</a>
-
+                                                    renderDocLink(dir.bankStatementUrl, "Bank Stmt", "#f3e8ff", "#6b21a8")
                                                 ) : <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem' }}>No Stmt</span>}
 
-
-
+                                                {/* Signature */}
                                                 {dir.signatureUrl ? (
-
-                                                    <a href={dir.signatureUrl} target="_blank" rel="noreferrer" style={{ background: '#ffedd5', color: '#c2410c', textDecoration: 'none', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>Signature 📥</a>
-
+                                                    renderDocLink(dir.signatureUrl, "Signature", "#ffedd5", "#c2410c")
                                                 ) : <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem' }}>No Specimen</span>}
 
-
-
+                                                {/* Custom docs */}
                                                 {dir.documents && dir.documents.map((doc, idx) => (
-
-                                                    <a key={idx} href={doc.url} target="_blank" rel="noreferrer" style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', textDecoration: 'none', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>{doc.name} 📥</a>
-
+                                                    renderDocLink(doc.url, doc.name, "#f1f5f9", "#475569")
                                                 ))}
-
                                             </div>
-
                                         </div>
 
                                     </div>
@@ -9063,53 +9079,50 @@ const AdminDashboard = () => {
                                             {/* Files Upload Grid */}
 
                                             <div style={{ borderTop: '1px solid #cbd5e1', paddingTop: '1rem', marginTop: '0.5rem' }}>
-
-                                                <h4 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: '#475569' }}>📁 Upload Secure Documents</h4>
-
+                                                <h4 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: '#475569' }}>🔒 Upload Secure Documents</h4>
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-
+                                                    {/* PAN Card Front */}
                                                     <div className={styles.formGroup}>
-
-                                                        <label>PAN Card Copy</label>
-
-                                                        <input type="file" onChange={e => handleUploadDirectorDoc(e.target.files[0], 'panUrl')} style={{ fontSize: '0.8rem' }} />
-
-                                                        {(editingDirector ? editingDirector.panUrl : newDirector.panUrl) && <span style={{ color: '#16a34a', fontSize: '0.75rem', fontWeight: 'bold' }}>✓ Uploaded</span>}
-
+                                                        <label>PAN Card Copy (Front)</label>
+                                                        <input type="file" onChange={e => handleUploadDirectorDoc(e.target.files[0], 'panUrlFront')} style={{ fontSize: '0.8rem' }} />
+                                                        {renderFormDocPreview(editingDirector ? editingDirector.panUrlFront || editingDirector.panUrl : newDirector.panUrlFront || newDirector.panUrl)}
                                                     </div>
 
+                                                    {/* PAN Card Back */}
                                                     <div className={styles.formGroup}>
-
-                                                        <label>Aadhaar Card Copy</label>
-
-                                                        <input type="file" onChange={e => handleUploadDirectorDoc(e.target.files[0], 'aadhaarUrl')} style={{ fontSize: '0.8rem' }} />
-
-                                                        {(editingDirector ? editingDirector.aadhaarUrl : newDirector.aadhaarUrl) && <span style={{ color: '#16a34a', fontSize: '0.75rem', fontWeight: 'bold' }}>✓ Uploaded</span>}
-
+                                                        <label>PAN Card Copy (Back)</label>
+                                                        <input type="file" onChange={e => handleUploadDirectorDoc(e.target.files[0], 'panUrlBack')} style={{ fontSize: '0.8rem' }} />
+                                                        {renderFormDocPreview(editingDirector ? editingDirector.panUrlBack : newDirector.panUrlBack)}
                                                     </div>
 
+                                                    {/* Aadhaar Card Front */}
                                                     <div className={styles.formGroup}>
+                                                        <label>Aadhaar Card Copy (Front)</label>
+                                                        <input type="file" onChange={e => handleUploadDirectorDoc(e.target.files[0], 'aadhaarUrlFront')} style={{ fontSize: '0.8rem' }} />
+                                                        {renderFormDocPreview(editingDirector ? editingDirector.aadhaarUrlFront || editingDirector.aadhaarUrl : newDirector.aadhaarUrlFront || newDirector.aadhaarUrl)}
+                                                    </div>
 
+                                                    {/* Aadhaar Card Back */}
+                                                    <div className={styles.formGroup}>
+                                                        <label>Aadhaar Card Copy (Back)</label>
+                                                        <input type="file" onChange={e => handleUploadDirectorDoc(e.target.files[0], 'aadhaarUrlBack')} style={{ fontSize: '0.8rem' }} />
+                                                        {renderFormDocPreview(editingDirector ? editingDirector.aadhaarUrlBack : newDirector.aadhaarUrlBack)}
+                                                    </div>
+
+                                                    {/* Bank Statement */}
+                                                    <div className={styles.formGroup}>
                                                         <label>Bank Statement / Cancelled Cheque</label>
-
                                                         <input type="file" onChange={e => handleUploadDirectorDoc(e.target.files[0], 'bankStatementUrl')} style={{ fontSize: '0.8rem' }} />
-
-                                                        {(editingDirector ? editingDirector.bankStatementUrl : newDirector.bankStatementUrl) && <span style={{ color: '#16a34a', fontSize: '0.75rem', fontWeight: 'bold' }}>✓ Uploaded</span>}
-
+                                                        {renderFormDocPreview(editingDirector ? editingDirector.bankStatementUrl : newDirector.bankStatementUrl)}
                                                     </div>
 
+                                                    {/* Signature */}
                                                     <div className={styles.formGroup}>
-
                                                         <label>Specimen Signature</label>
-
                                                         <input type="file" onChange={e => handleUploadDirectorDoc(e.target.files[0], 'signatureUrl')} style={{ fontSize: '0.8rem' }} />
-
-                                                        {(editingDirector ? editingDirector.signatureUrl : newDirector.signatureUrl) && <span style={{ color: '#16a34a', fontSize: '0.75rem', fontWeight: 'bold' }}>✓ Uploaded</span>}
-
+                                                        {renderFormDocPreview(editingDirector ? editingDirector.signatureUrl : newDirector.signatureUrl)}
                                                     </div>
-
                                                 </div>
-
                                             </div>
 
 
