@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import db from '../utils/db';
 import styles from './WorkerDashboard.module.css';
 import SEO from '../components/SEO/SEO';
+import { initPWANotifications } from '../utils/notifications';
+import GamifiedBoard from '../components/Dashboard/GamifiedBoard';
 
 const WorkerDashboard = () => {
     const user = db.getUser();
@@ -26,6 +28,7 @@ const WorkerDashboard = () => {
     const [showInstallBtn, setShowInstallBtn] = useState(false);
 
     useEffect(() => {
+        initPWANotifications();
         const handler = (e) => {
             e.preventDefault();
             setDeferredPrompt(e);
@@ -173,6 +176,10 @@ const WorkerDashboard = () => {
                     <button onClick={handleLogout} className={styles.logoutBtn}>Logout</button>
                 </div>
             </header>
+
+            <div className={styles.grid} style={{ gridTemplateColumns: '1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                <GamifiedBoard workerBranch={staffInfo?.branch} workerName={staffInfo?.fullName || user?.name} />
+            </div>
 
             <div className={styles.grid}>
                 {/* Profile Card */}

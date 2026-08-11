@@ -18,16 +18,20 @@ import Highlights from '../components/Sections/Highlights'; // For Live Preview
 
 import SEO from '../components/SEO/SEO';
 
-import { FiShoppingBag, FiFileText, FiMapPin, FiUsers, FiBriefcase, FiUserCheck, FiDollarSign, FiTruck, FiShoppingCart, FiPieChart, FiGlobe, FiDownload, FiAlertTriangle } from 'react-icons/fi';
+import { FiShoppingBag, FiFileText, FiMapPin, FiUsers, FiBriefcase, FiUserCheck, FiDollarSign, FiTruck, FiShoppingCart, FiPieChart, FiGlobe, FiDownload, FiAlertTriangle, FiTrendingUp, FiCheckSquare } from 'react-icons/fi';
 
 import { QRCodeCanvas } from 'qrcode.react';
 
 import ChecklistTab from '../components/Dashboard/ChecklistTab';
+import { initPWANotifications } from '../utils/notifications';
 import DailyChecklistTab from '../components/Dashboard/DailyChecklistTab';
 import ApprovalsTab from '../components/Dashboard/ApprovalsTab';
 import UniformsTab from '../components/Dashboard/UniformsTab';
 import VendorsCatalogTab from '../components/Dashboard/VendorsCatalogTab';
 import ComplaintsTab from '../components/Dashboard/ComplaintsTab';
+import PerformanceTab from '../components/Dashboard/PerformanceTab';
+import SupervisorChecklistTab from '../components/Dashboard/SupervisorChecklistTab';
+import LocationPL from '../components/Dashboard/LocationPL';
 
 // import SalesChart from '../components/Dashboard/SalesChart'; // Removed as per request
 
@@ -476,6 +480,12 @@ const AdminDashboard = () => {
 
         }
 
+        if (user.role === 'supervisor') {
+
+            return tabId === 'supervisor_checklist' || tabId === 'daily_checklist';
+
+        }
+
         if (user.role === 'purchaser' || user.role === 'accounts') {
 
             return tabId === 'purchases' || tabId === 'vendors';
@@ -530,6 +540,7 @@ const AdminDashboard = () => {
     const [showInstallBtn, setShowInstallBtn] = useState(false);
 
     useEffect(() => {
+        initPWANotifications();
         const handler = (e) => {
             e.preventDefault();
             setDeferredPrompt(e);
@@ -4177,6 +4188,16 @@ const AdminDashboard = () => {
                                 {hasTabAccess('complaints') && (
                                     <div className={`${styles.navItem} ${activeTab === 'complaints' ? styles.active : ''}`} onClick={() => { setActiveTab('complaints'); setIsMobileOpen(false); }}>
                                         <FiAlertTriangle style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Anonymous Complaints
+                                    </div>
+                                )}
+                                {hasTabAccess('performance') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'performance' ? styles.active : ''}`} onClick={() => { setActiveTab('performance'); setIsMobileOpen(false); }}>
+                                        <FiTrendingUp style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Performance Leaderboard
+                                    </div>
+                                )}
+                                {hasTabAccess('supervisor_checklist') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'supervisor_checklist' ? styles.active : ''}`} onClick={() => { setActiveTab('supervisor_checklist'); setIsMobileOpen(false); }}>
+                                        <FiCheckSquare style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Supervisor Audit
                                     </div>
                                 )}
                             </div>
@@ -8524,6 +8545,8 @@ const AdminDashboard = () => {
                                         })()}
 
                                         
+
+                                        <LocationPL locationId={loc.id} locationName={loc.name} />
 
                                         <a href={loc.mapUrl} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', fontSize: '0.9rem', display: 'inline-block', marginTop: '0.5rem' }}>View Map</a>
 
@@ -21698,6 +21721,8 @@ const AdminDashboard = () => {
             {activeTab === 'approvals' && <ApprovalsTab />}
             {activeTab === 'uniforms' && <UniformsTab />}
             {activeTab === 'vendors_catalog' && <VendorsCatalogTab />}
+            {activeTab === 'performance' && <PerformanceTab />}
+            {activeTab === 'supervisor_checklist' && <SupervisorChecklistTab />}
             {activeTab === 'complaints' && <ComplaintsTab />}
             {activeTab === 'links_directory' && <LinksDirectory />}
 
@@ -22277,7 +22302,7 @@ const AdminDashboard = () => {
 
                                             </select>
 
-                                            {!['Chef', 'Cashier', 'Manager', 'Waiter', 'Delivery', 'Helper'].includes(editingStaff.position) && (
+                                            {!['Chef', 'Cashier', 'Manager', 'Waiter', 'Delivery', 'Helper', 'Outlet Supervisor'].includes(editingStaff.position) && (
 
                                                 <input 
 
@@ -22977,7 +23002,7 @@ const AdminDashboard = () => {
 
                                             </select>
 
-                                            {!['Chef', 'Cashier', 'Manager', 'Waiter', 'Delivery', 'Helper'].includes(newStaff.position) && (
+                                            {!['Chef', 'Cashier', 'Manager', 'Waiter', 'Delivery', 'Helper', 'Outlet Supervisor'].includes(newStaff.position) && (
 
                                                 <input 
 
