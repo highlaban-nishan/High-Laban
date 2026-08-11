@@ -2,13 +2,63 @@ import React, { useState, useEffect } from 'react';
 import db from '../../utils/db';
 
 const DAILY_ITEMS = [
-    { key: 'opening_store', label: '1. Opening Store & Systems (Phone charged, POS connected, Delivery apps active)' },
-    { key: 'opening_cleaning', label: '2. Opening Cleaning (Shop entrance swept, perfume diffuser on, fly catcher on)' },
-    { key: 'stock_prep', label: '3. Stock & Prep (Refill ingredients/sauces, organize display, check expiry dates)' },
-    { key: 'mid_shift', label: '4. Mid-Shift Duties (Clean tables, wipe counters, refill packaging, check stock levels)' },
-    { key: 'closing_accounts', label: '5. Closing Accounts & Stock (Update stock, close daily accounts, report low stock)' },
-    { key: 'closing_cleaning', label: '6. Closing Cleaning & Lockup (Empty bins, mop floor, clean fly catcher, lock all doors)' },
-    { key: 'marketing_daily', label: '7. Marketing (Zaid) (Instagram poster/reel/collab, WhatsApp channel, YouTube)' }
+    // Opening — Store & Systems
+    { key: 'open_store_time', label: '☐ Open the store on time', section: 'opening' },
+    { key: 'charge_phone', label: '☐ Charge the store phone', section: 'opening' },
+    { key: 'connect_pos_internet', label: '☐ Connect POS/system to the internet; connect hotspot if required', section: 'opening' },
+    { key: 'unmute_phone', label: '☐ Remove the store phone from silent mode', section: 'opening' },
+    { key: 'check_whatsapp', label: '☐ Check all WhatsApp messages, missed calls & customer inquiries — reply promptly', section: 'opening' },
+    { key: 'delivery_platforms_active', label: '☐ Ensure all online delivery platforms are active and accepting orders', section: 'opening' },
+    { key: 'pos_printer_ok', label: '☐ Check POS, payment machine, and printer are working', section: 'opening' },
+    // Opening — Stock & Prep
+    { key: 'verify_stock', label: '☐ Verify stock against previous day closing stock; check delivery notes', section: 'stock' },
+    { key: 'refill_toppings', label: '☐ Refill toppings, nuts, crumbles, sauces, spreads, syrups, and other ingredients', section: 'stock' },
+    { key: 'fill_display', label: '☐ Fill and organize display/cooler — never leave empty spaces', section: 'stock' },
+    { key: 'organize_packaging', label: '☐ Organize packaging materials (tissues, bags, spoons, forks, napkins, cups, lids)', section: 'stock' },
+    { key: 'check_expiry', label: '☐ Check expiry dates of prepared items', section: 'stock' },
+    { key: 'report_low_stock_open', label: '☐ Inform manager immediately if any item is low or unavailable', section: 'stock' },
+    // Opening — Cleaning
+    { key: 'sweep_entrance', label: '☐ Sweep/broom the shop front and entrance area', section: 'opening' },
+    { key: 'perfume_diffuser', label: '☐ Turn on the perfume diffuser', section: 'opening' },
+    { key: 'fly_catcher_on', label: '☐ Turn on the fly catcher', section: 'opening' },
+    { key: 'empty_bins_open', label: '☐ Empty waste bins and fit new liners', section: 'opening' },
+    { key: 'sweep_mop_open', label: '☐ Sweep and mop the floor if required', section: 'opening' },
+    { key: 'clean_entrance_glass', label: '☐ Clean the entrance glass and handles', section: 'opening' },
+    { key: 'wipe_counters_open', label: '☐ Wipe all counters and workstations', section: 'opening' },
+    { key: 'clean_wash_basin_open', label: '☐ Ensure the wash basin is clean', section: 'opening' },
+    // Mid-Shift
+    { key: 'mid_clean_tables', label: '☐ Mid-Shift: Clean tables and chairs', section: 'midshift' },
+    { key: 'mid_wipe_counters', label: '☐ Mid-Shift: Wipe counters', section: 'midshift' },
+    { key: 'mid_organize_display', label: '☐ Mid-Shift: Organize the display', section: 'midshift' },
+    { key: 'mid_refill_packaging', label: '☐ Mid-Shift: Refill packaging materials', section: 'midshift' },
+    { key: 'mid_check_basin', label: '☐ Mid-Shift: Check the wash basin', section: 'midshift' },
+    { key: 'mid_remove_waste', label: '☐ Mid-Shift: Remove waste', section: 'midshift' },
+    { key: 'mid_internet_ok', label: '☐ Mid-Shift: Check internet connection — no issues', section: 'midshift' },
+    { key: 'mid_delivery_ok', label: '☐ Mid-Shift: Check all delivery platforms are active — no issues', section: 'midshift' },
+    { key: 'mid_devices_charging', label: '☐ Mid-Shift: Check phone and payment machine are charged/charging', section: 'midshift' },
+    { key: 'mid_stock_levels', label: '☐ Mid-Shift: Check stock levels and inform manager if low', section: 'midshift' },
+    { key: 'mid_whatsapp', label: '☐ Mid-Shift: Check WhatsApp messages and reply to any new ones', section: 'midshift' },
+    // Closing
+    { key: 'closing_update_stock', label: '☐ Closing: Update stock records', section: 'closing' },
+    { key: 'closing_check_reviews', label: '☐ Closing: Check online delivery app reviews (Zomato, Swiggy) & Google reviews — reply to all', section: 'closing' },
+    { key: 'closing_accounts', label: '☐ Closing: Close daily accounts', section: 'closing' },
+    { key: 'closing_charge_phone', label: '☐ Closing: Charge the store phone', section: 'closing' },
+    { key: 'closing_charge_payment', label: '☐ Closing: Charge the payment machine', section: 'closing' },
+    { key: 'closing_report_low_stock', label: '☐ Closing: Inform manager of any low stock', section: 'closing' },
+    { key: 'closing_check_fridge_expiry', label: '☐ Closing: Check fridge/cooler for items nearing expiry — inform manager at least 2 days before expiry', section: 'closing' },
+    { key: 'closing_turn_off_equipment', label: '☐ Closing: Turn off required equipment', section: 'closing' },
+    { key: 'closing_empty_bins', label: '☐ Closing: Empty bins', section: 'closing' },
+    { key: 'closing_mop_floor', label: '☐ Closing: Mop the floor', section: 'closing' },
+    { key: 'closing_clean_basin', label: '☐ Closing: Clean the wash basin', section: 'closing' },
+    { key: 'closing_clean_fly_catcher', label: '☐ Closing: Clean the fly catcher', section: 'closing' },
+    { key: 'closing_lock_doors', label: '☐ Closing: Lock all doors', section: 'closing' },
+    // Marketing (Zaid)
+    { key: 'marketing_post', label: '☐ Marketing: Post one poster or reel/collab (Instagram)', section: 'marketing' },
+    { key: 'marketing_whatsapp_channel', label: '☐ Marketing: Update the WhatsApp Channel', section: 'marketing' },
+    { key: 'marketing_instagram_dms', label: '☐ Marketing: Check Instagram DMs and comments — reply', section: 'marketing' },
+    { key: 'marketing_instagram_engage', label: '☐ Marketing: Engage on the Instagram Channel', section: 'marketing' },
+    { key: 'marketing_youtube', label: '☐ Marketing: Post/engage on YouTube', section: 'marketing' },
+    { key: 'marketing_monitor_replies', label: '☐ Marketing: Monitor that counter staff replied to WhatsApp, delivery app reviews & Google reviews', section: 'marketing' },
 ];
 
 export default function DailyChecklistTab() {

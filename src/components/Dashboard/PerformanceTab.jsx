@@ -13,11 +13,19 @@ export default function PerformanceTab() {
             setLoading(true);
             try {
                 const staffList = await db.getStaff();
-                const complaintList = await db.getComplaints();
-                setStaff(staffList);
+                // Safely attempt to load complaints (method may not exist)
+                let complaintList = [];
+                try {
+                    if (typeof db.getComplaints === 'function') {
+                        complaintList = await db.getComplaints();
+                    }
+                } catch (_) {}
+                setStaff(staffList || []);
                 setComplaints(complaintList);
             } catch (err) {
                 console.error("Error loading performance data:", err);
+                setStaff([]);
+                setComplaints([]);
             } finally {
                 setLoading(false);
             }
@@ -26,7 +34,17 @@ export default function PerformanceTab() {
     }, []);
 
     if (loading) {
-        return <div style={{ color: 'white' }}>Calculating staff rankings & analytics...</div>;
+        return <div style={{ padding: '2rem', color: 'white' }}>⏳ Calculating staff rankings & analytics...</div>;
+    }
+
+    if (!staff || staff.length === 0) {
+        return (
+            <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
+                <h3 style={{ color: 'white', marginBottom: '0.5rem' }}>No Staff Data Yet</h3>
+                <p>Add staff members in the HR Staff Directory to see performance rankings here.</p>
+            </div>
+        );
     }
 
     // Process staff performance stats

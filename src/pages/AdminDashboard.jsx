@@ -32,6 +32,7 @@ import ComplaintsTab from '../components/Dashboard/ComplaintsTab';
 import PerformanceTab from '../components/Dashboard/PerformanceTab';
 import SupervisorChecklistTab from '../components/Dashboard/SupervisorChecklistTab';
 import LocationPL from '../components/Dashboard/LocationPL';
+import TabErrorBoundary from '../components/UI/TabErrorBoundary';
 
 // import SalesChart from '../components/Dashboard/SalesChart'; // Removed as per request
 
@@ -21721,10 +21722,10 @@ const AdminDashboard = () => {
             {activeTab === 'approvals' && <ApprovalsTab />}
             {activeTab === 'uniforms' && <UniformsTab />}
             {activeTab === 'vendors_catalog' && <VendorsCatalogTab />}
-            {activeTab === 'performance' && <PerformanceTab />}
-            {activeTab === 'supervisor_checklist' && <SupervisorChecklistTab />}
-            {activeTab === 'complaints' && <ComplaintsTab />}
-            {activeTab === 'links_directory' && <LinksDirectory />}
+            {activeTab === 'performance' && <TabErrorBoundary tabName="Performance Leaderboard"><PerformanceTab /></TabErrorBoundary>}
+            {activeTab === 'supervisor_checklist' && <TabErrorBoundary tabName="Supervisor Audit"><SupervisorChecklistTab /></TabErrorBoundary>}
+            {activeTab === 'complaints' && <TabErrorBoundary tabName="Anonymous Complaints"><ComplaintsTab /></TabErrorBoundary>}
+            {activeTab === 'links_directory' && <TabErrorBoundary tabName="Links Directory"><LinksDirectory /></TabErrorBoundary>}
 
             </main>
 
