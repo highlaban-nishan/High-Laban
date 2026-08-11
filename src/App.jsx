@@ -19,6 +19,10 @@ import StaffOnboarding from './pages/StaffOnboarding';
 import WorkerApplication from './pages/WorkerApplication';
 import ContactUs from './pages/ContactUs';
 
+import WorkerDashboard from './pages/WorkerDashboard';
+import Complaint from './pages/Complaint';
+import DirectProfileEdit from './pages/DirectProfileEdit';
+
 function App() {
   const [loading, setLoading] = useState(true);
   const [franchiseOpen, setFranchiseOpen] = useState(false);
@@ -37,10 +41,11 @@ function App() {
   const user = db.getUser();
   const isDashboardRoute = location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/admin') || location.pathname.startsWith('/purchases');
   const isConnectRoute = location.pathname === '/connect' || location.pathname === '/links';
-  const isOnboardingRoute = location.pathname === '/onboarding' || location.pathname === '/apply';
+  const isOnboardingRoute = location.pathname === '/onboarding' || location.pathname === '/apply' || location.pathname === '/complaint' || location.pathname === '/edit-profile';
 
   const DashboardRoute = () => {
     if (!user) return <Navigate to="/login" replace />;
+    if (user.role === 'worker') return <WorkerDashboard />;
     if (user.allowedTabs && user.allowedTabs.length > 0) return <AdminDashboard />;
     if (user.role === 'purchaser' || user.role === 'accounts') return <PurchaserDashboard />;
     return <AdminDashboard />;
@@ -63,6 +68,8 @@ function App() {
         <Route path="/blog" element={<Blog />} />
         <Route path="/onboarding" element={<StaffOnboarding />} />
         <Route path="/apply" element={<WorkerApplication />} />
+        <Route path="/complaint" element={<Complaint />} />
+        <Route path="/edit-profile" element={<DirectProfileEdit />} />
         <Route path="/dashboard" element={<DashboardRoute />} />
         <Route path="/purchases" element={user ? <PurchaserDashboard /> : <Navigate to="/login" replace />} />
         <Route path="/admin" element={<Navigate to="/login" replace />} />

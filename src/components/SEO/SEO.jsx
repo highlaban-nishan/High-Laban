@@ -1,13 +1,19 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 
-export default function SEO({ title, description, keywords, type = 'website', name = 'High Laban Community' }) {
+export default function SEO({ 
+    title = "High Laban | Premium Egyptian Desserts & Viral Kunafa", 
+    description = "Savor the best authentic Egyptian desserts, signature Kunafa, and viral sweet creations at High Laban. Explore our menu and premier franchise opportunities today.", 
+    keywords = "Egyptian dessert, Kunafa, High Laban, viral desserts, Egyptian sweet shops, best Kunafa near me, High Laban franchise, traditional Egyptian sweets", 
+    type = 'website', 
+    name = 'High Laban Community' 
+}) {
     return (
         <Helmet>
             {/* Standard metadata */}
             <title>{title}</title>
             <meta name='description' content={description} />
-            {keywords && <meta name='keywords' content={keywords} />}
+            <meta name='keywords' content={keywords} />
 
             {/* Open Graph / Facebook */}
             <meta property='og:type' content={type} />

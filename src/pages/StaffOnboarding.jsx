@@ -25,6 +25,7 @@ const StaffOnboarding = () => {
     const [emergencyRelation, setEmergencyRelation] = useState('Parent');
     const [emergencyNumber, setEmergencyNumber] = useState('');
     const [position, setPosition] = useState('Staff');
+    const [tShirtSize, setTShirtSize] = useState('M');
     
     // Bank Details
     const [bankName, setBankName] = useState('');
@@ -137,6 +138,7 @@ const StaffOnboarding = () => {
                 documents: documents,
                 status: 'Onboarding', // Mark as onboarding/review state
                 position: position,
+                tShirtSize: tShirtSize,
                 joinDate: new Date().toISOString().split('T')[0]
             };
 
@@ -253,6 +255,16 @@ const StaffOnboarding = () => {
                                 <option value="Delivery">Delivery Boy</option>
                                 <option value="Helper">Kitchen Helper</option>
                                 <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>T-Shirt Size *</label>
+                            <select className={styles.input} value={tShirtSize} onChange={e => setTShirtSize(e.target.value)}>
+                                <option value="S">Small (S)</option>
+                                <option value="M">Medium (M)</option>
+                                <option value="L">Large (L)</option>
+                                <option value="XL">Extra Large (XL)</option>
+                                <option value="XXL">Double Extra Large (XXL)</option>
                             </select>
                         </div>
                     </div>

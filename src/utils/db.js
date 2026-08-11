@@ -807,7 +807,8 @@ const db = {
                     { name: 'Nufoor', email: 'nufoor@highlaban.com', password: 'Nufoor@2026', role: 'purchaser' },
                     { name: 'Accounts Team', email: 'accounts@highlaban.com', password: 'Accounts@2026', role: 'accounts' },
                     { name: 'Chef', email: 'chef@highlaban.com', password: 'Chef@2026', role: 'chef' },
-                    { name: 'Partner', email: 'partner@highlaban.com', password: 'Partner@2026', role: 'partner' }
+                    { name: 'Partner', email: 'partner@highlaban.com', password: 'Partner@2026', role: 'partner' },
+                    { name: 'Worker User', email: 'worker@highlaban.com', password: 'Worker@2026', role: 'worker' }
                 ];
                 for (const u of defaults) {
                     const docRef = await addDoc(collection(firestore, 'users'), u);
@@ -875,6 +876,30 @@ const db = {
                 localStorage.setItem('highlaban_user', JSON.stringify(user));
                 return user;
             }
+
+            // Next check Firestore staff list for worker portal login
+            const staffSnapshot = await getDocs(collection(firestore, 'staff'));
+            let foundStaff = null;
+            staffSnapshot.forEach((doc) => {
+                const s = doc.data();
+                const sEmail = s.email || '';
+                const sPhone = s.phone || '';
+                const sPassword = s.password || '';
+                // Allow logging in with either registered email OR phone number + password
+                if (((sEmail && sEmail.toLowerCase().trim() === cleanEmail) || (sPhone && sPhone.replace(/\D/g, '') === cleanEmail.replace(/\D/g, ''))) && sPassword === password) {
+                    foundStaff = { id: doc.id, ...s };
+                }
+            });
+            if (foundStaff) {
+                const user = {
+                    email: foundStaff.email || `${foundStaff.phone}@highlaban.com`,
+                    name: foundStaff.fullName || foundStaff.nickname,
+                    role: 'worker',
+                    allowedTabs: []
+                };
+                localStorage.setItem('highlaban_user', JSON.stringify(user));
+                return user;
+            }
         } catch (error) {
             console.error('Firestore login query failed, checking static credentials:', error);
         }
@@ -902,6 +927,10 @@ const db = {
             return user;
         } else if (cleanEmail === 'partner@highlaban.com' && password === 'Partner@2026') {
             const user = { email: cleanEmail, name: 'Partner', role: 'partner', allowedTabs: ['products', 'content', 'locations', 'customers', 'franchise', 'staff', 'payroll', 'vendors', 'purchases', 'costing'] };
+            localStorage.setItem('highlaban_user', JSON.stringify(user));
+            return user;
+        } else if (cleanEmail === 'worker@highlaban.com' && password === 'Worker@2026') {
+            const user = { email: cleanEmail, name: 'Worker User', role: 'worker', allowedTabs: [] };
             localStorage.setItem('highlaban_user', JSON.stringify(user));
             return user;
         } else {
@@ -1549,6 +1578,203 @@ const db = {
             return true;
         } catch (error) {
             console.error("Error saving company details:", error);
+            throw error;
+        }
+    },
+
+    // --- Onboarding & Training Checklists ---
+    getChecklists: async (type) => {
+        try {
+            // type could be 'franchise', 'worker_training', 'daily_outlet'
+            const q = query(collection(firestore, 'checklists'), orderBy('updatedAt', 'desc'));
+            const querySnapshot = await getDocs(q);
+            const list = [];
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                if (!type || data.type === type) {
+                    list.push({ id: docSnap.id, ...data });
+                }
+            });
+            return list;
+        } catch (error) {
+            console.error("Error getting checklists:", error);
+            return [];
+        }
+    },
+
+    saveChecklist: async (id, data) => {
+        try {
+            const docRef = id ? doc(firestore, 'checklists', id) : doc(collection(firestore, 'checklists'));
+            const finalData = { ...data, updatedAt: new Date().toISOString() };
+            await setDoc(docRef, finalData, { merge: true });
+            return { id: docRef.id, ...finalData };
+        } catch (error) {
+            console.error("Error saving checklist:", error);
+            throw error;
+        }
+    },
+
+    // --- Worker Profile Edit Requests ---
+    getProfileEditRequests: async () => {
+        try {
+            const querySnapshot = await getDocs(collection(firestore, 'profile_edit_requests'));
+            const list = [];
+            querySnapshot.forEach((docSnap) => {
+                list.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            return list;
+        } catch (error) {
+            console.error("Error getting profile edit requests:", error);
+            return [];
+        }
+    },
+
+    addProfileEditRequest: async (data) => {
+        try {
+            const docRef = await addDoc(collection(firestore, 'profile_edit_requests'), {
+                ...data,
+                status: 'pending',
+                createdAt: new Date().toISOString()
+            });
+            return { id: docRef.id, ...data };
+        } catch (error) {
+            console.error("Error adding profile edit request:", error);
+            throw error;
+        }
+    },
+
+    deleteProfileEditRequest: async (id) => {
+        try {
+            await deleteDoc(doc(firestore, 'profile_edit_requests', id));
+            return true;
+        } catch (error) {
+            console.error("Error deleting profile edit request:", error);
+            throw error;
+        }
+    },
+
+    // --- Uniform Tracking Section ---
+    getUniformLogs: async () => {
+        try {
+            const querySnapshot = await getDocs(collection(firestore, 'uniform_logs'));
+            const list = [];
+            querySnapshot.forEach((docSnap) => {
+                list.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            return list;
+        } catch (error) {
+            console.error("Error getting uniform logs:", error);
+            return [];
+        }
+    },
+
+    addUniformLog: async (data) => {
+        try {
+            const docRef = await addDoc(collection(firestore, 'uniform_logs'), {
+                ...data,
+                createdAt: new Date().toISOString()
+            });
+            return { id: docRef.id, ...data };
+        } catch (error) {
+            console.error("Error adding uniform log:", error);
+            throw error;
+        }
+    },
+
+    updateUniformLog: async (id, data) => {
+        try {
+            const docRef = doc(firestore, 'uniform_logs', id);
+            await updateDoc(docRef, { ...data, updatedAt: new Date().toISOString() });
+            return { id, ...data };
+        } catch (error) {
+            console.error("Error updating uniform log:", error);
+            throw error;
+        }
+    },
+
+    deleteUniformLog: async (id) => {
+        try {
+            await deleteDoc(doc(firestore, 'uniform_logs', id));
+            return true;
+        } catch (error) {
+            console.error("Error deleting uniform log:", error);
+            throw error;
+        }
+    },
+
+    // --- Vendor Catalogues ---
+    getVendorCatalogues: async () => {
+        try {
+            const querySnapshot = await getDocs(collection(firestore, 'vendor_catalogues'));
+            const list = [];
+            querySnapshot.forEach((docSnap) => {
+                list.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            return list;
+        } catch (error) {
+            console.error("Error getting vendor catalogues:", error);
+            return [];
+        }
+    },
+
+    addVendorCatalogue: async (data) => {
+        try {
+            const docRef = await addDoc(collection(firestore, 'vendor_catalogues'), {
+                ...data,
+                createdAt: new Date().toISOString()
+            });
+            return { id: docRef.id, ...data };
+        } catch (error) {
+            console.error("Error adding vendor catalogue:", error);
+            throw error;
+        }
+    },
+
+    deleteVendorCatalogue: async (id) => {
+        try {
+            await deleteDoc(doc(firestore, 'vendor_catalogues', id));
+            return true;
+        } catch (error) {
+            console.error("Error deleting vendor catalogue:", error);
+            throw error;
+        }
+    },
+
+    // --- Complaints Section (Anonymous) ---
+    getComplaints: async () => {
+        try {
+            const q = query(collection(firestore, 'complaints'), orderBy('createdAt', 'desc'));
+            const querySnapshot = await getDocs(q);
+            const list = [];
+            querySnapshot.forEach((docSnap) => {
+                list.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            return list;
+        } catch (error) {
+            console.error("Error getting complaints:", error);
+            return [];
+        }
+    },
+
+    addComplaint: async (data) => {
+        try {
+            const docRef = await addDoc(collection(firestore, 'complaints'), {
+                ...data,
+                createdAt: new Date().toISOString()
+            });
+            return { id: docRef.id, ...data };
+        } catch (error) {
+            console.error("Error adding complaint:", error);
+            throw error;
+        }
+    },
+
+    deleteComplaint: async (id) => {
+        try {
+            await deleteDoc(doc(firestore, 'complaints', id));
+            return true;
+        } catch (error) {
+            console.error("Error deleting complaint:", error);
             throw error;
         }
     }

@@ -18,9 +18,16 @@ import Highlights from '../components/Sections/Highlights'; // For Live Preview
 
 import SEO from '../components/SEO/SEO';
 
-import { FiShoppingBag, FiFileText, FiMapPin, FiUsers, FiBriefcase, FiUserCheck, FiDollarSign, FiTruck, FiShoppingCart, FiPieChart, FiGlobe, FiDownload } from 'react-icons/fi';
+import { FiShoppingBag, FiFileText, FiMapPin, FiUsers, FiBriefcase, FiUserCheck, FiDollarSign, FiTruck, FiShoppingCart, FiPieChart, FiGlobe, FiDownload, FiAlertTriangle } from 'react-icons/fi';
 
 import { QRCodeCanvas } from 'qrcode.react';
+
+import ChecklistTab from '../components/Dashboard/ChecklistTab';
+import DailyChecklistTab from '../components/Dashboard/DailyChecklistTab';
+import ApprovalsTab from '../components/Dashboard/ApprovalsTab';
+import UniformsTab from '../components/Dashboard/UniformsTab';
+import VendorsCatalogTab from '../components/Dashboard/VendorsCatalogTab';
+import ComplaintsTab from '../components/Dashboard/ComplaintsTab';
 
 // import SalesChart from '../components/Dashboard/SalesChart'; // Removed as per request
 
@@ -197,7 +204,13 @@ const availableTabsList = [
     { id: 'costing', label: '🧮 Food Costing' },
     { id: 'transfers', label: '🚚 Stock Transfers & Inventory' },
     { id: 'finance', label: '💰 Franchise Finance' },
-    { id: 'cashManagement', label: '💵 Cash Management' }
+    { id: 'cashManagement', label: '💵 Cash Management' },
+    { id: 'checklists', label: '📋 Onboarding & Training' },
+    { id: 'daily_checklist', label: '✅ Daily Outlet Checks' },
+    { id: 'approvals', label: '👤 Profile Approvals' },
+    { id: 'uniforms', label: '👕 Uniform Section' },
+    { id: 'vendors_catalog', label: '📖 Vendor Catalogs' },
+    { id: 'complaints', label: '⚠️ Anonymous Complaints' }
 ];
 
 
@@ -4254,6 +4267,48 @@ const AdminDashboard = () => {
                         <div className={`${styles.navItem} ${activeTab === 'cashManagement' ? styles.active : ''}`} onClick={() => { setActiveTab('cashManagement'); setIsMobileOpen(false); }}>
                             <FiDollarSign style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Cash Management
                             {activeTab === 'cashManagement' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
+
+                    {hasTabAccess('checklists') && (
+                        <div className={`${styles.navItem} ${activeTab === 'checklists' ? styles.active : ''}`} onClick={() => { setActiveTab('checklists'); setIsMobileOpen(false); }}>
+                            <FiFileText style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Onboarding & Training
+                            {activeTab === 'checklists' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
+
+                    {hasTabAccess('daily_checklist') && (
+                        <div className={`${styles.navItem} ${activeTab === 'daily_checklist' ? styles.active : ''}`} onClick={() => { setActiveTab('daily_checklist'); setIsMobileOpen(false); }}>
+                            <FiUserCheck style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Daily Outlet Checks
+                            {activeTab === 'daily_checklist' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
+
+                    {hasTabAccess('approvals') && (
+                        <div className={`${styles.navItem} ${activeTab === 'approvals' ? styles.active : ''}`} onClick={() => { setActiveTab('approvals'); setIsMobileOpen(false); }}>
+                            <FiUsers style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Profile Approvals
+                            {activeTab === 'approvals' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
+
+                    {hasTabAccess('uniforms') && (
+                        <div className={`${styles.navItem} ${activeTab === 'uniforms' ? styles.active : ''}`} onClick={() => { setActiveTab('uniforms'); setIsMobileOpen(false); }}>
+                            <FiBriefcase style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Uniform Section
+                            {activeTab === 'uniforms' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
+
+                    {hasTabAccess('vendors_catalog') && (
+                        <div className={`${styles.navItem} ${activeTab === 'vendors_catalog' ? styles.active : ''}`} onClick={() => { setActiveTab('vendors_catalog'); setIsMobileOpen(false); }}>
+                            <FiShoppingBag style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Vendor Catalogs
+                            {activeTab === 'vendors_catalog' && <div className={styles.activeDot}></div>}
+                        </div>
+                    )}
+
+                    {hasTabAccess('complaints') && (
+                        <div className={`${styles.navItem} ${activeTab === 'complaints' ? styles.active : ''}`} onClick={() => { setActiveTab('complaints'); setIsMobileOpen(false); }}>
+                            <FiAlertTriangle style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Anonymous Complaints
+                            {activeTab === 'complaints' && <div className={styles.activeDot}></div>}
                         </div>
                     )}
 
@@ -10362,6 +10417,10 @@ const AdminDashboard = () => {
 
                                                     <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Blood Group</th>
 
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>T-Shirt Size</th>
+
+                                                    <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Credentials (Email/Pass)</th>
+
                                                     <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Status</th>
 
                                                     <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Salary (INR)</th>
@@ -10522,6 +10581,13 @@ const AdminDashboard = () => {
 
                                                                     ) : '-'}
 
+                                                                </td>
+
+                                                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem', fontWeight: 'bold' }}>{staff.tShirtSize || 'M'}</td>
+
+                                                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem' }}>
+                                                                    <div>E: {staff.email || '-'}</div>
+                                                                    <div style={{ color: '#009ceb', fontFamily: 'monospace' }}>P: {staff.password || 'Laban@Staff2026'}</div>
                                                                 </td>
 
                                                                 <td style={{ padding: '1rem' }}>
@@ -20955,7 +21021,7 @@ const AdminDashboard = () => {
                                 </div>
 
                                 {/* Cash Balance Cards */}
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
                                     {[
                                         { label: 'Total Cash Collected', value: totalCollected, color: '#0ea5e9', bg: '#f0f9ff', border: '#bae6fd' },
                                         { label: 'Total Deposited', value: totalDeposited, color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0' },
@@ -21599,7 +21665,12 @@ const AdminDashboard = () => {
 
             })()}
 
-
+            {activeTab === 'checklists' && <ChecklistTab />}
+            {activeTab === 'daily_checklist' && <DailyChecklistTab />}
+            {activeTab === 'approvals' && <ApprovalsTab />}
+            {activeTab === 'uniforms' && <UniformsTab />}
+            {activeTab === 'vendors_catalog' && <VendorsCatalogTab />}
+            {activeTab === 'complaints' && <ComplaintsTab />}
 
             </main>
 
@@ -21960,6 +22031,16 @@ const AdminDashboard = () => {
                                             <input type="text" value={editingStaff.fullName} onChange={e => setEditingStaff({ ...editingStaff, fullName: e.target.value })} className={styles.input} required />
 
                                         </div>
+
+
+
+                                         <div className={styles.formGroup}>
+
+                                             <label>Password *</label>
+
+                                             <input type="text" value={editingStaff.password || 'Laban@Staff2026'} onChange={e => setEditingStaff({ ...editingStaff, password: e.target.value })} className={styles.input} required />
+
+                                         </div>
 
                                         <div className={styles.formGroup}>
 
@@ -26174,6 +26255,8 @@ const AdminDashboard = () => {
                                     phone: app.phone,
 
                                     gender: app.gender,
+
+                                    tShirtSize: app.tShirtSize || 'M',
 
                                     dob: '',
 

@@ -63,9 +63,9 @@ const Home = () => {
     return (
         <>
             <SEO
-                title="High Laban Community | Premium Egyptian Desserts"
-                description="High Laban: The Viral Egyptian Dessert & Premier Franchise Opportunities"
-                keywords="Egyptian desserts, High Laban, premium desserts, franchise, India"
+                title="High Laban | Premium Egyptian Desserts & Viral Kunafa Franchise"
+                description="Indulge in authentic Egyptian desserts and our signature viral Kunafa at High Laban. Find the best Kunafa near you and explore sweet franchise opportunities globally."
+                keywords="Egyptian dessert, Kunafa, High Laban, viral desserts, Egyptian sweet shops, best Kunafa near me, High Laban franchise, traditional Egyptian sweets, Cairo desserts, sweet kunafa, basbousa"
             />
             <Hero />
             <main style={{ position: 'relative', zIndex: 10, background: 'var(--color-bg-dark)' }}>

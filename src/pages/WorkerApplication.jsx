@@ -43,6 +43,7 @@ const WorkerApplication = () => {
     const [gender, setGender]             = useState('Male');
     const [nativePlace, setNativePlace]   = useState('');
     const [currentPlace, setCurrentPlace] = useState('');
+    const [tShirtSize, setTShirtSize]     = useState('M');
 
     // ── Position ───────────────────────────────────
     const [positionsList, setPositionsList]     = useState(POSITIONS);
@@ -123,6 +124,7 @@ const WorkerApplication = () => {
                 gender,
                 nativePlace: nativePlace.trim(),
                 currentPlace: currentPlace.trim(),
+                tShirtSize: tShirtSize,
                 appliedPosition: finalPosition,
                 hasExperience: hasExperience === 'Yes',
                 experience: hasExperience === 'Yes' ? {
@@ -220,6 +222,16 @@ const WorkerApplication = () => {
                                 <option value="Male">Male</option>
                                 <option value="Female">Female</option>
                                 <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>T-Shirt Size *</label>
+                            <select className={styles.input} value={tShirtSize} onChange={e => setTShirtSize(e.target.value)}>
+                                <option value="S">Small (S)</option>
+                                <option value="M">Medium (M)</option>
+                                <option value="L">Large (L)</option>
+                                <option value="XL">Extra Large (XL)</option>
+                                <option value="XXL">Double Extra Large (XXL)</option>
                             </select>
                         </div>
                     </div>
