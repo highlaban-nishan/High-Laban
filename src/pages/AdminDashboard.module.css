@@ -73,37 +73,39 @@
 .navItem {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding: 0.9rem 1.2rem;
-    border-radius: 12px;
-    color: #64748b;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    color: #475569;
     font-weight: 500;
-    font-size: 0.95rem;
+    font-size: 0.875rem;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     text-decoration: none;
 }
 
 .navItem:hover {
-    background-color: #f8fafc;
-    color: #475569;
+    background-color: #f1f5f9;
+    color: #0f172a;
 }
 
 .navItem.active {
-    background-color: #0f172a;
-    color: white;
+    background-color: #eff6ff;
+    color: #2563eb;
+    font-weight: 600;
     position: relative;
-    box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.1), 0 2px 4px -1px rgba(15, 23, 42, 0.06);
+    border-left: 3px solid #2563eb;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
 }
 
 .activeDot {
     width: 6px;
     height: 6px;
-    background-color: #3b82f6;
-    /* Blue dot */
+    background-color: #2563eb;
     border-radius: 50%;
     margin-left: auto;
-    box-shadow: 0 0 8px #3b82f6;
+    box-shadow: 0 0 8px rgba(37, 99, 235, 0.4);
 }
 
 .signOut {
@@ -269,17 +271,19 @@
 /* Product Card */
 .card {
     background: white;
-    border-radius: 20px;
-    padding: 2rem;
+    border-radius: 12px;
+    padding: 1.5rem;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.01);
-    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
 
 .card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    transform: translateY(-2px);
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .imageArea {
