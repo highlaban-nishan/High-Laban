@@ -514,6 +514,18 @@ const AdminDashboard = () => {
 
     const [activeTab, setActiveTab] = useState(getInitialTab());
 
+    const [openCategories, setOpenCategories] = useState({
+        website: true,
+        hr: true,
+        operations: true,
+        supplyChain: true,
+        corporate: true
+    });
+
+    const toggleCategory = (cat) => {
+        setOpenCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
+    };
+
     const isReadOnly = user?.role === 'accounts' || user?.role === 'partner';
 
     const isChef = user?.role === 'chef';
@@ -4064,280 +4076,197 @@ const AdminDashboard = () => {
 
 
 
-                <nav className={styles.nav}>
+                <nav className={styles.nav} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', paddingRight: '4px' }}>
 
-                    {hasTabAccess('products') && (
-
-                        <div className={`${styles.navItem} ${activeTab === 'products' ? styles.active : ''}`} onClick={() => { setActiveTab('products'); setIsMobileOpen(false); }}>
-
-                            <FiShoppingBag style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Products
-
-                            {activeTab === 'products' && <div className={styles.activeDot}></div>}
-
+                    {/* Category 1: Website & Content */}
+                    <div style={{ marginBottom: '0.25rem' }}>
+                        <div 
+                            onClick={() => toggleCategory('website')}
+                            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 1rem', fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', cursor: 'pointer', letterSpacing: '0.05em', background: 'rgba(255,255,255,0.03)', borderRadius: '6px' }}
+                        >
+                            <span>🌐 Website & Content</span>
+                            <span>{openCategories.website ? '▼' : '►'}</span>
                         </div>
-
-                    )}
-
-
-
-                    {hasTabAccess('content') && (
-
-                        <div className={`${styles.navItem} ${activeTab === 'content' ? styles.active : ''}`} onClick={() => { setActiveTab('content'); setIsMobileOpen(false); }}>
-
-                            <FiFileText style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Content
-
-                            {activeTab === 'content' && <div className={styles.activeDot}></div>}
-
-                        </div>
-
-                    )}
-
-
-
-                    {hasTabAccess('locations') && (
-
-                        <div className={`${styles.navItem} ${activeTab === 'locations' ? styles.active : ''}`} onClick={() => { setActiveTab('locations'); setIsMobileOpen(false); }}>
-
-                            <FiMapPin style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Locations
-
-                            {activeTab === 'locations' && <div className={styles.activeDot}></div>}
-
-                        </div>
-
-                    )}
-
-
-
-                    {hasTabAccess('customers') && (
-
-                        <div className={`${styles.navItem} ${activeTab === 'customers' ? styles.active : ''}`} onClick={() => { setActiveTab('customers'); setIsMobileOpen(false); }}>
-
-                            <FiUsers style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Users
-
-                            {activeTab === 'customers' && <div className={styles.activeDot}></div>}
-
-                        </div>
-
-                    )}
-
-
-
-                    {hasTabAccess('franchise') && (
-
-                        <div className={`${styles.navItem} ${activeTab === 'franchise' ? styles.active : ''}`} onClick={() => { setActiveTab('franchise'); setIsMobileOpen(false); }}>
-
-                            <FiBriefcase style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Franchise
-
-                            {activeTab === 'franchise' && <div className={styles.activeDot}></div>}
-
-                        </div>
-
-                    )}
-
-
-
-                    {hasTabAccess('directors') && (
-
-                        <div className={`${styles.navItem} ${activeTab === 'directors' ? styles.active : ''}`} onClick={() => { setActiveTab('directors'); setIsMobileOpen(false); }}>
-
-                            <FiUsers style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Directors & Founders
-
-                            {activeTab === 'directors' && <div className={styles.activeDot}></div>}
-
-                        </div>
-
-                    )}
-
-
-
-                    {hasTabAccess('company') && (
-
-                        <div className={`${styles.navItem} ${activeTab === 'company' ? styles.active : ''}`} onClick={() => { setActiveTab('company'); setIsMobileOpen(false); }}>
-
-                            <FiGlobe style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Company Portal
-
-                            {activeTab === 'company' && <div className={styles.activeDot}></div>}
-
-                        </div>
-
-                    )}
-
-
-
-                    {hasTabAccess('staff') && (
-
-                        <div className={`${styles.navItem} ${activeTab === 'staff' ? styles.active : ''}`} onClick={() => { setActiveTab('staff'); setIsMobileOpen(false); }}>
-
-                            <FiUserCheck style={{ fontSize: '1.2rem', marginRight: '8px' }} /> HR Staff
-
-                            {activeTab === 'staff' && <div className={styles.activeDot}></div>}
-
-                        </div>
-
-                    )}
-
-
-
-                    {hasTabAccess('payroll') && (
-
-                        <div className={`${styles.navItem} ${activeTab === 'payroll' ? styles.active : ''}`} onClick={() => { setActiveTab('payroll'); setIsMobileOpen(false); }}>
-
-                            <FiDollarSign style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Payroll
-
-                            {activeTab === 'payroll' && <div className={styles.activeDot}></div>}
-
-                        </div>
-
-                    )}
-
-
-
-                    {hasTabAccess('vendors') && (
-
-                        <div className={`${styles.navItem} ${activeTab === 'vendors' ? styles.active : ''}`} onClick={() => { setActiveTab('vendors'); setIsMobileOpen(false); }}>
-
-                            <FiTruck style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Vendors
-
-                            {activeTab === 'vendors' && <div className={styles.activeDot}></div>}
-
-                        </div>
-
-                    )}
-
-
-
-                    {hasTabAccess('purchases') && (
-
-                        <div className={`${styles.navItem} ${activeTab === 'purchases' ? styles.active : ''}`} onClick={() => { setActiveTab('purchases'); setIsMobileOpen(false); }}>
-
-                            <FiShoppingCart style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Purchases
-
-                            {activeTab === 'purchases' && <div className={styles.activeDot}></div>}
-
-                        </div>
-
-                    )}
-
-
-
-                    {hasTabAccess('costing') && (
-
-                        <div className={`${styles.navItem} ${activeTab === 'costing' ? styles.active : ''}`} onClick={() => { setActiveTab('costing'); setIsMobileOpen(false); }}>
-
-                            <FiPieChart style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Food Costing
-
-                            {activeTab === 'costing' && <div className={styles.activeDot}></div>}
-
-                        </div>
-
-                    )}
-
-
-
-                    {hasTabAccess('transfers') && (
-
-
-
-                        <div className={`${styles.navItem} ${activeTab === 'transfers' ? styles.active : ''}`} onClick={() => { setActiveTab('transfers'); setIsMobileOpen(false); }}>
-
-
-
-                            <FiTruck style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Stock Transfers & Inventory
-
-
-
-                            {activeTab === 'transfers' && <div className={styles.activeDot}></div>}
-
-
-
-                        </div>
-
-
-
-                    )}
-
-                    {hasTabAccess('finance') && (
-                        <div className={`${styles.navItem} ${activeTab === 'finance' ? styles.active : ''}`} onClick={() => { setActiveTab('finance'); setIsMobileOpen(false); }}>
-                            <FiDollarSign style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Franchise Finance
-                            {activeTab === 'finance' && <div className={styles.activeDot}></div>}
-                        </div>
-                    )}
-
-                    {hasTabAccess('finance') && (
-                        <div className={`${styles.navItem} ${activeTab === 'cashManagement' ? styles.active : ''}`} onClick={() => { setActiveTab('cashManagement'); setIsMobileOpen(false); }}>
-                            <FiDollarSign style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Cash Management
-                            {activeTab === 'cashManagement' && <div className={styles.activeDot}></div>}
-                        </div>
-                    )}
-
-                    {hasTabAccess('checklists') && (
-                        <div className={`${styles.navItem} ${activeTab === 'checklists' ? styles.active : ''}`} onClick={() => { setActiveTab('checklists'); setIsMobileOpen(false); }}>
-                            <FiFileText style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Onboarding & Training
-                            {activeTab === 'checklists' && <div className={styles.activeDot}></div>}
-                        </div>
-                    )}
-
-                    {hasTabAccess('daily_checklist') && (
-                        <div className={`${styles.navItem} ${activeTab === 'daily_checklist' ? styles.active : ''}`} onClick={() => { setActiveTab('daily_checklist'); setIsMobileOpen(false); }}>
-                            <FiUserCheck style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Daily Outlet Checks
-                            {activeTab === 'daily_checklist' && <div className={styles.activeDot}></div>}
-                        </div>
-                    )}
-
-                    {hasTabAccess('approvals') && (
-                        <div className={`${styles.navItem} ${activeTab === 'approvals' ? styles.active : ''}`} onClick={() => { setActiveTab('approvals'); setIsMobileOpen(false); }}>
-                            <FiUsers style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Profile Approvals
-                            {activeTab === 'approvals' && <div className={styles.activeDot}></div>}
-                        </div>
-                    )}
-
-                    {hasTabAccess('uniforms') && (
-                        <div className={`${styles.navItem} ${activeTab === 'uniforms' ? styles.active : ''}`} onClick={() => { setActiveTab('uniforms'); setIsMobileOpen(false); }}>
-                            <FiBriefcase style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Uniform Section
-                            {activeTab === 'uniforms' && <div className={styles.activeDot}></div>}
-                        </div>
-                    )}
-
-                    {hasTabAccess('vendors_catalog') && (
-                        <div className={`${styles.navItem} ${activeTab === 'vendors_catalog' ? styles.active : ''}`} onClick={() => { setActiveTab('vendors_catalog'); setIsMobileOpen(false); }}>
-                            <FiShoppingBag style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Vendor Catalogs
-                            {activeTab === 'vendors_catalog' && <div className={styles.activeDot}></div>}
-                        </div>
-                    )}
-
-                    {hasTabAccess('complaints') && (
-                        <div className={`${styles.navItem} ${activeTab === 'complaints' ? styles.active : ''}`} onClick={() => { setActiveTab('complaints'); setIsMobileOpen(false); }}>
-                            <FiAlertTriangle style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Anonymous Complaints
-                            {activeTab === 'complaints' && <div className={styles.activeDot}></div>}
-                        </div>
-                    )}
-
-
-
-
-                    {(user?.role === 'admin' || user?.role === 'partner') && (
-
-                        <>
-
-                            <div className={`${styles.navItem} ${activeTab === 'blogs' ? styles.active : ''}`} onClick={() => { setActiveTab('blogs'); setIsMobileOpen(false); }}>
-
-                                <FiFileText style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Blogs
-
-                                {activeTab === 'blogs' && <div className={styles.activeDot}></div>}
-
+                        {openCategories.website && (
+                            <div style={{ paddingLeft: '0.5rem', display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                                {hasTabAccess('products') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'products' ? styles.active : ''}`} onClick={() => { setActiveTab('products'); setIsMobileOpen(false); }}>
+                                        <FiShoppingBag style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Products
+                                    </div>
+                                )}
+                                {hasTabAccess('content') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'content' ? styles.active : ''}`} onClick={() => { setActiveTab('content'); setIsMobileOpen(false); }}>
+                                        <FiFileText style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Content Sections
+                                    </div>
+                                )}
+                                {hasTabAccess('locations') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'locations' ? styles.active : ''}`} onClick={() => { setActiveTab('locations'); setIsMobileOpen(false); }}>
+                                        <FiMapPin style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Locations
+                                    </div>
+                                )}
+                                {hasTabAccess('customers') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'customers' ? styles.active : ''}`} onClick={() => { setActiveTab('customers'); setIsMobileOpen(false); }}>
+                                        <FiUsers style={{ fontSize: '1.1rem', marginRight: '8px' }} /> User Reviews
+                                    </div>
+                                )}
+                                {(user?.role === 'admin' || user?.role === 'partner') && (
+                                    <>
+                                        <div className={`${styles.navItem} ${activeTab === 'blogs' ? styles.active : ''}`} onClick={() => { setActiveTab('blogs'); setIsMobileOpen(false); }}>
+                                            <FiFileText style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Blogs
+                                        </div>
+                                        <div className={`${styles.navItem} ${activeTab === 'connect' ? styles.active : ''}`} onClick={() => { setActiveTab('connect'); setIsMobileOpen(false); }}>
+                                            <FiGlobe style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Social Links & QR
+                                        </div>
+                                    </>
+                                )}
                             </div>
+                        )}
+                    </div>
 
-                            <div className={`${styles.navItem} ${activeTab === 'connect' ? styles.active : ''}`} onClick={() => { setActiveTab('connect'); setIsMobileOpen(false); }}>
-
-                                <FiGlobe style={{ fontSize: '1.2rem', marginRight: '8px' }} /> Social Links & QR
-
-                                {activeTab === 'connect' && <div className={styles.activeDot}></div>}
-
+                    {/* Category 2: HR & Staffing */}
+                    <div style={{ marginBottom: '0.25rem' }}>
+                        <div 
+                            onClick={() => toggleCategory('hr')}
+                            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 1rem', fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', cursor: 'pointer', letterSpacing: '0.05em', background: 'rgba(255,255,255,0.03)', borderRadius: '6px' }}
+                        >
+                            <span>👥 HR & Staffing</span>
+                            <span>{openCategories.hr ? '▼' : '►'}</span>
+                        </div>
+                        {openCategories.hr && (
+                            <div style={{ paddingLeft: '0.5rem', display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                                {hasTabAccess('staff') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'staff' ? styles.active : ''}`} onClick={() => { setActiveTab('staff'); setIsMobileOpen(false); }}>
+                                        <FiUsers style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Staff Directory
+                                    </div>
+                                )}
+                                {hasTabAccess('payroll') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'payroll' ? styles.active : ''}`} onClick={() => { setActiveTab('payroll'); setIsMobileOpen(false); }}>
+                                        <FiDollarSign style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Payroll Management
+                                    </div>
+                                )}
+                                {hasTabAccess('checklists') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'checklists' ? styles.active : ''}`} onClick={() => { setActiveTab('checklists'); setIsMobileOpen(false); }}>
+                                        <FiFileText style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Onboarding & Training
+                                    </div>
+                                )}
+                                {hasTabAccess('approvals') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'approvals' ? styles.active : ''}`} onClick={() => { setActiveTab('approvals'); setIsMobileOpen(false); }}>
+                                        <FiUserCheck style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Profile Approvals
+                                    </div>
+                                )}
+                                {hasTabAccess('complaints') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'complaints' ? styles.active : ''}`} onClick={() => { setActiveTab('complaints'); setIsMobileOpen(false); }}>
+                                        <FiAlertTriangle style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Anonymous Complaints
+                                    </div>
+                                )}
                             </div>
+                        )}
+                    </div>
 
-                        </>
+                    {/* Category 3: Daily Operations */}
+                    <div style={{ marginBottom: '0.25rem' }}>
+                        <div 
+                            onClick={() => toggleCategory('operations')}
+                            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 1rem', fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', cursor: 'pointer', letterSpacing: '0.05em', background: 'rgba(255,255,255,0.03)', borderRadius: '6px' }}
+                        >
+                            <span>⚡ Daily Operations</span>
+                            <span>{openCategories.operations ? '▼' : '►'}</span>
+                        </div>
+                        {openCategories.operations && (
+                            <div style={{ paddingLeft: '0.5rem', display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                                {hasTabAccess('daily_checklist') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'daily_checklist' ? styles.active : ''}`} onClick={() => { setActiveTab('daily_checklist'); setIsMobileOpen(false); }}>
+                                        <FiUserCheck style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Daily Outlet Checks
+                                    </div>
+                                )}
+                                {hasTabAccess('uniforms') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'uniforms' ? styles.active : ''}`} onClick={() => { setActiveTab('uniforms'); setIsMobileOpen(false); }}>
+                                        <FiBriefcase style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Uniform Section
+                                    </div>
+                                )}
+                                {hasTabAccess('finance') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'cashManagement' ? styles.active : ''}`} onClick={() => { setActiveTab('cashManagement'); setIsMobileOpen(false); }}>
+                                        <FiDollarSign style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Cash Management
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
 
-                    )}
+                    {/* Category 4: Supply Chain & ERP */}
+                    <div style={{ marginBottom: '0.25rem' }}>
+                        <div 
+                            onClick={() => toggleCategory('supplyChain')}
+                            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 1rem', fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', cursor: 'pointer', letterSpacing: '0.05em', background: 'rgba(255,255,255,0.03)', borderRadius: '6px' }}
+                        >
+                            <span>📦 Supply Chain & ERP</span>
+                            <span>{openCategories.supplyChain ? '▼' : '►'}</span>
+                        </div>
+                        {openCategories.supplyChain && (
+                            <div style={{ paddingLeft: '0.5rem', display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                                {hasTabAccess('vendors') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'vendors' ? styles.active : ''}`} onClick={() => { setActiveTab('vendors'); setIsMobileOpen(false); }}>
+                                        <FiShoppingBag style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Vendor Directory
+                                    </div>
+                                )}
+                                {hasTabAccess('vendors_catalog') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'vendors_catalog' ? styles.active : ''}`} onClick={() => { setActiveTab('vendors_catalog'); setIsMobileOpen(false); }}>
+                                        <FiShoppingBag style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Vendor Catalogs
+                                    </div>
+                                )}
+                                {hasTabAccess('purchases') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'purchases' ? styles.active : ''}`} onClick={() => { setActiveTab('purchases'); setIsMobileOpen(false); }}>
+                                        <FiShoppingCart style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Stock Purchases
+                                    </div>
+                                )}
+                                {hasTabAccess('costing') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'costing' ? styles.active : ''}`} onClick={() => { setActiveTab('costing'); setIsMobileOpen(false); }}>
+                                        <FiPieChart style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Food Costing ERP
+                                    </div>
+                                )}
+                                {hasTabAccess('transfers') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'transfers' ? styles.active : ''}`} onClick={() => { setActiveTab('transfers'); setIsMobileOpen(false); }}>
+                                        <FiTruck style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Stock Transfers
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Category 5: Corporate & Finance */}
+                    <div style={{ marginBottom: '0.25rem' }}>
+                        <div 
+                            onClick={() => toggleCategory('corporate')}
+                            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 1rem', fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', cursor: 'pointer', letterSpacing: '0.05em', background: 'rgba(255,255,255,0.03)', borderRadius: '6px' }}
+                        >
+                            <span>🏢 Corporate & Finance</span>
+                            <span>{openCategories.corporate ? '▼' : '►'}</span>
+                        </div>
+                        {openCategories.corporate && (
+                            <div style={{ paddingLeft: '0.5rem', display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                                {hasTabAccess('franchise') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'franchise' ? styles.active : ''}`} onClick={() => { setActiveTab('franchise'); setIsMobileOpen(false); }}>
+                                        <FiUsers style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Franchise Inquiries
+                                    </div>
+                                )}
+                                {hasTabAccess('directors') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'directors' ? styles.active : ''}`} onClick={() => { setActiveTab('directors'); setIsMobileOpen(false); }}>
+                                        <FiUsers style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Directors Board
+                                    </div>
+                                )}
+                                {hasTabAccess('company') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'company' ? styles.active : ''}`} onClick={() => { setActiveTab('company'); setIsMobileOpen(false); }}>
+                                        <FiShoppingBag style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Corporate Info
+                                    </div>
+                                )}
+                                {hasTabAccess('finance') && (
+                                    <div className={`${styles.navItem} ${activeTab === 'finance' ? styles.active : ''}`} onClick={() => { setActiveTab('finance'); setIsMobileOpen(false); }}>
+                                        <FiDollarSign style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Franchise Finance
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
 
                 </nav>
 
@@ -10311,7 +10240,18 @@ const AdminDashboard = () => {
 
                                                             >
 
-                                                                <div style={{ fontWeight: 'bold', color: '#009ceb', textDecoration: 'underline' }}>{staff.fullName} 🔎</div>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                 <span style={{ fontWeight: 'bold', color: '#009ceb', textDecoration: 'underline' }}>{staff.fullName} ​🔎</span>
+                                                                 {getMissingFields(staff).length > 0 ? (
+                                                                     <span style={{ fontSize: '0.65rem', background: '#7f1d1d', color: '#fca5a5', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }} title={`Missing: ${getMissingFields(staff).join(', ')}`}>
+                                                                         ⚠️ Incomplete
+                                                                     </span>
+                                                                 ) : (
+                                                                     <span style={{ fontSize: '0.65rem', background: '#064e3b', color: '#a7f3d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                                                         ✓ Complete
+                                                                     </span>
+                                                                 )}
+                                                             </div>
 
                                                                 <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{staff.position} • {staff.assignedOutlet || 'Head Office'}</div>
 
@@ -10535,11 +10475,27 @@ const AdminDashboard = () => {
 
                                                         >
 
-                                                            <div style={{ fontWeight: 'bold', color: '#009ceb', textDecoration: 'underline' }}>{staff.fullName} 🔎</div>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                 <span style={{ fontWeight: 'bold', color: '#009ceb', textDecoration: 'underline' }}>{staff.fullName} ​🔎</span>
+                                                                 {getMissingFields(staff).length > 0 ? (
+                                                                     <span style={{ fontSize: '0.65rem', background: '#7f1d1d', color: '#fca5a5', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }} title={`Missing: ${getMissingFields(staff).join(', ')}`}>
+                                                                         ⚠️ Incomplete
+                                                                     </span>
+                                                                 ) : (
+                                                                     <span style={{ fontSize: '0.65rem', background: '#064e3b', color: '#a7f3d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                                                         ✓ Complete
+                                                                     </span>
+                                                                 )}
+                                                             </div>
 
                                                             <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
 
                                                                 {staff.dob ? `Born ${staff.dob}` : 'DOB not set'} • {staff.position}
+                                                                 {getMissingFields(staff).length > 0 && (
+                                                                     <div style={{ color: '#ef4444', fontSize: '0.65rem', marginTop: '2px' }}>
+                                                                         Missing: {getMissingFields(staff).join(', ')}
+                                                                     </div>
+                                                                 )}
 
                                                             </div>
 
@@ -13850,7 +13806,18 @@ const AdminDashboard = () => {
 
                                                                     >
 
-                                                                        <div style={{ fontWeight: 'bold', color: '#009ceb', textDecoration: 'underline' }}>{staff.fullName} 🔎</div>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                 <span style={{ fontWeight: 'bold', color: '#009ceb', textDecoration: 'underline' }}>{staff.fullName} ​🔎</span>
+                                                                 {getMissingFields(staff).length > 0 ? (
+                                                                     <span style={{ fontSize: '0.65rem', background: '#7f1d1d', color: '#fca5a5', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }} title={`Missing: ${getMissingFields(staff).join(', ')}`}>
+                                                                         ⚠️ Incomplete
+                                                                     </span>
+                                                                 ) : (
+                                                                     <span style={{ fontSize: '0.65rem', background: '#064e3b', color: '#a7f3d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                                                         ✓ Complete
+                                                                     </span>
+                                                                 )}
+                                                             </div>
 
                                                                         <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
 

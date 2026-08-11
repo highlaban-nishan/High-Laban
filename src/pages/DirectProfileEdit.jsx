@@ -13,12 +13,16 @@ export default function DirectProfileEdit() {
     // Form fields
     const [nickname, setNickname] = useState('');
     const [phone, setPhone] = useState('');
+    const [dob, setDob] = useState('');
+    const [bloodGroup, setBloodGroup] = useState('');
     const [currentAddress, setCurrentAddress] = useState('');
+    const [permanentAddress, setPermanentAddress] = useState('');
     const [emergencyContact, setEmergencyContact] = useState('');
     const [emergencyPhone, setEmergencyPhone] = useState('');
     const [bankName, setBankName] = useState('');
     const [accountNumber, setAccountNumber] = useState('');
     const [ifscCode, setIfscCode] = useState('');
+    const [upiId, setUpiId] = useState('');
     const [tShirtSize, setTShirtSize] = useState('M');
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -39,12 +43,16 @@ export default function DirectProfileEdit() {
                 setStaffInfo(match);
                 setNickname(match.nickname || '');
                 setPhone(match.phone || '');
+                setDob(match.dob || '');
+                setBloodGroup(match.bloodGroup || '');
                 setCurrentAddress(match.currentAddress || '');
+                setPermanentAddress(match.permanentAddress || '');
                 setEmergencyContact(match.emergencyContact || '');
                 setEmergencyPhone(match.emergencyPhone || '');
                 setBankName(match.bankName || '');
                 setAccountNumber(match.accountNumber || '');
                 setIfscCode(match.ifscCode || '');
+                setUpiId(match.upiId || '');
                 setTShirtSize(match.tShirtSize || 'M');
             } else {
                 setStaffInfo(null);
@@ -67,12 +75,16 @@ export default function DirectProfileEdit() {
                 requestedChanges: {
                     nickname,
                     phone,
+                    dob,
+                    bloodGroup,
                     currentAddress,
+                    permanentAddress,
                     emergencyContact,
                     emergencyPhone,
                     bankName,
                     accountNumber,
                     ifscCode,
+                    upiId,
                     tShirtSize
                 }
             };
@@ -134,66 +146,136 @@ export default function DirectProfileEdit() {
                             </p>
                         )}
                     </div>
-                ) : (
+                 ) : (
                     <div>
                         <h2 className={styles.title}>Edit Details: {staffInfo.fullName}</h2>
                         <p className={styles.subtitle}>Update the fields below. Admin approval is required for updates.</p>
 
-                        <form onSubmit={handleSave}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Nickname</label>
-                                <input className={styles.input} type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} required />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Phone Number</label>
-                                <input className={styles.input} type="text" value={phone} onChange={(e) => setPhone(e.target.value)} required />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Current Address</label>
-                                <textarea className={styles.textarea} value={currentAddress} onChange={(e) => setCurrentAddress(e.target.value)} required />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Emergency Contact Name</label>
-                                <input className={styles.input} type="text" value={emergencyContact} onChange={(e) => setEmergencyContact(e.target.value)} required />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Emergency Phone</label>
-                                <input className={styles.input} type="text" value={emergencyPhone} onChange={(e) => setEmergencyPhone(e.target.value)} required />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>T-Shirt Size</label>
-                                <select className={styles.select} value={tShirtSize} onChange={(e) => setTShirtSize(e.target.value)}>
-                                    <option value="S">Small (S)</option>
-                                    <option value="M">Medium (M)</option>
-                                    <option value="L">Large (L)</option>
-                                    <option value="XL">Extra Large (XL)</option>
-                                    <option value="XXL">Double Extra Large (XXL)</option>
-                                </select>
-                            </div>
+                        {(() => {
+                            const missing = [];
+                            if (!nickname) missing.push('Nickname');
+                            if (!dob) missing.push('Date of Birth');
+                            if (!bloodGroup) missing.push('Blood Group');
+                            if (!phone) missing.push('Phone');
+                            if (!currentAddress) missing.push('Current Address');
+                            if (!permanentAddress) missing.push('Permanent Address');
+                            if (!emergencyContact) missing.push('Emergency Contact Name');
+                            if (!emergencyPhone) missing.push('Emergency Phone');
+                            if (!bankName) missing.push('Bank Name');
+                            if (!accountNumber) missing.push('Account Number');
+                            if (!ifscCode) missing.push('IFSC Code');
+                            if (!upiId) missing.push('UPI ID');
 
-                            <h3 style={{ marginTop: '1.5rem', color: '#818cf8', fontSize: '1.1rem' }}>Bank Account</h3>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Bank Name</label>
-                                <input className={styles.input} type="text" value={bankName} onChange={(e) => setBankName(e.target.value)} required />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Account Number</label>
-                                <input className={styles.input} type="text" value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} required />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>IFSC Code</label>
-                                <input className={styles.input} type="text" value={ifscCode} onChange={(e) => setIfscCode(e.target.value)} required />
-                            </div>
+                            return (
+                                <>
+                                    {missing.length > 0 && (
+                                        <div style={{ background: '#7f1d1d', border: '1px solid #ef4444', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', color: '#fca5a5', fontSize: '0.85rem' }}>
+                                            <strong style={{ display: 'block', marginBottom: '0.25rem', color: '#fecaca' }}>⚠️ Profile Incomplete!</strong>
+                                            Please fill in the missing fields: {missing.join(', ')}
+                                        </div>
+                                    )}
 
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-                                <button type="submit" disabled={submitting} className={styles.submitBtn} style={{ flex: 2, marginTop: 0 }}>
-                                    {submitting ? 'Submitting...' : 'Request Changes'}
-                                </button>
-                                <button type="button" onClick={() => setStaffInfo(null)} className={styles.submitBtn} style={{ flex: 1, marginTop: 0, background: '#64748b' }}>
-                                    Back
-                                </button>
-                            </div>
-                        </form>
+                                    <form onSubmit={handleSave}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div className={styles.formGroup}>
+                                                <label className={styles.label}>Nickname {!nickname && <span style={{ color: '#f87171', fontSize: '0.75rem' }}>(⚠️ Missing)</span>}</label>
+                                                <input className={styles.input} type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} required />
+                                            </div>
+                                            <div className={styles.formGroup}>
+                                                <label className={styles.label}>Phone Number {!phone && <span style={{ color: '#f87171', fontSize: '0.75rem' }}>(⚠️ Missing)</span>}</label>
+                                                <input className={styles.input} type="text" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                                            <div className={styles.formGroup}>
+                                                <label className={styles.label}>Date of Birth {!dob && <span style={{ color: '#f87171', fontSize: '0.75rem' }}>(⚠️ Missing)</span>}</label>
+                                                <input className={styles.input} type="date" value={dob} onChange={(e) => setDob(e.target.value)} required />
+                                            </div>
+                                            <div className={styles.formGroup}>
+                                                <label className={styles.label}>Blood Group {!bloodGroup && <span style={{ color: '#f87171', fontSize: '0.75rem' }}>(⚠️ Missing)</span>}</label>
+                                                <select className={styles.select} value={bloodGroup} onChange={(e) => setBloodGroup(e.target.value)} required>
+                                                    <option value="">Select Group</option>
+                                                    <option value="A+">A+</option>
+                                                    <option value="A-">A-</option>
+                                                    <option value="B+">B+</option>
+                                                    <option value="B-">B-</option>
+                                                    <option value="AB+">AB+</option>
+                                                    <option value="AB-">AB-</option>
+                                                    <option value="O+">O+</option>
+                                                    <option value="O-">O-</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className={styles.formGroup} style={{ marginTop: '1rem' }}>
+                                            <label className={styles.label}>Current Address {!currentAddress && <span style={{ color: '#f87171', fontSize: '0.75rem' }}>(⚠️ Missing)</span>}</label>
+                                            <textarea className={styles.textarea} value={currentAddress} onChange={(e) => setCurrentAddress(e.target.value)} required />
+                                        </div>
+
+                                        <div className={styles.formGroup} style={{ marginTop: '1rem' }}>
+                                            <label className={styles.label}>Permanent Address {!permanentAddress && <span style={{ color: '#f87171', fontSize: '0.75rem' }}>(⚠️ Missing)</span>}</label>
+                                            <textarea className={styles.textarea} value={permanentAddress} onChange={(e) => setPermanentAddress(e.target.value)} required />
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                                            <div className={styles.formGroup}>
+                                                <label className={styles.label}>Emergency Contact Name {!emergencyContact && <span style={{ color: '#f87171', fontSize: '0.75rem' }}>(⚠️ Missing)</span>}</label>
+                                                <input className={styles.input} type="text" value={emergencyContact} onChange={(e) => setEmergencyContact(e.target.value)} required />
+                                            </div>
+                                            <div className={styles.formGroup}>
+                                                <label className={styles.label}>Emergency Phone {!emergencyPhone && <span style={{ color: '#f87171', fontSize: '0.75rem' }}>(⚠️ Missing)</span>}</label>
+                                                <input className={styles.input} type="text" value={emergencyPhone} onChange={(e) => setEmergencyPhone(e.target.value)} required />
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                                            <div className={styles.formGroup}>
+                                                <label className={styles.label}>T-Shirt Size</label>
+                                                <select className={styles.select} value={tShirtSize} onChange={(e) => setTShirtSize(e.target.value)}>
+                                                    <option value="S">Small (S)</option>
+                                                    <option value="M">Medium (M)</option>
+                                                    <option value="L">Large (L)</option>
+                                                    <option value="XL">Extra Large (XL)</option>
+                                                    <option value="XXL">Double Extra Large (XXL)</option>
+                                                </select>
+                                            </div>
+                                            <div className={styles.formGroup}>
+                                                <label className={styles.label}>UPI ID for Quick Payouts {!upiId && <span style={{ color: '#f87171', fontSize: '0.75rem' }}>(⚠️ Missing)</span>}</label>
+                                                <input className={styles.input} type="text" value={upiId} onChange={(e) => setUpiId(e.target.value)} required placeholder="e.g. employee@okaxis" />
+                                            </div>
+                                        </div>
+
+                                        <h3 style={{ marginTop: '2rem', color: '#818cf8', fontSize: '1.1rem', borderBottom: '1px solid #475569', paddingBottom: '0.5rem' }}>Bank Account Details</h3>
+                                        
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                                            <div className={styles.formGroup}>
+                                                <label className={styles.label}>Bank Name {!bankName && <span style={{ color: '#f87171', fontSize: '0.75rem' }}>(⚠️ Missing)</span>}</label>
+                                                <input className={styles.input} type="text" value={bankName} onChange={(e) => setBankName(e.target.value)} required />
+                                            </div>
+                                            <div className={styles.formGroup}>
+                                                <label className={styles.label}>Account Number {!accountNumber && <span style={{ color: '#f87171', fontSize: '0.75rem' }}>(⚠️ Missing)</span>}</label>
+                                                <input className={styles.input} type="text" value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} required />
+                                            </div>
+                                        </div>
+
+                                        <div className={styles.formGroup} style={{ marginTop: '1rem' }}>
+                                            <label className={styles.label}>IFSC Code {!ifscCode && <span style={{ color: '#f87171', fontSize: '0.75rem' }}>(⚠️ Missing)</span>}</label>
+                                            <input className={styles.input} type="text" value={ifscCode} onChange={(e) => setIfscCode(e.target.value)} required />
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '1rem', marginTop: '2.5rem' }}>
+                                            <button type="submit" disabled={submitting} className={styles.submitBtn} style={{ flex: 2, marginTop: 0 }}>
+                                                {submitting ? 'Submitting...' : 'Request Changes'}
+                                            </button>
+                                            <button type="button" onClick={() => setStaffInfo(null)} className={styles.submitBtn} style={{ flex: 1, marginTop: 0, background: '#64748b' }}>
+                                                Back
+                                            </button>
+                                        </div>
+                                    </form>
+                                </>
+                            );
+                        })()}
                     </div>
                 )}
             </div>
