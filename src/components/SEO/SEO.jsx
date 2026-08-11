@@ -2,9 +2,9 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 
 export default function SEO({ 
-    title = "High Laban | Premium Egyptian Desserts & Viral Kunafa", 
-    description = "Savor the best authentic Egyptian desserts, signature Kunafa, and viral sweet creations at High Laban. Explore our menu and premier franchise opportunities today.", 
-    keywords = "Egyptian dessert, Kunafa, High Laban, viral desserts, Egyptian sweet shops, best Kunafa near me, High Laban franchise, traditional Egyptian sweets", 
+    title = "High Laban | Best Egyptian Dessert, Best Laban & Best Desserts", 
+    description = "Craving the best dessert? High Laban is your go-to sweet shop for the best laban, authentic Egyptian desserts, viral Kunafa, and delicious sweet treats near you.", 
+    keywords = "best dessert, best laban, best egyptian dessert, sweet shop, best desserts near me, viral kunafa, Egyptian dessert, traditional sweets, High Laban franchise, koshary dessert", 
     type = 'website', 
     name = 'High Laban Community' 
 }) {
