@@ -114,9 +114,6 @@ export default function Footer() {
                         <a className={styles.navLink} href="https://www.google.com/maps/search/High+Laban" target="_blank" rel="noopener noreferrer">Find Us</a>
                         <a className={styles.navLink} href="/apply"          onClick={(e) => { e.preventDefault(); navigate('/apply'); }}>Careers</a>
                         <span className={styles.navLink} style={{ cursor: 'pointer' }} onClick={() => setIsContactOpen(true)}>Contact Us</span>
-                        <a className={styles.navLink} href="/login"          style={{ fontWeight: 'bold', color: '#38bdf8' }} onClick={(e) => { e.preventDefault(); navigate('/login'); }}>🔒 Staff Portal Login</a>
-                        <a className={styles.navLink} href="/complaint"      style={{ color: '#f87171' }} onClick={(e) => { e.preventDefault(); navigate('/complaint'); }}>⚠️ Anonymous Complaint Box</a>
-                        <a className={styles.navLink} href="/edit-profile"   onClick={(e) => { e.preventDefault(); navigate('/edit-profile'); }}>Update Staff Profile</a>
                     </div>
 
                 </div>
