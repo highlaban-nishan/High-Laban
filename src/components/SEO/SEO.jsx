@@ -2,7 +2,7 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 
 export default function SEO({ 
-    title = "High Laban | Best Egyptian Dessert, Best Laban & Best Desserts", 
+    title = "High Laban | India’s First Modern-Twist Egyptian Dessert Brand", 
     description = "High Laban brings Egyptian desserts to India with a modern twist, combining authentic Egyptian inspiration, Middle Eastern flavours and a fresh contemporary experience with viral favourites, kunafa, baklava, pistachio desserts and more.", 
     keywords = "best dessert, best laban, best egyptian dessert, sweet shop, best desserts near me, viral kunafa, Egyptian dessert, traditional sweets, High Laban franchise, koshary dessert", 
     type = 'website', 
