@@ -22,6 +22,22 @@ const WorkerDashboard = () => {
     const [tShirtSize, setTShirtSize] = useState('M');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const [deferredPrompt, setDeferredPrompt] = useState(null);
+    const [showInstallBtn, setShowInstallBtn] = useState(false);
+
+    useEffect(() => {
+        const handler = (e) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+            setShowInstallBtn(true);
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            setShowInstallBtn(false);
+        }
+        return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -111,7 +127,46 @@ const WorkerDashboard = () => {
                     <h1 className={styles.title}>Worker Portal</h1>
                     <p style={{ color: '#94a3b8' }}>Welcome, {staffInfo?.fullName || user?.name || 'Worker'}</p>
                 </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    {showInstallBtn && (
+                        <button
+                            onClick={async () => {
+                                if (deferredPrompt) {
+                                    deferredPrompt.prompt();
+                                    const { outcome } = await deferredPrompt.userChoice;
+                                    if (outcome === 'accepted') {
+                                        setDeferredPrompt(null);
+                                        setShowInstallBtn(false);
+                                    }
+                                } else {
+                                    if (Notification.permission === 'default') {
+                                        const status = await Notification.requestPermission();
+                                        if (status === 'granted') {
+                                            alert('Notifications enabled successfully!');
+                                        }
+                                    } else {
+                                        alert('App is already installed or shortcuts are configured!');
+                                    }
+                                }
+                            }}
+                            style={{
+                                background: 'linear-gradient(135deg, #10b981, #059669)',
+                                color: 'white',
+                                border: 'none',
+                                padding: '0.6rem 1.2rem',
+                                borderRadius: '8px',
+                                fontWeight: 'bold',
+                                fontSize: '0.85rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                boxShadow: '0 4px 12px rgba(16,185,129,0.2)'
+                            }}
+                        >
+                            📲 Install App & Alerts
+                        </button>
+                    )}
                     <a href="/complaint" className={styles.editBtn} style={{ margin: 0, textDecoration: 'none', display: 'flex', alignItems: 'center', backgroundColor: '#dc2626', color: '#fff' }}>
                         ⚠️ File Anonymous Complaint
                     </a>
