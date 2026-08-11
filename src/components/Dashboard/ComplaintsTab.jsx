@@ -57,6 +57,9 @@ export default function ComplaintsTab() {
                                         {item.category}
                                     </span>
                                     {item.branch && <span style={{ color: '#38bdf8', fontSize: '0.9rem', fontWeight: '500' }}>Branch: {item.branch}</span>}
+                                    <span style={{ color: '#e2e8f0', fontSize: '0.9rem', marginLeft: '0.75rem', background: '#334155', padding: '2px 8px', borderRadius: '4px' }}>
+                                        By: {item.reporterName || 'Anonymous'}
+                                    </span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                     <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Logged: {new Date(item.createdAt).toLocaleString()}</span>

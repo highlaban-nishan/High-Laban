@@ -4109,6 +4109,9 @@ const AdminDashboard = () => {
                                         <FiUsers style={{ fontSize: '1.1rem', marginRight: '8px' }} /> User Reviews
                                     </div>
                                 )}
+                                <div className={`${styles.navItem} ${activeTab === 'links_directory' ? styles.active : ''}`} onClick={() => { setActiveTab('links_directory'); setIsMobileOpen(false); }}>
+                                    <FiGlobe style={{ fontSize: '1.1rem', marginRight: '8px' }} /> Links Directory
+                                </div>
                                 {(user?.role === 'admin' || user?.role === 'partner') && (
                                     <>
                                         <div className={`${styles.navItem} ${activeTab === 'blogs' ? styles.active : ''}`} onClick={() => { setActiveTab('blogs'); setIsMobileOpen(false); }}>
@@ -21638,6 +21641,7 @@ const AdminDashboard = () => {
             {activeTab === 'uniforms' && <UniformsTab />}
             {activeTab === 'vendors_catalog' && <VendorsCatalogTab />}
             {activeTab === 'complaints' && <ComplaintsTab />}
+            {activeTab === 'links_directory' && <LinksDirectory />}
 
             </main>
 
@@ -26464,5 +26468,65 @@ const AdminDashboard = () => {
 };
 
 
+
+const LinksDirectory = () => {
+    const origin = window.location.origin;
+    const links = [
+        { label: 'Public Website Homepage', path: '/', desc: 'Main customer facing website with menu and brand details.' },
+        { label: '🔒 Staff Portal Login', path: '/login', desc: 'Secure login portal for all employees and outlets.' },
+        { label: '⚠️ Anonymous Complaint Box', path: '/complaint', desc: 'Direct secure workspace hotline for staff reports.' },
+        { label: '✏️ Fast Profile Edit Link', path: '/edit-profile', desc: 'Login-free employee profile completeness updater.' },
+        { label: '📋 New Staff Onboarding Form', path: '/onboarding', desc: 'Quick onboarding form for newly hired staff members.' },
+        { label: '💼 Worker Job Application Form', path: '/apply', desc: 'Job application form for applicants / hiring.' },
+        { label: '🤝 Franchise Inquiry Form', path: '/franchise-inquiry', desc: 'Franchise onboarding and site verification enquiry form.' },
+        { label: '🔗 Connect Links Page', path: '/connect', desc: 'QR code and link directory page for outlet marketing.' },
+        { label: '📝 Blog Section', path: '/blog', desc: 'News, events, and dessert launch publications.' }
+    ];
+
+    const copyToClipboard = (url) => {
+        navigator.clipboard.writeText(url);
+        alert('Copied link: ' + url);
+    };
+
+    return (
+        <div style={{ color: 'white', padding: '1.5rem', background: '#1e293b', borderRadius: '12px' }}>
+            <h3 style={{ marginBottom: '0.5rem', color: '#38bdf8' }}>Links & Portal Directory</h3>
+            <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                Copy and share these portal links with staff, new hires, or partners.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {links.map((link, idx) => {
+                    const fullUrl = `${origin}${link.path}`;
+                    return (
+                        <div key={idx} style={{ background: '#0f172a', padding: '1.25rem', borderRadius: '8px', border: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h4 style={{ margin: 0, color: '#38bdf8', fontSize: '1.1rem', fontWeight: 'bold' }}>{link.label}</h4>
+                                <p style={{ margin: '4px 0 8px 0', color: '#94a3b8', fontSize: '0.85rem' }}>{link.desc}</p>
+                                <code style={{ color: '#a7f3d0', fontSize: '0.8rem', background: '#1e293b', padding: '2px 6px', borderRadius: '4px' }}>{fullUrl}</code>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button 
+                                    onClick={() => copyToClipboard(fullUrl)}
+                                    style={{ background: '#2563eb', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}
+                                >
+                                    Copy Link
+                                </button>
+                                <a 
+                                    href={link.path} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    style={{ background: '#475569', color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}
+                                >
+                                    Open
+                                </a>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
 
 export default AdminDashboard;

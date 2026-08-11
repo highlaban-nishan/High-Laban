@@ -7,6 +7,7 @@ import { FiAlertTriangle, FiCheckCircle } from 'react-icons/fi';
 export default function Complaint() {
     const [category, setCategory] = useState('Workplace Condition');
     const [branch, setBranch] = useState('');
+    const [reporterName, setReporterName] = useState('');
     const [description, setDescription] = useState('');
     const [outlets, setOutlets] = useState([]);
     const [submitting, setSubmitting] = useState(false);
@@ -23,6 +24,7 @@ export default function Complaint() {
             const data = {
                 category,
                 branch,
+                reporterName: reporterName.trim() || 'Anonymous',
                 description,
                 status: 'Unresolved'
             };
@@ -70,6 +72,27 @@ export default function Complaint() {
                                     <option value="Compensation & Hours">Salary / Punctuality / Hours</option>
                                     <option value="Other / General Concern">Other / General Feedback</option>
                                 </select>
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>Your Name (Optional - Leave blank to remain completely anonymous)</label>
+                                <input
+                                    className={styles.input}
+                                    type="text"
+                                    value={reporterName}
+                                    onChange={(e) => setReporterName(e.target.value)}
+                                    placeholder="Enter your name (Optional)"
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        background: '#1e293b',
+                                        border: '1px solid #334155',
+                                        borderRadius: '8px',
+                                        color: 'white',
+                                        outline: 'none',
+                                        fontSize: '0.9rem'
+                                    }}
+                                />
                             </div>
 
                             <div className={styles.formGroup}>
