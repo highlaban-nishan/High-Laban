@@ -86,6 +86,26 @@ const toInputDate = (dateStr) => {
 
 
 
+const getMissingFields = (staff) => {
+
+    if (!staff) return [];
+
+    const missing = [];
+
+    if (!staff.aadhaarCollected) missing.push("Aadhaar");
+
+    if (!staff.panCollected) missing.push("PAN");
+
+    if (!staff.medicalCollected) missing.push("Medical Certificate");
+
+    if (!staff.bankName || !staff.accountNumber) missing.push("Bank Details");
+
+    return missing;
+
+};
+
+
+
 const getProrationFactor = (staff, monthStr) => {
 
     if (!monthStr) return 1;
